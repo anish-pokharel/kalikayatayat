@@ -1,0 +1,29 @@
+<!-- src/app/components/header/header.component.html -->
+<header class="header">
+  <div class="container">
+    <div class="logo">
+      <a routerLink="/">
+        <h1>Travel<span>Agency</span></h1>
+      </a>
+    </div>
+    <nav class="nav-menu">
+      <ul>
+        <li><a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a></li>
+        <li><a href="#">Buses</a></li>
+        <li><a href="#">Routes</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </nav>
+    <div class="auth-buttons">
+      <ng-container *ngIf="!isLoggedIn; else userMenu">
+        <a routerLink="/login" class="btn-login">Login</a>
+        <a routerLink="/register" class="btn-register">Register</a>
+      </ng-container>
+      <ng-template #userMenu>
+        <div class="user-dropdown">
+          <button class="btn-user">My Account ▼</button>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</header>

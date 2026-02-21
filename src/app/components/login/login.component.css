@@ -1,0 +1,160 @@
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.login-card {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  padding: 40px;
+  width: 100%;
+  max-width: 450px;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.login-header h2 {
+  color: #333;
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.login-header p {
+  color: #666;
+  font-size: 16px;
+}
+
+.error-alert {
+  background: #fee;
+  color: #e74c3c;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.form-group {
+  margin-bottom: 25px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #555;
+  font-weight: 500;
+}
+
+.input-icon {
+  display: flex;
+  align-items: center;
+  border: 2px solid #e1e5ee;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+
+.input-icon:focus-within {
+  border-color: #667eea;
+}
+
+.icon {
+  padding: 12px 15px;
+  background: #f8f9fa;
+  color: #667eea;
+  font-size: 18px;
+}
+
+.input-icon input {
+  flex: 1;
+  padding: 12px 15px;
+  border: none;
+  outline: none;
+  font-size: 15px;
+}
+
+.error-message {
+  color: #e74c3c;
+  font-size: 13px;
+  margin-top: 5px;
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+}
+
+.checkbox-container input {
+  margin-right: 8px;
+}
+
+.forgot-link {
+  color: #667eea;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.btn-login {
+  width: 100%;
+  padding: 14px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn-login:hover:not(:disabled) {
+  background: #5a67d8;
+}
+
+.btn-login:disabled {
+  background: #b3b9f0;
+  cursor: not-allowed;
+}
+
+.register-link {
+  text-align: center;
+  margin-top: 25px;
+  color: #666;
+}
+
+.register-link a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.admin-demo {
+  margin-top: 30px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #666;
+}
+
+.admin-demo p {
+  margin: 5px 0;
+}

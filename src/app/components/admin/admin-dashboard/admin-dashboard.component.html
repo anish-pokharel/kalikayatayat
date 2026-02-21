@@ -1,0 +1,74 @@
+<div class="admin-container">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>Travel Admin</h2>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <a class="nav-item" routerLink="/admin/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+      </a>
+      <a class="nav-item" routerLink="/admin/companies" routerLinkActive="active">
+        <span class="nav-icon">🏢</span>
+        <span>Companies</span>
+      </a>
+      <a class="nav-item" routerLink="/admin/customers" routerLinkActive="active">
+        <span class="nav-icon">👥</span>
+        <span>Customers</span>
+      </a>
+      <a class="nav-item" routerLink="/admin/route-plan" routerLinkActive="active">
+        <span class="nav-icon">🗺️</span>
+        <span>Route Plan</span>
+      </a>
+      <a class="nav-item" routerLink="/admin/bus-fleet" routerLinkActive="active">
+        <span class="nav-icon">🚌</span>
+        <span>Bus Fleet</span>
+      </a>
+      <a class="nav-item" routerLink="/admin/offers" routerLinkActive="active">
+        <span class="nav-icon">🏷️</span>
+        <span>Offers/Coupons</span>
+      </a>
+      <a class="nav-item" routerLink="/admin/user-setup" routerLinkActive="active">
+        <span class="nav-icon">👤</span>
+        <span>User Setup</span>
+      </a>
+      <a class="nav-item" routerLink="/admin/fare-declaration" routerLinkActive="active">
+        <span class="nav-icon">💰</span>
+        <span>Fare Declaration</span>
+      </a>
+      <a class="nav-item" routerLink="/admin/reports" routerLinkActive="active">
+        <span class="nav-icon">📈</span>
+        <span>Reports</span>
+      </a>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <a class="nav-item" (click)="logout()">
+        <span class="nav-icon">🚪</span>
+        <span>Logout</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Content Area with Router Outlet -->
+  <div class="main-content">
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="header-search">
+        <input type="text" placeholder="Search...">
+      </div>
+      <div class="header-user">
+        <span class="user-notification">🔔</span>
+        <div class="user-profile">
+          <span class="user-avatar">👤</span>
+          <span class="user-name">Admin User</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Dynamic Content Area -->
+    <router-outlet></router-outlet>
+  </div>
+</div>

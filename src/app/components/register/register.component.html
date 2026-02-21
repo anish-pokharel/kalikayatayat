@@ -1,0 +1,138 @@
+<div class="register-container">
+  <div class="register-card">
+    <div class="register-header">
+      <h2>Create Account</h2>
+      <p>Join us for a better travel experience</p>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" #registerForm="ngForm" class="register-form">
+      <div class="form-group">
+        <label for="fullName">Full Name</label>
+        <div class="input-icon">
+          <span class="icon">👤</span>
+          <input 
+            type="text" 
+            id="fullName" 
+            name="fullName"
+            [(ngModel)]="registerData.fullName"
+            required
+            minlength="3"
+            #fullName="ngModel"
+            placeholder="Enter your full name"
+          >
+        </div>
+        <div *ngIf="fullName.invalid && fullName.touched" class="error-message">
+          <span *ngIf="fullName.errors?.['required']">Full name is required</span>
+          <span *ngIf="fullName.errors?.['minlength']">Name must be at least 3 characters</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <div class="input-icon">
+          <span class="icon">📧</span>
+          <input 
+            type="email" 
+            id="email" 
+            name="email"
+            [(ngModel)]="registerData.email"
+            required
+            email
+            #email="ngModel"
+            placeholder="Enter your email"
+          >
+        </div>
+        <div *ngIf="email.invalid && email.touched" class="error-message">
+          <span *ngIf="email.errors?.['required']">Email is required</span>
+          <span *ngIf="email.errors?.['email']">Please enter a valid email</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Phone Number</label>
+        <div class="input-icon">
+          <span class="icon">📱</span>
+          <input 
+            type="tel" 
+            id="phone" 
+            name="phone"
+            [(ngModel)]="registerData.phone"
+            required
+            pattern="[0-9]{10}"
+            #phone="ngModel"
+            placeholder="Enter 10 digit phone number"
+          >
+        </div>
+        <div *ngIf="phone.invalid && phone.touched" class="error-message">
+          <span *ngIf="phone.errors?.['required']">Phone number is required</span>
+          <span *ngIf="phone.errors?.['pattern']">Please enter a valid 10 digit number</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-icon">
+          <span class="icon">🔒</span>
+          <input 
+            type="password" 
+            id="password" 
+            name="password"
+            [(ngModel)]="registerData.password"
+            required
+            minlength="6"
+            #password="ngModel"
+            placeholder="Create a password"
+          >
+        </div>
+        <div *ngIf="password.invalid && password.touched" class="error-message">
+          <span *ngIf="password.errors?.['required']">Password is required</span>
+          <span *ngIf="password.errors?.['minlength']">Password must be at least 6 characters</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <div class="input-icon">
+          <span class="icon">🔒</span>
+          <input 
+            type="password" 
+            id="confirmPassword" 
+            name="confirmPassword"
+            [(ngModel)]="registerData.confirmPassword"
+            required
+            #confirmPassword="ngModel"
+            placeholder="Confirm your password"
+          >
+        </div>
+        <div *ngIf="confirmPassword.touched && !passwordsMatch()" class="error-message">
+          Passwords do not match
+        </div>
+      </div>
+
+      <div class="form-group terms-group">
+        <label class="checkbox-container">
+          <input 
+            type="checkbox" 
+            name="agreeTerms" 
+            [(ngModel)]="registerData.agreeTerms"
+            required
+            #terms="ngModel"
+          >
+          <span class="checkmark"></span>
+          I agree to the <a href="#" class="terms-link">Terms & Conditions</a> and <a href="#" class="terms-link">Privacy Policy</a>
+        </label>
+        <div *ngIf="terms.invalid && terms.touched" class="error-message">
+          You must agree to the terms and conditions
+        </div>
+      </div>
+
+      <button type="submit" class="btn-register" [disabled]="registerForm.invalid || !passwordsMatch()">
+        Create Account
+      </button>
+    </form>
+
+    <div class="login-link">
+      <p>Already have an account? <a routerLink="/login">Login here</a></p>
+    </div>
+  </div>
+</div>

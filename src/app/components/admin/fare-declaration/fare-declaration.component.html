@@ -1,0 +1,350 @@
+<div class="fare-declaration-container">
+  <!-- Header -->
+  <div class="page-header">
+    <h1>Fare Declaration</h1>
+    <div class="header-actions">
+      <button class="btn-secondary" (click)="openBulkUploadModal()">
+        <span class="icon">📤</span> Bulk Upload
+      </button>
+      <button class="btn-primary" (click)="openAddModal()">
+        <span class="icon">➕</span> Add Fare
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-section">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input 
+        type="text" 
+        placeholder="Search by route or bus type..." 
+        [(ngModel)]="searchTerm"
+        (input)="onSearch()"
+      >
+    </div>
+    
+    <div class="filter-group">
+      <select [(ngModel)]="selectedRoute" (change)="onFilterChange()">
+        <option value="all">All Routes</option>
+        <option *ngFor="let route of routes" [value]="route.id">{{ route.name }}</option>
+      </select>
+
+      <select [(ngModel)]="selectedBusType" (change)="onFilterChange()">
+        <option value="all">All Bus Types</option>
+        <option *ngFor="let type of busTypes" [value]="type">{{ type }}</option>
+      </select>
+
+      <select [(ngModel)]="selectedStatus" (change)="onFilterChange()">
+        <option value="all">All Status</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Fares Table -->
+  <div class="table-container">
+    <table class="fares-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Route</th>
+          <th>Bus Type</th>
+          <th>Base Fare</th>
+          <th>Per Km Rate</th>
+          <th>Min Fare</th>
+          <th>Discount</th>
+          <th>Tax</th>
+          <th>Service Charge</th>
+          <th>Final Fare</th>
+          <th>Valid From</th>
+          <th>Valid To</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let fare of filteredFares">
+          <td>#{{ fare.id }}</td>
+          <td>{{ fare.routeName }}</td>
+          <td>{{ fare.busType }}</td>
+          <td>₹{{ fare.baseFare }}</td>
+          <td>₹{{ fare.perKmRate }}</td>
+          <td>₹{{ fare.minimumFare }}</td>
+          <td>{{ fare.discountPercent }}%</td>
+          <td>{{ fare.taxPercent }}%</td>
+          <td>₹{{ fare.serviceCharge }}</td>
+          <td class="final-fare">₹{{ calculateFinalFare(fare) }}</td>
+          <td>{{ fare.effectiveFrom | date }}</td>
+          <td>{{ fare.effectiveTo | date }}</td>
+          <td>
+            <span class="status-badge" [ngClass]="getStatusClass(fare.status)">
+              {{ fare.status }}
+            </span>
+          </td>
+          <td class="actions">
+            <button class="btn-icon" (click)="openEditModal(fare)" title="Edit">
+              ✏️
+            </button>
+            <button class="btn-icon" (click)="toggleStatus(fare)" [title]="fare.status === 'active' ? 'Deactivate' : 'Activate'">
+              {{ fare.status === 'active' ? '🔴' : '🟢' }}
+            </button>
+            <button class="btn-icon" (click)="openDeleteModal(fare)" title="Delete">
+              🗑️
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="filteredFares.length === 0">
+          <td colspan="14" class="no-data">No fare records found</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Add Fare Modal -->
+  <div class="modal" *ngIf="showAddModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add New Fare</h2>
+        <button class="close-btn" (click)="closeAddModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <form>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Select Route</label>
+              <select [(ngModel)]="newFare.routeId" name="routeId" required>
+                <option value="0">Select Route</option>
+                <option *ngFor="let route of routes" [value]="route.id">{{ route.name }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Bus Type</label>
+              <select [(ngModel)]="newFare.busType" name="busType" required>
+                <option *ngFor="let type of busTypes" [value]="type">{{ type }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Base Fare (₹)</label>
+              <input type="number" [(ngModel)]="newFare.baseFare" name="baseFare" required>
+            </div>
+            <div class="form-group">
+              <label>Per Km Rate (₹)</label>
+              <input type="number" step="0.1" [(ngModel)]="newFare.perKmRate" name="perKmRate" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Minimum Fare (₹)</label>
+              <input type="number" [(ngModel)]="newFare.minimumFare" name="minimumFare" required>
+            </div>
+            <div class="form-group">
+              <label>Discount (%)</label>
+              <input type="number" [(ngModel)]="newFare.discountPercent" name="discountPercent" min="0" max="100">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Tax (%)</label>
+              <input type="number" [(ngModel)]="newFare.taxPercent" name="taxPercent" required>
+            </div>
+            <div class="form-group">
+              <label>Service Charge (₹)</label>
+              <input type="number" [(ngModel)]="newFare.serviceCharge" name="serviceCharge">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Effective From</label>
+              <input type="date" [(ngModel)]="newFare.effectiveFrom" name="effectiveFrom" required>
+            </div>
+            <div class="form-group">
+              <label>Effective To</label>
+              <input type="date" [(ngModel)]="newFare.effectiveTo" name="effectiveTo" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Status</label>
+              <select [(ngModel)]="newFare.status" name="status">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
+        <button class="btn-primary" (click)="saveFare()">Save Fare</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Fare Modal -->
+  <div class="modal" *ngIf="showEditModal && selectedFare">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit Fare</h2>
+        <button class="close-btn" (click)="closeEditModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <form>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Select Route</label>
+              <select [(ngModel)]="selectedFare.routeId" name="editRouteId" required>
+                <option *ngFor="let route of routes" [value]="route.id">{{ route.name }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Bus Type</label>
+              <select [(ngModel)]="selectedFare.busType" name="editBusType" required>
+                <option *ngFor="let type of busTypes" [value]="type">{{ type }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Base Fare (₹)</label>
+              <input type="number" [(ngModel)]="selectedFare.baseFare" name="editBaseFare" required>
+            </div>
+            <div class="form-group">
+              <label>Per Km Rate (₹)</label>
+              <input type="number" step="0.1" [(ngModel)]="selectedFare.perKmRate" name="editPerKmRate" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Minimum Fare (₹)</label>
+              <input type="number" [(ngModel)]="selectedFare.minimumFare" name="editMinimumFare" required>
+            </div>
+            <div class="form-group">
+              <label>Discount (%)</label>
+              <input type="number" [(ngModel)]="selectedFare.discountPercent" name="editDiscountPercent" min="0" max="100">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Tax (%)</label>
+              <input type="number" [(ngModel)]="selectedFare.taxPercent" name="editTaxPercent" required>
+            </div>
+            <div class="form-group">
+              <label>Service Charge (₹)</label>
+              <input type="number" [(ngModel)]="selectedFare.serviceCharge" name="editServiceCharge">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Effective From</label>
+              <input type="date" [(ngModel)]="selectedFare.effectiveFrom" name="editEffectiveFrom" required>
+            </div>
+            <div class="form-group">
+              <label>Effective To</label>
+              <input type="date" [(ngModel)]="selectedFare.effectiveTo" name="editEffectiveTo" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Status</label>
+              <select [(ngModel)]="selectedFare.status" name="editStatus">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeEditModal()">Cancel</button>
+        <button class="btn-primary" (click)="updateFare()">Update Fare</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal modal-sm" *ngIf="showDeleteModal && selectedFare">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Confirm Delete</h2>
+        <button class="close-btn" (click)="closeDeleteModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <p>Are you sure you want to delete this fare for <strong>"{{ selectedFare.routeName }}" - {{ selectedFare.busType }}</strong>?</p>
+        <p class="warning-text">This action cannot be undone.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeDeleteModal()">Cancel</button>
+        <button class="btn-danger" (click)="confirmDelete()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Upload Modal -->
+  <div class="modal" *ngIf="showBulkUploadModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Bulk Upload Fares</h2>
+        <button class="close-btn" (click)="closeBulkUploadModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="upload-instructions">
+          <h3>Instructions:</h3>
+          <ul>
+            <li>Download the template file below</li>
+            <li>Fill in the fare details in the template</li>
+            <li>Upload the filled Excel/CSV file</li>
+            <li>Maximum 500 records per upload</li>
+          </ul>
+        </div>
+
+        <div class="upload-actions">
+          <button class="btn-secondary" (click)="downloadTemplate()">
+            <span class="icon">📥</span> Download Template
+          </button>
+          
+          <div class="file-upload">
+            <input 
+              type="file" 
+              id="fileUpload" 
+              accept=".xlsx,.xls,.csv"
+              (change)="onFileSelected($event)"
+              hidden
+            >
+            <label for="fileUpload" class="btn-primary">
+              <span class="icon">📤</span> Choose File
+            </label>
+          </div>
+        </div>
+
+        <div class="upload-note">
+          <p>Note: Supported formats: .xlsx, .xls, .csv</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeBulkUploadModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>

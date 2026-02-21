@@ -1,0 +1,270 @@
+<div class="route-plan-container">
+  <!-- Header -->
+  <div class="page-header">
+    <h1>Route Plan Management</h1>
+    <button class="btn-primary" (click)="openAddModal()">
+      <span class="icon">➕</span> Add New Route
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-section">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input 
+        type="text" 
+        placeholder="Search routes..." 
+        [(ngModel)]="searchTerm"
+        (input)="onSearch()"
+      >
+    </div>
+    
+    <div class="status-filter">
+      <select [(ngModel)]="selectedStatus" (change)="onStatusFilter()">
+        <option value="all">All Status</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Routes Table -->
+  <div class="table-container">
+    <table class="routes-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Route Name</th>
+          <th>Origin</th>
+          <th>Destination</th>
+          <th>Distance</th>
+          <th>Duration</th>
+          <th>Stops</th>
+          <th>Buses</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let route of filteredRoutes">
+          <td>#{{ route.id }}</td>
+          <td>{{ route.routeName }}</td>
+          <td>{{ route.origin }}</td>
+          <td>{{ route.destination }}</td>
+          <td>{{ route.distance }} km</td>
+          <td>{{ route.duration }}</td>
+          <td>{{ route.stops }}</td>
+          <td>{{ route.busesAssigned }}</td>
+          <td>
+            <span class="status-badge" [ngClass]="getStatusClass(route.status)">
+              {{ route.status }}
+            </span>
+          </td>
+          <td class="actions">
+            <button class="btn-icon" (click)="openStopsModal(route)" title="View Stops">
+              🗺️
+            </button>
+            <button class="btn-icon" (click)="openEditModal(route)" title="Edit">
+              ✏️
+            </button>
+            <button class="btn-icon" (click)="toggleStatus(route)" [title]="route.status === 'active' ? 'Deactivate' : 'Activate'">
+              {{ route.status === 'active' ? '🔴' : '🟢' }}
+            </button>
+            <button class="btn-icon" (click)="openDeleteModal(route)" title="Delete">
+              🗑️
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="filteredRoutes.length === 0">
+          <td colspan="10" class="no-data">No routes found</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Add Route Modal -->
+  <div class="modal" *ngIf="showAddModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add New Route</h2>
+        <button class="close-btn" (click)="closeAddModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <form>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Route Name</label>
+              <input type="text" [(ngModel)]="newRoute.routeName" name="routeName" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Origin</label>
+              <input type="text" [(ngModel)]="newRoute.origin" name="origin" required>
+            </div>
+            <div class="form-group">
+              <label>Destination</label>
+              <input type="text" [(ngModel)]="newRoute.destination" name="destination" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Distance (km)</label>
+              <input type="number" [(ngModel)]="newRoute.distance" name="distance" required>
+            </div>
+            <div class="form-group">
+              <label>Duration</label>
+              <input type="text" [(ngModel)]="newRoute.duration" name="duration" placeholder="e.g., 24 hrs" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Number of Stops</label>
+              <input type="number" [(ngModel)]="newRoute.stops" name="stops" required>
+            </div>
+            <div class="form-group">
+              <label>Status</label>
+              <select [(ngModel)]="newRoute.status" name="status">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
+        <button class="btn-primary" (click)="saveRoute()">Save Route</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Route Modal -->
+  <div class="modal" *ngIf="showEditModal && selectedRoute">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit Route</h2>
+        <button class="close-btn" (click)="closeEditModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <form>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Route Name</label>
+              <input type="text" [(ngModel)]="selectedRoute.routeName" name="editRouteName" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Origin</label>
+              <input type="text" [(ngModel)]="selectedRoute.origin" name="editOrigin" required>
+            </div>
+            <div class="form-group">
+              <label>Destination</label>
+              <input type="text" [(ngModel)]="selectedRoute.destination" name="editDestination" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Distance (km)</label>
+              <input type="number" [(ngModel)]="selectedRoute.distance" name="editDistance" required>
+            </div>
+            <div class="form-group">
+              <label>Duration</label>
+              <input type="text" [(ngModel)]="selectedRoute.duration" name="editDuration" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Number of Stops</label>
+              <input type="number" [(ngModel)]="selectedRoute.stops" name="editStops" required>
+            </div>
+            <div class="form-group">
+              <label>Status</label>
+              <select [(ngModel)]="selectedRoute.status" name="editStatus">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeEditModal()">Cancel</button>
+        <button class="btn-primary" (click)="updateRoute()">Update Route</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Stops Modal -->
+  <div class="modal modal-lg" *ngIf="showStopsModal && selectedRoute">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Route Stops - {{ selectedRoute.routeName }}</h2>
+        <button class="close-btn" (click)="closeStopsModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="route-summary">
+          <p><strong>Origin:</strong> {{ selectedRoute.origin }}</p>
+          <p><strong>Destination:</strong> {{ selectedRoute.destination }}</p>
+          <p><strong>Total Distance:</strong> {{ selectedRoute.distance }} km</p>
+          <p><strong>Duration:</strong> {{ selectedRoute.duration }}</p>
+        </div>
+
+        <table class="stops-table">
+          <thead>
+            <tr>
+              <th>Stop</th>
+              <th>Arrival Time</th>
+              <th>Departure Time</th>
+              <th>Fare from Origin</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let stop of routeStops">
+              <td>{{ stop.name }}</td>
+              <td>{{ stop.arrivalTime }}</td>
+              <td>{{ stop.departureTime }}</td>
+              <td>₹{{ stop.fare }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeStopsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal modal-sm" *ngIf="showDeleteModal && selectedRoute">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Confirm Delete</h2>
+        <button class="close-btn" (click)="closeDeleteModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <p>Are you sure you want to delete route <strong>"{{ selectedRoute.routeName }}"</strong>?</p>
+        <p class="warning-text">This action cannot be undone.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeDeleteModal()">Cancel</button>
+        <button class="btn-danger" (click)="confirmDelete()">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>

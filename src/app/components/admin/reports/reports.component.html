@@ -1,0 +1,406 @@
+<div class="reports-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1>Reports & Analytics</h1>
+    <div class="header-actions">
+      <button class="btn-secondary" (click)="exportCurrentView('excel')">
+        <span class="icon">📊</span> Export Excel
+      </button>
+      <button class="btn-secondary" (click)="exportCurrentView('pdf')">
+        <span class="icon">📄</span> Export PDF
+      </button>
+      <button class="btn-primary" (click)="openGenerateModal()">
+        <span class="icon">➕</span> Generate Report
+      </button>
+    </div>
+  </div>
+
+  <!-- Date Range Filter -->
+  <div class="date-range-card">
+    <div class="date-range">
+      <div class="date-input">
+        <label>Start Date</label>
+        <input type="date" [(ngModel)]="dateRange.startDate">
+      </div>
+      <div class="date-input">
+        <label>End Date</label>
+        <input type="date" [(ngModel)]="dateRange.endDate">
+      </div>
+      <button class="btn-primary btn-small">Apply</button>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">💰</div>
+      <div class="stat-details">
+        <h3>Total Revenue</h3>
+        <p class="stat-value">₹{{ totalRevenue | number }}</p>
+        <span class="stat-change positive">+12.5%</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">📋</div>
+      <div class="stat-details">
+        <h3>Total Bookings</h3>
+        <p class="stat-value">{{ totalBookings }}</p>
+        <span class="stat-change">+8.3%</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">❌</div>
+      <div class="stat-details">
+        <h3>Cancellations</h3>
+        <p class="stat-value">{{ totalCancellations }}</p>
+        <span class="stat-change negative">-2.1%</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">📊</div>
+      <div class="stat-details">
+        <h3>Avg. Occupancy</h3>
+        <p class="stat-value">{{ averageOccupancy }}%</p>
+        <span class="stat-change positive">+5%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Tabs -->
+  <div class="reports-tabs">
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'sales'"
+      (click)="setActiveTab('sales')"
+    >
+      Sales Report
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'routes'"
+      (click)="setActiveTab('routes')"
+    >
+      Route Performance
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'payments'"
+      (click)="setActiveTab('payments')"
+    >
+      Payment Summary
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'saved'"
+      (click)="setActiveTab('saved')"
+    >
+      Saved Reports
+    </button>
+  </div>
+
+  <!-- Sales Report Tab -->
+  <div class="tab-content" *ngIf="activeTab === 'sales'">
+    <div class="report-card">
+      <div class="card-header">
+        <h3>Daily Sales Summary</h3>
+        <div class="card-actions">
+          <button class="btn-icon" (click)="exportCurrentView('excel')" title="Export to Excel">
+            📊
+          </button>
+          <button class="btn-icon" (click)="exportCurrentView('pdf')" title="Export to PDF">
+            📄
+          </button>
+        </div>
+      </div>
+      <div class="table-container">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Revenue (₹)</th>
+              <th>Bookings</th>
+              <th>Cancellations</th>
+              <th>Refunds (₹)</th>
+              <th>Net Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let data of salesData">
+              <td>{{ data.date }}</td>
+              <td>₹{{ data.revenue | number }}</td>
+              <td>{{ data.bookings }}</td>
+              <td>{{ data.cancellations }}</td>
+              <td class="text-danger">₹{{ data.refunds | number }}</td>
+              <td class="text-success">₹{{ data.revenue - data.refunds | number }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <th>Total</th>
+              <th>₹{{ totalRevenue | number }}</th>
+              <th>{{ totalBookings }}</th>
+              <th>{{ totalCancellations }}</th>
+              <th>₹{{ totalRefunds | number }}</th>
+              <th>₹{{ netRevenue | number }}</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Route Performance Tab -->
+  <div class="tab-content" *ngIf="activeTab === 'routes'">
+    <div class="report-card">
+      <div class="card-header">
+        <h3>Route Performance Analysis</h3>
+        <div class="card-actions">
+          <button class="btn-icon" (click)="exportCurrentView('excel')" title="Export to Excel">
+            📊
+          </button>
+          <button class="btn-icon" (click)="exportCurrentView('pdf')" title="Export to PDF">
+            📄
+          </button>
+        </div>
+      </div>
+      <div class="table-container">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Route Name</th>
+              <th>Total Bookings</th>
+              <th>Revenue (₹)</th>
+              <th>Occupancy Rate</th>
+              <th>Popular Time</th>
+              <th>Performance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let route of routePerformance">
+              <td class="route-name">{{ route.routeName }}</td>
+              <td>{{ route.totalBookings }}</td>
+              <td>₹{{ route.revenue | number }}</td>
+              <td>{{ route.occupancyRate }}%</td>
+              <td>{{ route.popularTime }}</td>
+              <td>
+                <div class="progress-bar">
+                  <div class="progress" [style.width.%]="route.occupancyRate"></div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Summary Tab -->
+  <div class="tab-content" *ngIf="activeTab === 'payments'">
+    <div class="report-card">
+      <div class="card-header">
+        <h3>Payment Method Summary</h3>
+        <div class="card-actions">
+          <button class="btn-icon" (click)="exportCurrentView('excel')" title="Export to Excel">
+            📊
+          </button>
+          <button class="btn-icon" (click)="exportCurrentView('pdf')" title="Export to PDF">
+            📄
+          </button>
+        </div>
+      </div>
+      <div class="table-container">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Payment Method</th>
+              <th>Transaction Count</th>
+              <th>Total Amount (₹)</th>
+              <th>Success Rate</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let payment of paymentSummary">
+              <td class="payment-method">{{ payment.method }}</td>
+              <td>{{ payment.count }}</td>
+              <td>₹{{ payment.amount | number }}</td>
+              <td>{{ payment.successRate }}%</td>
+              <td>
+                <span class="status-badge" [ngClass]="getStatusClass(payment.successRate)">
+                  {{ getStatusText(payment.successRate) }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Saved Reports Tab -->
+  <div class="tab-content" *ngIf="activeTab === 'saved'">
+    <!-- Filters for saved reports -->
+    <div class="filters-section">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          placeholder="Search reports..." 
+          [(ngModel)]="searchTerm"
+          (input)="onSearch()"
+        >
+      </div>
+      
+      <div class="filter-group">
+        <select [(ngModel)]="selectedType" (change)="onFilterChange()">
+          <option value="all">All Types</option>
+          <option *ngFor="let type of reportTypes" [value]="type">{{ getReportTypeLabel(type) }}</option>
+        </select>
+
+        <select [(ngModel)]="selectedPeriod" (change)="onFilterChange()">
+          <option value="all">All Periods</option>
+          <option *ngFor="let period of periods" [value]="period">{{ period | titlecase }}</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Saved Reports List -->
+    <div class="reports-list">
+      <div class="report-item" *ngFor="let report of filteredReports">
+        <div class="report-icon">
+          {{ report.format === 'pdf' ? '📄' : report.format === 'excel' ? '📊' : '📃' }}
+        </div>
+        <div class="report-info">
+          <h4>{{ report.name }}</h4>
+          <div class="report-meta">
+            <span class="report-type">{{ getReportTypeLabel(report.type) }}</span>
+            <span class="report-period">{{ report.period | titlecase }}</span>
+            <span class="report-date">{{ report.generatedOn }}</span>
+            <span class="report-size">{{ report.size }}</span>
+          </div>
+        </div>
+        <div class="report-actions">
+          <button class="btn-icon" (click)="openPreviewModal(report)" title="Preview">
+            👁️
+          </button>
+          <button class="btn-icon" (click)="downloadReport(report, report.format)" title="Download">
+            ⬇️
+          </button>
+          <button class="btn-icon" (click)="printReport(report)" title="Print">
+            🖨️
+          </button>
+          <button class="btn-icon" (click)="openDeleteModal(report)" title="Delete">
+            🗑️
+          </button>
+        </div>
+      </div>
+      <div class="no-data" *ngIf="filteredReports.length === 0">
+        No saved reports found
+      </div>
+    </div>
+  </div>
+
+  <!-- Generate Report Modal -->
+  <div class="modal" *ngIf="showGenerateModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Generate New Report</h2>
+        <button class="close-btn" (click)="closeGenerateModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <form>
+          <div class="form-group">
+            <label>Report Type</label>
+            <select>
+              <option *ngFor="let type of reportTypes" [value]="type">{{ getReportTypeLabel(type) }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Period</label>
+            <select>
+              <option *ngFor="let period of periods" [value]="period">{{ period | titlecase }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" [value]="dateRange.startDate">
+          </div>
+
+          <div class="form-group">
+            <label>End Date</label>
+            <input type="date" [value]="dateRange.endDate">
+          </div>
+
+          <div class="form-group">
+            <label>Export Format</label>
+            <select>
+              <option *ngFor="let format of exportFormats" [value]="format">{{ format | uppercase }}</option>
+            </select>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeGenerateModal()">Cancel</button>
+        <button class="btn-primary" (click)="generateReport()">Generate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Report Modal -->
+  <div class="modal modal-lg" *ngIf="showPreviewModal && selectedReport">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Report Preview - {{ selectedReport.name }}</h2>
+        <button class="close-btn" (click)="closePreviewModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="preview-content">
+          <div class="preview-header">
+            <h3>{{ selectedReport.name }}</h3>
+            <p>Generated: {{ selectedReport.generatedOn }} | By: {{ selectedReport.generatedBy }}</p>
+          </div>
+          
+          <div class="preview-placeholder">
+            <div class="placeholder-icon">📄</div>
+            <p>Report preview would be displayed here</p>
+            <p class="placeholder-note">In a real application, this would show the actual report content</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closePreviewModal()">Close</button>
+        <button class="btn-primary" (click)="downloadReport(selectedReport, selectedReport.format)">Download</button>
+        <button class="btn-primary" (click)="printReport(selectedReport)">Print</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal modal-sm" *ngIf="showDeleteModal && selectedReport">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Confirm Delete</h2>
+        <button class="close-btn" (click)="closeDeleteModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <p>Are you sure you want to delete report <strong>"{{ selectedReport.name }}"</strong>?</p>
+        <p class="warning-text">This action cannot be undone.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeDeleteModal()">Cancel</button>
+        <button class="btn-danger" (click)="confirmDelete()">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>

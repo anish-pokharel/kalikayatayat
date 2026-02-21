@@ -1,0 +1,245 @@
+<div class="seat-selection-container">
+  <!-- Back Button -->
+  <div class="back-button-container">
+    <button class="btn-back" (click)="goBack()">
+      ← Back to Buses
+    </button>
+  </div>
+
+  <!-- Bus Info Header -->
+  <div class="bus-info-header" *ngIf="busDetails">
+    <div class="container">
+      <div class="bus-info-grid">
+        <div class="bus-info">
+          <h2>{{ busDetails.operator }}</h2>
+          <p class="bus-name">{{ busDetails.name }}</p>
+          <p class="bus-type">{{ busDetails.type }}</p>
+        </div>
+        
+        <div class="route-info">
+          <div class="route-point">
+            <span class="time">{{ busDetails.departureTime }}</span>
+            <span class="city">{{ busDetails.origin }}</span>
+          </div>
+          <div class="route-duration">
+            <span class="duration">{{ busDetails.duration }}</span>
+          </div>
+          <div class="route-point">
+            <span class="time">{{ busDetails.arrivalTime }}</span>
+            <span class="city">{{ busDetails.destination }}</span>
+          </div>
+        </div>
+        
+        <div class="price-info">
+          <span class="label">Starting from</span>
+          <span class="price">₹{{ busDetails.price }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container">
+    <div class="seat-layout-grid">
+      <!-- Seat Layout -->
+      <div class="seat-layout">
+        <h3>Select Your Seats</h3>
+        
+        <!-- Legend -->
+        <div class="seat-legend">
+          <div class="legend-item">
+            <div class="seat-box seat-available"></div>
+            <span>Available</span>
+          </div>
+          <div class="legend-item">
+            <div class="seat-box seat-selected"></div>
+            <span>Selected</span>
+          </div>
+          <div class="legend-item">
+            <div class="seat-box seat-booked"></div>
+            <span>Booked</span>
+          </div>
+          <div class="legend-item">
+            <div class="seat-box seat-blocked"></div>
+            <span>Blocked</span>
+          </div>
+          <div class="legend-item">
+            <div class="seat-box seat-male"></div>
+            <span>Male</span>
+          </div>
+          <div class="legend-item">
+            <div class="seat-box seat-female"></div>
+            <span>Female</span>
+          </div>
+        </div>
+
+        <!-- Lower Deck -->
+        <div class="deck-section">
+          <h4>Lower Deck</h4>
+          <div class="seats-grid">
+            <div 
+              *ngFor="let seat of getLowerDeckSeats()"
+              class="seat"
+              [ngClass]="[getSeatStatusClass(seat), getSeatGenderClass(seat)]"
+              (click)="toggleSeat(seat)"
+            >
+              {{ seat.number }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Upper Deck -->
+        <div class="deck-section">
+          <h4>Upper Deck</h4>
+          <div class="seats-grid">
+            <div 
+              *ngFor="let seat of getUpperDeckSeats()"
+              class="seat"
+              [ngClass]="[getSeatStatusClass(seat), getSeatGenderClass(seat)]"
+              (click)="toggleSeat(seat)"
+            >
+              {{ seat.number }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Seat Info -->
+        <div class="seat-info">
+          <p><strong>Available Seats:</strong> {{ getAvailableSeatsCount() }}</p>
+          <p><strong>Booked Seats:</strong> {{ getBookedSeatsCount() }}</p>
+        </div>
+      </div>
+
+      <!-- Booking Summary -->
+      <div class="booking-summary">
+        <h3>Booking Summary</h3>
+        
+        <div class="selected-seats" *ngIf="selectedSeats.length > 0">
+          <h4>Selected Seats</h4>
+          <div class="seats-list">
+            <div class="seat-item" *ngFor="let seat of selectedSeats">
+              <span class="seat-number">{{ seat.number }}</span>
+              <span class="seat-price">₹{{ seat.price }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="no-seats" *ngIf="selectedSeats.length === 0">
+          <p>No seats selected yet</p>
+        </div>
+        
+        <div class="price-details">
+          <div class="price-row">
+            <span>Base Fare ({{ selectedSeats.length }} seats)</span>
+            <span>₹{{ bookingSummary.baseFare }}</span>
+          </div>
+          <div class="price-row">
+            <span>Tax (18% GST)</span>
+            <span>₹{{ bookingSummary.tax | number:'1.0-0' }}</span>
+          </div>
+          <div class="price-row total">
+            <span>Total Amount</span>
+            <span>₹{{ bookingSummary.total | number:'1.0-0' }}</span>
+          </div>
+        </div>
+        
+        <button 
+          class="btn-proceed" 
+          [disabled]="selectedSeats.length === 0"
+          (click)="proceedToBooking()"
+        >
+          Proceed to Book
+        </button>
+        
+        <p class="cancellation-policy">
+          Free cancellation up to 4 hours before departure
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Passenger Details Modal -->
+  <div class="modal" *ngIf="showPassengerModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Enter Passenger Details</h3>
+        <button class="close-btn" (click)="cancelSeatSelection()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="seat-info">
+          <p><strong>Selected Seat:</strong> {{ currentSeat?.number }}</p>
+          <p><strong>Price:</strong> ₹{{ currentSeat?.price }}</p>
+        </div>
+        
+        <form>
+          <div class="form-group">
+            <label>Passenger Name *</label>
+            <input 
+              type="text" 
+              [(ngModel)]="passengerDetails.name" 
+              name="name"
+              placeholder="Enter full name"
+              required
+            >
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Age *</label>
+              <input 
+                type="number" 
+                [(ngModel)]="passengerDetails.age" 
+                name="age"
+                placeholder="Age"
+                required
+              >
+            </div>
+            
+            <div class="form-group">
+              <label>Gender *</label>
+              <select [(ngModel)]="passengerDetails.gender" name="gender">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Phone Number *</label>
+            <input 
+              type="tel" 
+              [(ngModel)]="passengerDetails.phone" 
+              name="phone"
+              placeholder="10 digit mobile number"
+              pattern="[0-9]{10}"
+              required
+            >
+          </div>
+          
+          <div class="form-group">
+            <label>Email (Optional)</label>
+            <input 
+              type="email" 
+              [(ngModel)]="passengerDetails.email" 
+              name="email"
+              placeholder="Enter email"
+            >
+          </div>
+        </form>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="cancelSeatSelection()">Cancel</button>
+        <button 
+          class="btn-primary" 
+          (click)="confirmSeatSelection()"
+          [disabled]="!passengerDetails.name || !passengerDetails.age || !passengerDetails.phone"
+        >
+          Confirm Seat
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
