@@ -3,6 +3,7 @@
   <div class="sidebar">
     <div class="sidebar-header">
       <h2>Travel Admin</h2>
+      <p class="user-email">{{ userEmail }}</p>
     </div>
     
     <nav class="sidebar-nav">
@@ -45,7 +46,7 @@
     </nav>
     
     <div class="sidebar-footer">
-      <a class="nav-item" (click)="logout()">
+      <a class="nav-item logout-btn" (click)="logout()" style="cursor: pointer;">
         <span class="nav-icon">🚪</span>
         <span>Logout</span>
       </a>
@@ -63,12 +64,14 @@
         <span class="user-notification">🔔</span>
         <div class="user-profile">
           <span class="user-avatar">👤</span>
-          <span class="user-name">Admin User</span>
+          <span class="user-name">{{ userName }}</span>
         </div>
       </div>
     </header>
 
     <!-- Dynamic Content Area -->
-    <router-outlet></router-outlet>
+    <div class="content-area">
+      <router-outlet></router-outlet>
+    </div>
   </div>
 </div>

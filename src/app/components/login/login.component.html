@@ -1,4 +1,4 @@
-<div class="login-container">
+<!-- <div class="login-container">
   <div class="login-card">
     <div class="login-header">
       <h2>Welcome Back</h2>
@@ -74,6 +74,167 @@
       <p>Demo Credentials:</p>
       <p>Admin: admin&#64;travel.com / admin123</p>
       <p>User: user&#64;travel.com / user123</p>
+    </div>
+  </div>
+</div> -->
+
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <h2>Welcome Back</h2>
+      <p>Please login to your account</p>
+    </div>
+
+    <!-- Error Alert -->
+    @if (errorMessage) {
+      <div class="alert alert-error">
+        <span class="alert-icon">⚠️</span>
+        <span>{{ errorMessage }}</span>
+        @if (showResendVerification) {
+          <button 
+            class="resend-btn" 
+            (click)="resendVerification()"
+            [disabled]="isLoading">
+            Resend Verification
+          </button>
+        }
+      </div>
+    }
+
+    <!-- Success Alert -->
+    @if (successMessage) {
+      <div class="alert alert-success">
+        <span class="alert-icon">✅</span>
+        <span>{{ successMessage }}</span>
+      </div>
+    }
+
+    <form (ngSubmit)="onSubmit(loginForm)" #loginForm="ngForm" class="login-form">
+      <!-- Email Field -->
+      <div class="form-group" [class.has-error]="email.invalid && email.touched">
+        <label for="email">
+          Email Address <span class="required">*</span>
+        </label>
+        <div class="input-wrapper">
+          <span class="input-icon">📧</span>
+          <input 
+            type="email" 
+            id="email" 
+            name="email"
+            [(ngModel)]="loginData.email"
+            #email="ngModel"
+            required
+            email
+            [pattern]="emailPattern"
+            placeholder="Enter your email"
+            [disabled]="isLoading"
+            autocomplete="email"
+          >
+        </div>
+        @if (email.invalid && email.touched) {
+          <div class="error-messages">
+            @if (email.errors?.['required']) {
+              <span class="error-message">Email is required</span>
+            }
+            @if (email.errors?.['email'] || email.errors?.['pattern']) {
+              <span class="error-message">Please enter a valid email address</span>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Password Field -->
+      <div class="form-group" [class.has-error]="password.invalid && password.touched">
+        <label for="password">
+          Password <span class="required">*</span>
+        </label>
+        <div class="input-wrapper">
+          <span class="input-icon">🔒</span>
+          <input 
+            [type]="showPassword ? 'text' : 'password'"
+            id="password" 
+            name="password"
+            [(ngModel)]="loginData.password"
+            #password="ngModel"
+            required
+            minlength="8"
+            placeholder="Enter your password"
+            [disabled]="isLoading"
+            autocomplete="current-password"
+          >
+          <button type="button" 
+                  class="toggle-password" 
+                  (click)="showPassword = !showPassword"
+                  [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'">
+            {{ showPassword ? '👁️' : '👁️‍🗨️' }}
+          </button>
+        </div>
+        @if (password.invalid && password.touched) {
+          <div class="error-messages">
+            @if (password.errors?.['required']) {
+              <span class="error-message">Password is required</span>
+            }
+            @if (password.errors?.['minlength']) {
+              <span class="error-message">Password must be at least 8 characters</span>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Options Row -->
+      <div class="form-options">
+        <label class="checkbox-container">
+          <input 
+            type="checkbox" 
+            name="rememberMe" 
+            [(ngModel)]="loginData.rememberMe"
+            [disabled]="isLoading"
+          >
+          <span class="checkmark"></span>
+          <span class="checkbox-label">Remember me</span>
+        </label>
+        <a routerLink="/forgot-password" class="forgot-link" [class.disabled]="isLoading">
+          Forgot Password?
+        </a>
+      </div>
+
+      <!-- Submit Button -->
+      <button 
+        type="submit" 
+        class="btn-login" 
+        [disabled]="loginForm.invalid || isLoading"
+        [class.loading]="isLoading"
+      >
+        @if (!isLoading) {
+          <span>Login</span>
+        }
+        @if (isLoading) {
+          <span class="spinner"></span>
+        }
+      </button>
+    </form>
+
+    <!-- Register Link -->
+    <div class="register-link">
+      <p>
+        Don't have an account? 
+        <a routerLink="/register" [class.disabled]="isLoading">Register here</a>
+      </p>
+    </div>
+
+    <!-- Demo Credentials -->
+    <div class="demo-credentials">
+      <p class="demo-title">Demo Credentials:</p>
+      <div class="credential-item">
+        <span class="role-badge admin">Admin</span>
+        <code>admin&#64;gmail.com / anish123</code>
+        <button class="copy-btn" (click)="fillCredentials('admin')" [disabled]="isLoading">Use</button>
+      </div>
+      <div class="credential-item">
+        <span class="role-badge user">User</span>
+        <code>anish.pokharel.710.ap&#64;gmail.com / anish123</code>
+        <button class="copy-btn" (click)="fillCredentials('user')" [disabled]="isLoading">Use</button>
+      </div>
     </div>
   </div>
 </div>

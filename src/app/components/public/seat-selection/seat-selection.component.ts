@@ -6,11 +6,14 @@ import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 interface Seat {
   id: number;
   number: string;
-  type: 'sleeper' | 'seater';
-  deck: 'upper' | 'lower';
+  row: number;
+  column: 'A' | 'B' | 'C' | 'D';
+  deck?: 'lower' | 'upper';
   price: number;
   status: 'available' | 'booked' | 'selected' | 'blocked';
   gender?: 'male' | 'female' | 'none';
+  type: 'sleeper' | 'seater';
+  tempSelected?: boolean;
 }
 
 interface BusDetails {
@@ -24,6 +27,17 @@ interface BusDetails {
   arrivalTime: string;
   duration: string;
   price: number;
+  busType: 'sleeper' | 'seater' | 'semi-sleeper';
+  totalSeats: number;
+}
+
+interface Passenger {
+  seatNumber: string;
+  name: string;
+  age: number | null;
+  gender: string;
+  phone: string;  // Added phone property
+  email?: string; // Optional email
 }
 
 @Component({
@@ -37,16 +51,19 @@ export class SeatSelectionComponent implements OnInit {
   busId: number = 0;
   busDetails: BusDetails | null = null;
   
-  seats: Seat[] = [];
+  lowerDeckSeats: Seat[] = [];
+  upperDeckSeats: Seat[] = [];
   selectedSeats: Seat[] = [];
+  tempSelectedSeats: Seat[] = [];
+  showUpperDeck: boolean = false;
   
-  passengerDetails = {
-    name: '',
-    age: null,
-    gender: 'male',
-    phone: '',
-    email: ''
-  };
+  // Maximum seats allowed
+  maxSeats: number = 6;
+  
+  // Multi-select mode
+  isMultiSelectMode: boolean = false;
+  
+  passengers: Passenger[] = [];
   
   bookingSummary = {
     baseFare: 0,
@@ -55,6 +72,8 @@ export class SeatSelectionComponent implements OnInit {
   };
   
   showPassengerModal: boolean = false;
+  showLimitWarning: boolean = false;
+  showMultiSelectConfirm: boolean = false;
   currentSeat: Seat | null = null;
 
   constructor(
@@ -74,7 +93,7 @@ export class SeatSelectionComponent implements OnInit {
     const busData: {[key: number]: BusDetails} = {
       1: {
         id: 1,
-        name: 'VRL Volvo AC Sleeper',
+        name: 'VRL Volvo Multi-Axle Sleeper',
         operator: 'VRL Travels',
         type: 'AC Sleeper',
         origin: 'Delhi',
@@ -82,11 +101,13 @@ export class SeatSelectionComponent implements OnInit {
         departureTime: '18:30',
         arrivalTime: '06:30',
         duration: '12h 00m',
-        price: 1299
+        price: 1299,
+        busType: 'sleeper',
+        totalSeats: 36
       },
       2: {
         id: 2,
-        name: 'SRS Luxury AC Seater',
+        name: 'SRS Luxury Volvo',
         operator: 'SRS Travels',
         type: 'AC Seater',
         origin: 'Delhi',
@@ -94,158 +115,318 @@ export class SeatSelectionComponent implements OnInit {
         departureTime: '20:00',
         arrivalTime: '08:00',
         duration: '12h 00m',
-        price: 999
-      },
-      3: {
-        id: 3,
-        name: 'Orange Tours Volvo',
-        operator: 'Orange Tours',
-        type: 'Volvo',
-        origin: 'Bangalore',
-        destination: 'Chennai',
-        departureTime: '22:00',
-        arrivalTime: '05:00',
-        duration: '7h 00m',
-        price: 899
-      },
-      4: {
-        id: 4,
-        name: 'Kallada Non-AC Sleeper',
-        operator: 'Kallada Travels',
-        type: 'Non-AC Sleeper',
-        origin: 'Mumbai',
-        destination: 'Pune',
-        departureTime: '23:30',
-        arrivalTime: '03:00',
-        duration: '3h 30m',
-        price: 499
-      },
-      5: {
-        id: 5,
-        name: 'City Express AC Sleeper',
-        operator: 'City Express',
-        type: 'AC Sleeper',
-        origin: 'Delhi',
-        destination: 'Agra',
-        departureTime: '07:00',
-        arrivalTime: '11:00',
-        duration: '4h 00m',
-        price: 799
+        price: 999,
+        busType: 'seater',
+        totalSeats: 40
       }
     };
 
     this.busDetails = busData[this.busId] || {
       id: this.busId,
-      name: 'Unknown Bus',
-      operator: 'Unknown Operator',
+      name: 'Volvo Multi-Axle Bus',
+      operator: 'Travels',
       type: 'AC Sleeper',
-      origin: 'Unknown',
-      destination: 'Unknown',
-      departureTime: '00:00',
-      arrivalTime: '00:00',
-      duration: '0h',
-      price: 0
+      origin: 'Delhi',
+      destination: 'Mumbai',
+      departureTime: '18:30',
+      arrivalTime: '06:30',
+      duration: '12h',
+      price: 1299,
+      busType: 'sleeper',
+      totalSeats: 36
     };
   }
 
   loadSeats() {
+    this.loadLowerDeckSeats();
+    this.loadUpperDeckSeats();
+  }
+
+  loadLowerDeckSeats() {
     const seats: Seat[] = [];
     let id = 1;
     
-    // Lower deck - 30 seats (10 rows x 3 columns)
-    for (let row = 1; row <= 10; row++) {
-      for (let col = 1; col <= 3; col++) {
-        const seatNumber = `L${row}${String.fromCharCode(64 + col)}`;
-        const status = this.getRandomStatus();
-        seats.push({
-          id: id++,
-          number: seatNumber,
-          type: 'sleeper',
-          deck: 'lower',
-          price: this.busDetails?.price || 1299,
-          status: status,
-          gender: status === 'booked' ? (Math.random() > 0.5 ? 'male' : 'female') : 'none'
-        });
-      }
+    for (let row = 1; row <= 8; row++) {
+      // Column A
+      seats.push({
+        id: id++,
+        number: `L${row}A`,
+        row: row,
+        column: 'A',
+        deck: 'lower',
+        price: this.busDetails?.price || 1299,
+        status: this.getSeatStatus(row, 'A'),
+        type: 'sleeper',
+        gender: Math.random() > 0.7 ? 'male' : 'none',
+        tempSelected: false
+      });
+      
+      // Column B
+      seats.push({
+        id: id++,
+        number: `L${row}B`,
+        row: row,
+        column: 'B',
+        deck: 'lower',
+        price: this.busDetails?.price || 1299,
+        status: this.getSeatStatus(row, 'B'),
+        type: 'sleeper',
+        gender: Math.random() > 0.7 ? 'female' : 'none',
+        tempSelected: false
+      });
+      
+      // Column C
+      seats.push({
+        id: id++,
+        number: `L${row}C`,
+        row: row,
+        column: 'C',
+        deck: 'lower',
+        price: this.busDetails?.price || 1299,
+        status: this.getSeatStatus(row, 'C'),
+        type: 'sleeper',
+        gender: Math.random() > 0.7 ? 'male' : 'none',
+        tempSelected: false
+      });
+      
+      // Column D
+      seats.push({
+        id: id++,
+        number: `L${row}D`,
+        row: row,
+        column: 'D',
+        deck: 'lower',
+        price: this.busDetails?.price || 1299,
+        status: this.getSeatStatus(row, 'D'),
+        type: 'sleeper',
+        gender: Math.random() > 0.7 ? 'female' : 'none',
+        tempSelected: false
+      });
     }
     
-    // Upper deck - 30 seats (10 rows x 3 columns)
-    for (let row = 1; row <= 10; row++) {
-      for (let col = 1; col <= 3; col++) {
-        const seatNumber = `U${row}${String.fromCharCode(64 + col)}`;
-        const status = this.getRandomStatus();
-        seats.push({
-          id: id++,
-          number: seatNumber,
-          type: 'sleeper',
-          deck: 'upper',
-          price: this.busDetails?.price || 1299,
-          status: status,
-          gender: status === 'booked' ? (Math.random() > 0.5 ? 'male' : 'female') : 'none'
-        });
-      }
+    this.lowerDeckSeats = seats;
+  }
+
+  loadUpperDeckSeats() {
+    const seats: Seat[] = [];
+    let id = 100;
+    
+    for (let row = 1; row <= 8; row++) {
+      seats.push({
+        id: id++,
+        number: `U${row}A`,
+        row: row,
+        column: 'A',
+        deck: 'upper',
+        price: this.busDetails?.price || 1299,
+        status: this.getSeatStatus(row + 10, 'A'),
+        type: 'sleeper',
+        gender: Math.random() > 0.7 ? 'male' : 'none',
+        tempSelected: false
+      });
+      
+      seats.push({
+        id: id++,
+        number: `U${row}B`,
+        row: row,
+        column: 'B',
+        deck: 'upper',
+        price: this.busDetails?.price || 1299,
+        status: this.getSeatStatus(row + 10, 'B'),
+        type: 'sleeper',
+        gender: Math.random() > 0.7 ? 'female' : 'none',
+        tempSelected: false
+      });
+      
+      seats.push({
+        id: id++,
+        number: `U${row}C`,
+        row: row,
+        column: 'C',
+        deck: 'upper',
+        price: this.busDetails?.price || 1299,
+        status: this.getSeatStatus(row + 10, 'C'),
+        type: 'sleeper',
+        gender: Math.random() > 0.7 ? 'male' : 'none',
+        tempSelected: false
+      });
+      
+      seats.push({
+        id: id++,
+        number: `U${row}D`,
+        row: row,
+        column: 'D',
+        deck: 'upper',
+        price: this.busDetails?.price || 1299,
+        status: this.getSeatStatus(row + 10, 'D'),
+        type: 'sleeper',
+        gender: Math.random() > 0.7 ? 'female' : 'none',
+        tempSelected: false
+      });
     }
     
-    this.seats = seats;
+    this.upperDeckSeats = seats;
   }
 
-  getRandomStatus(): 'available' | 'booked' | 'selected' | 'blocked' {
-    const rand = Math.random();
-    if (rand < 0.6) return 'available';
-    if (rand < 0.85) return 'booked';
-    return 'blocked';
+  getSeatStatus(row: number, column: string): 'available' | 'booked' | 'selected' | 'blocked' {
+    const bookedSeats = [
+      'L3B', 'L4C', 'L5A', 'L6D', 'L7B', 'L8C',
+      'U2A', 'U3D', 'U4B', 'U5C', 'U7A'
+    ];
+    
+    const seatNum = `${row}${column}`;
+    
+    if (bookedSeats.includes(seatNum)) {
+      return 'booked';
+    }
+    
+    return 'available';
   }
 
-  getLowerDeckSeats(): Seat[] {
-    return this.seats.filter(seat => seat.deck === 'lower');
+  toggleDeck() {
+    this.showUpperDeck = !this.showUpperDeck;
   }
 
-  getUpperDeckSeats(): Seat[] {
-    return this.seats.filter(seat => seat.deck === 'upper');
+  getCurrentDeckSeats(): Seat[] {
+    return this.showUpperDeck ? this.upperDeckSeats : this.lowerDeckSeats;
   }
 
+  getSeatsByColumn(column: 'A' | 'B' | 'C' | 'D'): Seat[] {
+    return this.getCurrentDeckSeats()
+      .filter(seat => seat.column === column)
+      .sort((a, b) => a.row - b.row);
+  }
+
+  // Toggle multi-select mode
+  toggleMultiSelectMode() {
+    this.isMultiSelectMode = !this.isMultiSelectMode;
+    if (!this.isMultiSelectMode) {
+      this.clearTempSelection();
+    }
+  }
+
+  // Clear temporary selection
+  clearTempSelection() {
+    this.getCurrentDeckSeats().forEach(seat => {
+      if (seat.tempSelected) {
+        seat.tempSelected = false;
+      }
+    });
+    this.tempSelectedSeats = [];
+  }
+
+  // Updated toggleSeat method for multi-select
   toggleSeat(seat: Seat) {
-    if (seat.status === 'booked' || seat.status === 'blocked') {
+    if (seat.status === 'booked' || seat.status === 'blocked' || seat.status === 'selected') {
       return;
     }
     
-    if (seat.status === 'available') {
+    if (this.isMultiSelectMode) {
+      // Multi-select mode
+      if (seat.tempSelected) {
+        seat.tempSelected = false;
+        this.tempSelectedSeats = this.tempSelectedSeats.filter(s => s.id !== seat.id);
+      } else {
+        // Check if adding this seat would exceed max seats
+        const totalAfterAdd = this.selectedSeats.length + this.tempSelectedSeats.length + 1;
+        if (totalAfterAdd > this.maxSeats) {
+          this.showLimitWarning = true;
+          setTimeout(() => {
+            this.showLimitWarning = false;
+          }, 3000);
+          return;
+        }
+        seat.tempSelected = true;
+        this.tempSelectedSeats.push(seat);
+      }
+    } else {
+      // Single select mode - direct selection
+      if (this.selectedSeats.length >= this.maxSeats) {
+        this.showLimitWarning = true;
+        setTimeout(() => {
+          this.showLimitWarning = false;
+        }, 3000);
+        return;
+      }
+      
       this.currentSeat = seat;
-      this.showPassengerModal = true;
-    } else if (seat.status === 'selected') {
-      seat.status = 'available';
-      this.selectedSeats = this.selectedSeats.filter(s => s.id !== seat.id);
-      this.calculateTotal();
-    }
-  }
-
-  confirmSeatSelection() {
-    if (this.currentSeat) {
-      this.currentSeat.status = 'selected';
-      this.selectedSeats.push(this.currentSeat);
-      this.calculateTotal();
-      this.showPassengerModal = false;
-      this.currentSeat = null;
-      this.passengerDetails = {
+      this.passengers = [{
+        seatNumber: seat.number,
         name: '',
         age: null,
         gender: 'male',
         phone: '',
         email: ''
-      };
+      }];
+      this.showPassengerModal = true;
     }
   }
 
-  cancelSeatSelection() {
-    this.showPassengerModal = false;
-    this.currentSeat = null;
-    this.passengerDetails = {
+  // Confirm multi-selection
+  confirmMultiSelection() {
+    if (this.tempSelectedSeats.length === 0) {
+      return;
+    }
+    
+    // Prepare passengers array for all temp selected seats
+    this.passengers = this.tempSelectedSeats.map(seat => ({
+      seatNumber: seat.number,
       name: '',
       age: null,
       gender: 'male',
       phone: '',
       email: ''
-    };
+    }));
+    
+    this.showMultiSelectConfirm = false;
+    this.showPassengerModal = true;
+  }
+
+  // Cancel multi-selection
+  cancelMultiSelection() {
+    this.clearTempSelection();
+    this.showMultiSelectConfirm = false;
+  }
+
+  // Confirm all passenger details
+  confirmAllPassengers() {
+    // Validate all passengers have required fields
+    const isValid = this.passengers.every(p => p.name && p.age && p.phone);
+    
+    if (!isValid) {
+      alert('Please fill in all passenger details');
+      return;
+    }
+    
+    // Mark all temp selected seats as selected
+    this.tempSelectedSeats.forEach(seat => {
+      const seatToUpdate = this.findSeatById(seat.id);
+      if (seatToUpdate) {
+        seatToUpdate.status = 'selected';
+        seatToUpdate.tempSelected = false;
+      }
+    });
+    
+    this.selectedSeats = [...this.selectedSeats, ...this.tempSelectedSeats];
+    this.tempSelectedSeats = [];
+    this.calculateTotal();
+    this.showPassengerModal = false;
+    this.isMultiSelectMode = false;
+  }
+
+  // Find seat by ID in both decks
+  findSeatById(id: number): Seat | undefined {
+    return [...this.lowerDeckSeats, ...this.upperDeckSeats].find(s => s.id === id);
+  }
+
+  // Remove a selected seat
+  removeSelectedSeat(seat: Seat) {
+    const seatToUpdate = this.findSeatById(seat.id);
+    if (seatToUpdate) {
+      seatToUpdate.status = 'available';
+    }
+    this.selectedSeats = this.selectedSeats.filter(s => s.id !== seat.id);
+    this.calculateTotal();
   }
 
   calculateTotal() {
@@ -263,10 +444,16 @@ export class SeatSelectionComponent implements OnInit {
       alert('Please select at least one seat');
       return;
     }
-    alert('Proceeding to payment! This would connect to Khalti/eSewa in a real app.');
+    
+    alert(`Proceeding to payment with ${this.selectedSeats.length} seats`);
+    // Navigate to payment page
+    // this.router.navigate(['/payment'], { state: { seats: this.selectedSeats, bus: this.busDetails } });
   }
 
   getSeatStatusClass(seat: Seat): string {
+    if (seat.tempSelected) {
+      return 'seat-temp-selected';
+    }
     switch(seat.status) {
       case 'available': return 'seat-available';
       case 'booked': return 'seat-booked';
@@ -276,20 +463,51 @@ export class SeatSelectionComponent implements OnInit {
     }
   }
 
-  getSeatGenderClass(seat: Seat): string {
-    if (seat.status !== 'booked') return '';
-    return seat.gender === 'male' ? 'seat-male' : 'seat-female';
-  }
-
   getAvailableSeatsCount(): number {
-    return this.seats.filter(s => s.status === 'available').length;
+    return this.getCurrentDeckSeats().filter(s => s.status === 'available').length;
   }
 
   getBookedSeatsCount(): number {
-    return this.seats.filter(s => s.status === 'booked').length;
+    return this.getCurrentDeckSeats().filter(s => s.status === 'booked').length;
+  }
+
+  getSelectedSeatsCount(): number {
+    return this.selectedSeats.length;
+  }
+
+  getTempSelectedCount(): number {
+    return this.tempSelectedSeats.length;
+  }
+
+  getRemainingSeatsCount(): number {
+    return this.maxSeats - (this.selectedSeats.length + this.tempSelectedSeats.length);
   }
 
   goBack() {
     this.router.navigate(['/buses']);
+  }
+
+  getRowNumbers(): number[] {
+    return [1, 2, 3, 4, 5, 6, 7, 8];
+  }
+
+  // Update passenger details
+  updatePassenger(index: number, field: string, value: any) {
+    if (this.passengers[index]) {
+      (this.passengers[index] as any)[field] = value;
+    }
+  }
+
+  // Check if all passengers are valid
+  areAllPassengersValid(): boolean {
+    return this.passengers.every(p => 
+      p.name && 
+      p.name.trim() !== '' && 
+      p.age !== null && 
+      p.age > 0 && 
+      p.age < 120 && 
+      p.phone && 
+      p.phone.length === 10
+    );
   }
 }

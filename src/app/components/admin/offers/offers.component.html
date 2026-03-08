@@ -1,1 +1,776 @@
-<p>offers works!</p>
+<div class="offers-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Offers & Coupons</h1>
+      <p class="header-subtitle">Manage promotional offers and discount coupons</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-stats" (click)="openStatsModal()">
+        <span class="icon">📊</span> Statistics
+      </button>
+      <button class="btn-export" (click)="exportData()">
+        <span class="icon">📤</span> Export
+      </button>
+      <button class="btn-bulk" (click)="openBulkUploadModal()">
+        <span class="icon">📁</span> Bulk Upload
+      </button>
+      <button class="btn-primary" (click)="openAddModal()">
+        <span class="icon">➕</span> Create Offer
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card" (click)="selectedStatus = 'all'; onFilterChange()">
+      <div class="stat-icon total">🏷️</div>
+      <div class="stat-details">
+        <h3>Total Offers</h3>
+        <p class="stat-value">{{ totalOffers }}</p>
+        <span class="stat-change">All offers</span>
+      </div>
+    </div>
+
+    <div class="stat-card" (click)="selectedStatus = 'active'; onFilterChange()">
+      <div class="stat-icon active">✅</div>
+      <div class="stat-details">
+        <h3>Active</h3>
+        <p class="stat-value">{{ getTotalActiveOffers() }}</p>
+        <span class="stat-change positive">{{ (getTotalActiveOffers()/totalOffers*100).toFixed(1) }}%</span>
+      </div>
+    </div>
+
+    <div class="stat-card" (click)="selectedStatus = 'inactive'; onFilterChange()">
+      <div class="stat-icon inactive">⏸️</div>
+      <div class="stat-details">
+        <h3>Inactive</h3>
+        <p class="stat-value">{{ getTotalInactiveOffers() }}</p>
+        <span class="stat-change">{{ (getTotalInactiveOffers()/totalOffers*100).toFixed(1) }}%</span>
+      </div>
+    </div>
+
+    <div class="stat-card" (click)="selectedStatus = 'expired'; onFilterChange()">
+      <div class="stat-icon expired">⌛</div>
+      <div class="stat-details">
+        <h3>Expired</h3>
+        <p class="stat-value">{{ getTotalExpiredOffers() }}</p>
+        <span class="stat-change negative">{{ (getTotalExpiredOffers()/totalOffers*100).toFixed(1) }}%</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon usage">📊</div>
+      <div class="stat-details">
+        <h3>Total Usage</h3>
+        <p class="stat-value">{{ totalUsage | number }}</p>
+        <span class="stat-change">{{ getRedemptionRate().toFixed(1) }}% redemption</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon discount">💰</div>
+      <div class="stat-details">
+        <h3>Discount Given</h3>
+        <p class="stat-value">₹{{ totalDiscountGiven | number }}</p>
+        <span class="stat-change positive">+12.5%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Featured Offers Carousel - FIXED -->
+  <div class="featured-section" *ngIf="hasFeaturedActiveOffers()">
+    <h3>🔥 Featured Offers</h3>
+    <div class="featured-carousel">
+      <div class="featured-card" *ngFor="let offer of getFeaturedActiveOffers()" 
+           [style.background-color]="offer.bgColor" [style.color]="offer.textColor">
+        <div class="featured-badge">FEATURED</div>
+        <div class="featured-icon">{{ getTypeIcon(offer.type) }}</div>
+        <div class="featured-content">
+          <h4>{{ offer.title }}</h4>
+          <p class="featured-code">{{ offer.code }}</p>
+          <p class="featured-desc">{{ offer.description }}</p>
+          <div class="featured-footer">
+            <span>Valid till: {{ offer.endDate | date }}</span>
+            <button class="featured-btn" (click)="openViewModal(offer)">View</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-card">
+    <div class="filters-header">
+      <h3>Filter Offers</h3>
+      <button class="btn-reset" (click)="resetFilters()">
+        <span class="icon">↺</span> Reset
+      </button>
+    </div>
+    
+    <div class="filters-grid">
+      <div class="filter-group">
+        <label>Search</label>
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input 
+            type="text" 
+            placeholder="Search by code, title, description..." 
+            [(ngModel)]="searchTerm"
+            (input)="onSearch()"
+          >
+        </div>
+      </div>
+      
+      <div class="filter-group">
+        <label>Offer Type</label>
+        <select [(ngModel)]="selectedType" (change)="onFilterChange()">
+          <option value="all">All Types</option>
+          <option *ngFor="let type of offerTypes" [value]="type.value">{{ type.label }}</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Status</label>
+        <select [(ngModel)]="selectedStatus" (change)="onFilterChange()">
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="expired">Expired</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Applicable On</label>
+        <select [(ngModel)]="selectedApplicable" (change)="onFilterChange()">
+          <option value="all">All</option>
+          <option value="all">All Bookings</option>
+          <option value="specific">Specific Routes</option>
+          <option value="first">First Booking</option>
+          <option value="weekend">Weekend Travel</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Summary -->
+  <div class="results-summary">
+    <p>Showing <strong>{{ getPaginatedOffers().length }}</strong> of <strong>{{ filteredOffers.length }}</strong> offers</p>
+    <div class="items-per-page">
+      <label>Show:</label>
+      <select [(ngModel)]="itemsPerPage" (change)="calculatePagination()">
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Offers Grid -->
+  <div class="offers-grid">
+    <div class="offer-card" *ngFor="let offer of getPaginatedOffers()" [style.border-top-color]="offer.bgColor">
+      <div class="offer-header">
+        <div class="offer-type-badge" [style.background-color]="offer.bgColor" [style.color]="offer.textColor">
+          {{ getTypeIcon(offer.type) }} {{ offer.type === 'percentage' ? offer.discountValue + '%' : 
+             offer.type === 'fixed' ? '₹' + offer.discountValue : 
+             offer.type === 'bogo' ? 'BOGO' : 'Waiver' }}
+        </div>
+        <div class="offer-status">
+          <span class="status-badge" [ngClass]="getStatusClass(offer.status)">
+            {{ offer.status }}
+          </span>
+          <span class="featured-star" *ngIf="offer.featured" title="Featured Offer">⭐</span>
+        </div>
+      </div>
+      
+      <div class="offer-body">
+        <h3 class="offer-title">{{ offer.title }}</h3>
+        <div class="offer-code">{{ offer.code }}</div>
+        <p class="offer-description">{{ offer.description }}</p>
+        
+        <div class="offer-details">
+          <div class="detail-item">
+            <span class="detail-label">Min Booking</span>
+            <span class="detail-value">₹{{ offer.minBookingAmount }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Valid Till</span>
+            <span class="detail-value" [class.expiring-soon]="isExpiringSoon(offer)">
+              {{ offer.endDate | date }} 
+              <span *ngIf="isExpiringSoon(offer)" class="expiring-badge">Soon!</span>
+            </span>
+          </div>
+        </div>
+        
+        <div class="usage-progress">
+          <div class="progress-header">
+            <span>Usage: {{ offer.usedCount }}/{{ offer.usageLimit }}</span>
+            <span>{{ (offer.usedCount/offer.usageLimit*100).toFixed(0) }}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="getUsagePercentage(offer)" [style.background-color]="offer.bgColor"></div>
+          </div>
+        </div>
+        
+        <div class="applicable-tags">
+          <span class="tag" *ngFor="let bus of offer.applicableBusTypes?.slice(0, 2)">
+            {{ bus }}
+          </span>
+          <span class="tag more" *ngIf="(offer.applicableBusTypes?.length || 0) > 2">
+            +{{ (offer.applicableBusTypes?.length || 0) - 2 }} more
+          </span>
+        </div>
+      </div>
+      
+      <div class="offer-footer">
+        <div class="offer-meta">
+          <span class="meta-item">👥 {{ offer.usagePerUser }} per user</span>
+          <span class="meta-item">📅 {{ getApplicableLabel(offer.applicableOn) }}</span>
+        </div>
+        <div class="offer-actions">
+          <button class="btn-icon" (click)="openViewModal(offer)" title="View Details">👁️</button>
+          <button class="btn-icon" (click)="openEditModal(offer)" title="Edit">✏️</button>
+          <button class="btn-icon" (click)="duplicateOffer(offer)" title="Duplicate">📋</button>
+          <button class="btn-icon" (click)="toggleFeatured(offer)" [title]="offer.featured ? 'Remove Featured' : 'Make Featured'">
+            {{ offer.featured ? '⭐' : '☆' }}
+          </button>
+          <button class="btn-icon" (click)="toggleStatus(offer)" [title]="offer.status === 'active' ? 'Deactivate' : 'Activate'">
+            {{ offer.status === 'active' ? '🔴' : '🟢' }}
+          </button>
+          <button class="btn-icon" (click)="openDeleteModal(offer)" title="Delete">🗑️</button>
+        </div>
+      </div>
+      
+      <div class="offer-ribbon" *ngIf="isExpiringSoon(offer)" [style.background-color]="offer.bgColor">
+        Expiring Soon!
+      </div>
+    </div>
+    
+    <!-- No Results -->
+    <div class="no-results" *ngIf="getPaginatedOffers().length === 0">
+      <div class="no-results-content">
+        <span class="no-results-icon">🏷️</span>
+        <h3>No offers found</h3>
+        <p>Try adjusting your filters or create a new offer</p>
+        <button class="btn-primary" (click)="resetFilters()">Clear Filters</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button class="page-btn" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
+      ←
+    </button>
+    <button 
+      class="page-btn" 
+      *ngFor="let page of getPageNumbers()"
+      [class.active]="currentPage === page"
+      (click)="changePage(page)"
+    >
+      {{ page }}
+    </button>
+    <button class="page-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
+      →
+    </button>
+  </div>
+
+  <!-- Add Offer Modal -->
+  <div class="modal" *ngIf="showAddModal">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h2>Create New Offer</h2>
+        <button class="close-btn" (click)="closeAddModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <form>
+          <div class="form-section">
+            <h4>Basic Information</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Offer Code *</label>
+                <input type="text" [(ngModel)]="editOfferCode" name="code" placeholder="e.g., SUMMER20" required>
+                <small>Uppercase letters and numbers only</small>
+              </div>
+              <div class="form-group">
+                <label>Title *</label>
+                <input type="text" [(ngModel)]="editOfferTitle" name="title" placeholder="e.g., Summer Special" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Description *</label>
+              <textarea rows="2" [(ngModel)]="editOfferDescription" name="description" placeholder="Brief description of the offer" required></textarea>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Discount Details</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Offer Type *</label>
+                <select [(ngModel)]="editOfferType" name="type">
+                  <option *ngFor="let type of offerTypes" [value]="type.value">{{ type.label }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Discount Value *</label>
+                <input type="number" [(ngModel)]="editOfferDiscountValue" name="discountValue" placeholder="e.g., 20" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Max Discount (₹) - Optional</label>
+                <input type="number" [(ngModel)]="editOfferMaxDiscount" name="maxDiscount" placeholder="Leave blank for no limit">
+              </div>
+              <div class="form-group">
+                <label>Min Booking Amount (₹) *</label>
+                <input type="number" [(ngModel)]="editOfferMinBookingAmount" name="minBookingAmount" placeholder="e.g., 1000" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Validity Period</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Start Date *</label>
+                <input type="date" [(ngModel)]="editOfferStartDate" name="startDate" required>
+              </div>
+              <div class="form-group">
+                <label>End Date *</label>
+                <input type="date" [(ngModel)]="editOfferEndDate" name="endDate" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Applicability</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Applicable On *</label>
+                <select [(ngModel)]="editOfferApplicableOn" name="applicableOn">
+                  <option value="all">All Bookings</option>
+                  <option value="first">First Booking Only</option>
+                  <option value="weekend">Weekend Travel</option>
+                  <option value="specific">Specific Routes</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Bus Types</label>
+                <div class="checkbox-group">
+                  <label *ngFor="let type of busTypes">
+                    <input type="checkbox" [checked]="isBusTypeSelected(type)" (change)="toggleBusType(type)">
+                    {{ type }}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" *ngIf="editOfferApplicableOn === 'specific'">
+              <label>Select Routes</label>
+              <div class="checkbox-group">
+                <label *ngFor="let route of routes">
+                  <input type="checkbox" [checked]="isRouteSelected(route.id)" (change)="toggleRoute(route.id)">
+                  {{ route.name }}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Usage Limits</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Total Usage Limit *</label>
+                <input type="number" [(ngModel)]="editOfferUsageLimit" name="usageLimit" placeholder="e.g., 1000" required>
+              </div>
+              <div class="form-group">
+                <label>Per User Limit *</label>
+                <input type="number" [(ngModel)]="editOfferUsagePerUser" name="usagePerUser" placeholder="e.g., 1" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Terms & Conditions</h4>
+            <div class="form-group">
+              <label>Terms (one per line)</label>
+              <textarea rows="4" [(ngModel)]="editOfferTerms" name="terms" placeholder="Enter each term on a new line"></textarea>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Additional Settings</h4>
+            <div class="form-row">
+              <div class="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" [(ngModel)]="editOfferFeatured" name="featured">
+                  Feature this offer
+                </label>
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select [(ngModel)]="editOfferStatus" name="status">
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
+        <button class="btn-primary" (click)="saveOffer()">Create Offer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Offer Modal -->
+  <div class="modal" *ngIf="showEditModal && selectedOffer">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h2>Edit Offer - {{ selectedOffer.code }}</h2>
+        <button class="close-btn" (click)="closeEditModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <form>
+          <div class="form-section">
+            <h4>Basic Information</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Offer Code *</label>
+                <input type="text" [(ngModel)]="editOfferCode" name="editCode" required>
+              </div>
+              <div class="form-group">
+                <label>Title *</label>
+                <input type="text" [(ngModel)]="editOfferTitle" name="editTitle" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Description *</label>
+              <textarea rows="2" [(ngModel)]="editOfferDescription" name="editDescription" required></textarea>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Discount Details</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Offer Type *</label>
+                <select [(ngModel)]="editOfferType" name="editType">
+                  <option *ngFor="let type of offerTypes" [value]="type.value">{{ type.label }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Discount Value *</label>
+                <input type="number" [(ngModel)]="editOfferDiscountValue" name="editDiscountValue" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Max Discount (₹) - Optional</label>
+                <input type="number" [(ngModel)]="editOfferMaxDiscount" name="editMaxDiscount">
+              </div>
+              <div class="form-group">
+                <label>Min Booking Amount (₹) *</label>
+                <input type="number" [(ngModel)]="editOfferMinBookingAmount" name="editMinBookingAmount" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Validity Period</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Start Date *</label>
+                <input type="date" [(ngModel)]="editOfferStartDate" name="editStartDate" required>
+              </div>
+              <div class="form-group">
+                <label>End Date *</label>
+                <input type="date" [(ngModel)]="editOfferEndDate" name="editEndDate" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Applicability</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Applicable On *</label>
+                <select [(ngModel)]="editOfferApplicableOn" name="editApplicableOn">
+                  <option value="all">All Bookings</option>
+                  <option value="first">First Booking Only</option>
+                  <option value="weekend">Weekend Travel</option>
+                  <option value="specific">Specific Routes</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Bus Types</label>
+                <div class="checkbox-group">
+                  <label *ngFor="let type of busTypes">
+                    <input type="checkbox" [checked]="isBusTypeSelected(type)" (change)="toggleBusType(type)">
+                    {{ type }}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" *ngIf="editOfferApplicableOn === 'specific'">
+              <label>Select Routes</label>
+              <div class="checkbox-group">
+                <label *ngFor="let route of routes">
+                  <input type="checkbox" [checked]="isRouteSelected(route.id)" (change)="toggleRoute(route.id)">
+                  {{ route.name }}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Usage Limits</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Total Usage Limit *</label>
+                <input type="number" [(ngModel)]="editOfferUsageLimit" name="editUsageLimit" required>
+              </div>
+              <div class="form-group">
+                <label>Per User Limit *</label>
+                <input type="number" [(ngModel)]="editOfferUsagePerUser" name="editUsagePerUser" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Terms & Conditions</h4>
+            <div class="form-group">
+              <label>Terms (one per line)</label>
+              <textarea rows="4" [(ngModel)]="editOfferTerms" name="editTerms"></textarea>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Additional Settings</h4>
+            <div class="form-row">
+              <div class="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" [(ngModel)]="editOfferFeatured" name="editFeatured">
+                  Feature this offer
+                </label>
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select [(ngModel)]="editOfferStatus" name="editStatus">
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeEditModal()">Cancel</button>
+        <button class="btn-primary" (click)="updateOffer()">Update Offer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Offer Modal - FIXED -->
+  <div class="modal" *ngIf="showViewModal && selectedOffer">
+    <div class="modal-content">
+      <div class="modal-header" [style.background-color]="selectedOffer.bgColor">
+        <h2>Offer Details</h2>
+        <button class="close-btn" (click)="closeViewModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="offer-preview" [style.background-color]="selectedOffer.bgColor" [style.color]="selectedOffer.textColor">
+          <div class="preview-header">
+            <span class="preview-type">{{ getTypeLabel(selectedOffer.type) }}</span>
+            <span class="preview-code">{{ selectedOffer.code }}</span>
+          </div>
+          <div class="preview-value">
+            {{ selectedOffer.type === 'percentage' ? selectedOffer.discountValue + '% OFF' : 
+               selectedOffer.type === 'fixed' ? '₹' + selectedOffer.discountValue + ' OFF' : 
+               selectedOffer.type === 'bogo' ? 'Buy 1 Get 1' : 'Free Cancellation' }}
+          </div>
+          <div class="preview-title">{{ selectedOffer.title }}</div>
+          <div class="preview-desc">{{ selectedOffer.description }}</div>
+          <div class="preview-min">Min. Booking: ₹{{ selectedOffer.minBookingAmount }}</div>
+        </div>
+
+        <div class="details-grid">
+          <div class="detail-card">
+            <h5>Validity</h5>
+            <p><strong>From:</strong> {{ selectedOffer.startDate | date }}</p>
+            <p><strong>To:</strong> {{ selectedOffer.endDate | date }}</p>
+            <p><strong>Days Remaining:</strong> {{ getDaysRemaining(selectedOffer) }} days</p>
+          </div>
+
+          <div class="detail-card">
+            <h5>Usage Statistics</h5>
+            <p><strong>Used:</strong> {{ selectedOffer.usedCount }} / {{ selectedOffer.usageLimit }}</p>
+            <p><strong>Per User:</strong> {{ selectedOffer.usagePerUser }} time(s)</p>
+            <p><strong>Redemption:</strong> {{ (selectedOffer.usedCount/selectedOffer.usageLimit*100).toFixed(1) }}%</p>
+          </div>
+
+          <div class="detail-card">
+            <h5>Applicability</h5>
+            <p><strong>Type:</strong> {{ getApplicableLabel(selectedOffer.applicableOn) }}</p>
+            <p><strong>Bus Types:</strong> {{ selectedOffer.applicableBusTypes?.join(', ') || 'All' }}</p>
+          </div>
+
+          <!-- FIXED: Safe route names display -->
+          <div class="detail-card" *ngIf="selectedOffer.applicableRoutes && selectedOffer.applicableRoutes.length > 0">
+            <h5>Routes</h5>
+            <p>{{ getRouteNames(selectedOffer.applicableRoutes) }}</p>
+          </div>
+        </div>
+
+        <div class="terms-card">
+          <h5>Terms & Conditions</h5>
+          <ul>
+            <li *ngFor="let term of selectedOffer.termsAndConditions">{{ term }}</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeViewModal()">Close</button>
+        <button class="btn-primary" (click)="openEditModal(selectedOffer); closeViewModal()">Edit</button>
+        <button class="btn-primary" (click)="duplicateOffer(selectedOffer); closeViewModal()">Duplicate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Modal -->
+<!-- Statistics Modal - FIXED -->
+<div class="modal" *ngIf="showStatsModal">
+  <div class="modal-content modal-lg">
+    <div class="modal-header">
+      <h2>Offer Statistics</h2>
+      <button class="close-btn" (click)="closeStatsModal()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="stats-dashboard">
+        <div class="stat-big-card">
+          <div class="stat-big-value">{{ totalOffers }}</div>
+          <div class="stat-big-label">Total Offers</div>
+        </div>
+        <div class="stat-big-card">
+          <div class="stat-big-value">{{ getTotalActiveOffers() }}</div>
+          <div class="stat-big-label">Active</div>
+        </div>
+        <div class="stat-big-card">
+          <div class="stat-big-value">{{ totalUsage | number }}</div>
+          <div class="stat-big-label">Total Usage</div>
+        </div>
+        <div class="stat-big-card">
+          <div class="stat-big-value">{{ getRedemptionRate().toFixed(1) }}%</div>
+          <div class="stat-big-label">Redemption Rate</div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <h4>Offer Performance</h4>
+        <div class="performance-bars">
+          <div class="performance-item" *ngFor="let offer of offers.slice(0, 5)">
+            <span class="perf-label">{{ offer.code }}</span>
+            <div class="perf-bar-container">
+              <div class="perf-bar" [style.width.%]="(offer.usedCount/offer.usageLimit*100)" [style.background-color]="offer.bgColor"></div>
+            </div>
+            <span class="perf-value">{{ (offer.usedCount/offer.usageLimit*100).toFixed(0) }}%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="type-distribution">
+        <h4>Offers by Type</h4>
+        <div class="distribution-grid">
+          <div class="dist-item" *ngFor="let type of offerTypes">
+            <span class="dist-label">{{ type.label }}</span>
+            <span class="dist-count">{{ getOfferCountByType(type.value) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeStatsModal()">Close</button>
+    </div>
+  </div>
+</div>
+  <!-- Bulk Upload Modal -->
+  <div class="modal" *ngIf="showBulkUploadModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Bulk Upload Offers</h2>
+        <button class="close-btn" (click)="closeBulkUploadModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="upload-instructions">
+          <h4>Instructions</h4>
+          <ul>
+            <li>Download the template file below</li>
+            <li>Fill in the offer details in the template</li>
+            <li>Upload the filled Excel/CSV file</li>
+            <li>Maximum 100 offers per upload</li>
+          </ul>
+        </div>
+
+        <div class="upload-actions">
+          <button class="btn-secondary" (click)="downloadTemplate()">
+            <span class="icon">📥</span> Download Template
+          </button>
+          
+          <div class="file-upload">
+            <input type="file" id="fileUpload" accept=".xlsx,.xls,.csv" (change)="onFileSelected($event)" hidden>
+            <label for="fileUpload" class="btn-primary">
+              <span class="icon">📤</span> Choose File
+            </label>
+          </div>
+        </div>
+
+        <div class="upload-note">
+          <p>Supported formats: .xlsx, .xls, .csv</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeBulkUploadModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal modal-sm" *ngIf="showDeleteModal && selectedOffer">
+    <div class="modal-content">
+      <div class="modal-header" style="background: #ef4444;">
+        <h2>Confirm Delete</h2>
+        <button class="close-btn" (click)="closeDeleteModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <p>Are you sure you want to delete offer <strong>"{{ selectedOffer.code }}"</strong>?</p>
+        <p class="warning-text">This action cannot be undone.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeDeleteModal()">Cancel</button>
+        <button class="btn-danger" (click)="confirmDelete()">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>

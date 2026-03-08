@@ -1,70 +1,573 @@
-<!-- <p>home works!</p>
-<div class="home-container">
-  <section class="hero">
-    <div class="hero-content">
-      <h1>Welcome to Travel Agency</h1>
-      <p>Book your bus tickets online with ease</p>
-      <div class="search-box">
-        <h3>Search for Buses</h3>
-        <div class="search-form">
-          <input type="text" placeholder="From">
-          <input type="text" placeholder="To">
-          <input type="date" placeholder="Date">
-          <button class="btn-search">Search Buses</button>
+<!-- <div class="home-container">
+  <header class="header">
+    <nav class="navbar">
+      <div class="logo">
+        <span class="logo-icon">🚌</span>
+        <span>TravelEase</span>
+      </div>
+      
+      <ul class="nav-links">
+        <li><a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a></li>
+        <li><a routerLink="/buses" routerLinkActive="active">Buses</a></li>
+        <li><a routerLink="/routes" routerLinkActive="active">Routes</a></li>
+        <li><a routerLink="/offers" routerLinkActive="active">Offers</a></li>
+        <li><a routerLink="/contact" routerLinkActive="active">Contact</a></li>
+      </ul>
+      
+      <div class="auth-buttons">
+        <a routerLink="/login" class="btn-login">Login</a>
+        <a routerLink="/register" class="btn-register">Register</a>
+      </div>
+      
+      <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+    </nav>
+  </header>
+
+  <main class="main">
+    <section class="hero">
+      <div class="hero-content">
+        <h1 class="animate-text">Book Your <span class="highlight">Bus Ticket</span></h1>
+        <p class="animate-text-delay">Safe, Comfortable, and Affordable Travel Across India</p>
+        
+        <div class="search-box animate-up">
+          <div class="search-input-group">
+            <div class="search-input">
+              <span class="input-icon">📍</span>
+              <input type="text" placeholder="From" value="Delhi">
+            </div>
+            <div class="search-input">
+              <span class="input-icon">🏁</span>
+              <input type="text" placeholder="To" value="Mumbai">
+            </div>
+            <div class="search-input">
+              <span class="input-icon">📅</span>
+              <input type="date" [value]="currentYear + '-03-15'">
+            </div>
+            <button class="btn-search">Search Buses</button>
+          </div>
+        </div>
+        
+        <div class="stats-container animate-up">
+          <div class="stat-item">
+            <span class="stat-number">50+</span>
+            <span class="stat-label">Bus Operators</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">500+</span>
+            <span class="stat-label">Routes</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">1M+</span>
+            <span class="stat-label">Happy Customers</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">24/7</span>
+            <span class="stat-label">Support</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <section class="features-section">
+    <div class="container">
+      <h2 class="section-title">Why Choose <span class="highlight">TravelEase?</span></h2>
+      <div class="features-grid">
+        <div class="feature-card" *ngFor="let feature of features; let i = index" 
+             [style.animation-delay]="i * 0.1 + 's'">
+          <div class="feature-icon">{{ feature.icon }}</div>
+          <h3>{{ feature.title }}</h3>
+          <p>{{ feature.desc }}</p>
         </div>
       </div>
     </div>
   </section>
+
+  <section class="destinations-section">
+    <div class="container">
+      <h2 class="section-title">Popular <span class="highlight">Destinations</span></h2>
+      <div class="destinations-grid">
+        <div class="destination-card" *ngFor="let dest of destinations; let i = index"
+             [style.animation-delay]="i * 0.1 + 's'">
+          <div class="destination-icon">{{ dest.image }}</div>
+          <h3>{{ dest.name }}</h3>
+          <p>{{ dest.routes }} routes</p>
+          <button class="btn-explore" [routerLink]="['/buses']" [queryParams]="{to: dest.name}">Explore →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="how-it-works">
+    <div class="container">
+      <h2 class="section-title">How It <span class="highlight">Works</span></h2>
+      <div class="steps-container">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-icon">🔍</div>
+          <h3>Search Buses</h3>
+          <p>Enter your source, destination and date</p>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-icon">💺</div>
+          <h3>Select Seats</h3>
+          <p>Choose your preferred seats</p>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-icon">💳</div>
+          <h3>Make Payment</h3>
+          <p>Pay securely via multiple options</p>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div class="step-icon">🎫</div>
+          <h3>Get Ticket</h3>
+          <p>Receive e-ticket via email/SMS</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="testimonials-section">
+    <div class="container">
+      <h2 class="section-title">What Our <span class="highlight">Customers Say</span></h2>
+      <div class="testimonials-grid">
+        <div class="testimonial-card" *ngFor="let testimonial of testimonials">
+          <div class="testimonial-header">
+            <span class="testimonial-avatar">{{ testimonial.image }}</span>
+            <div>
+              <h4>{{ testimonial.name }}</h4>
+              <div class="rating">
+                <span *ngFor="let star of [1,2,3,4,5]">⭐</span>
+              </div>
+            </div>
+          </div>
+          <p class="testimonial-text">"{{ testimonial.text }}"</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="app-section">
+    <div class="container">
+      <div class="app-content">
+        <div class="app-info">
+          <h2>Download Our <span class="highlight">Mobile App</span></h2>
+          <p>Book buses on the go with our easy-to-use mobile app</p>
+          <div class="app-buttons">
+            <a href="#" class="app-btn">
+              <span class="app-icon">📱</span>
+              <div>
+                <small>Download on</small>
+                <strong>App Store</strong>
+              </div>
+            </a>
+            <a href="#" class="app-btn">
+              <span class="app-icon">🤖</span>
+              <div>
+                <small>Get it on</small>
+                <strong>Google Play</strong>
+              </div>
+            </a>
+          </div>
+        </div>
+        <div class="app-image">
+          <div class="phone-mockup">📱</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <div class="footer-logo">
+            <span class="logo-icon">🚌</span>
+            <span>TravelEase</span>
+          </div>
+          <p>Your trusted partner for bus travel across India. Safe, comfortable, and affordable journeys.</p>
+          <div class="social-links">
+            <a href="#" class="social-link">📘</a>
+            <a href="#" class="social-link">📷</a>
+            <a href="#" class="social-link">🐦</a>
+            <a href="#" class="social-link">📧</a>
+          </div>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a routerLink="/">Home</a></li>
+            <li><a routerLink="/buses">Buses</a></li>
+            <li><a routerLink="/routes">Routes</a></li>
+            <li><a routerLink="/offers">Offers</a></li>
+            <li><a routerLink="/contact">Contact</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Support</h4>
+          <ul>
+            <li><a href="#">FAQ</a></li>
+            <li><a href="#">Terms & Conditions</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Cancellation Policy</a></li>
+            <li><a href="#">Refund Policy</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Contact Us</h4>
+          <ul class="contact-info">
+            <li><span class="contact-icon">📞</span> +91 98765 43210</li>
+            <li><span class="contact-icon">📧</span> support&#64;travelease.com</li>
+            <li><span class="contact-icon">📍</span> 123, MG Road, Bangalore</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; {{ currentYear }} TravelEase. All rights reserved.</p>
+        <div class="payment-methods">
+          <span>💳</span>
+          <span>📱</span>
+          <span>🏦</span>
+          <span>💰</span>
+        </div>
+      </div>
+    </div>
+  </footer>
 </div> -->
 
-<!-- 
 <div class="home-container">
+  <!-- Navigation -->
   <header class="header">
     <nav class="navbar">
-      <div class="logo">TravelEase</div>
+      <div class="logo">
+        <span class="logo-icon">🚌</span>
+        <span>TravelEase</span>
+      </div>
+      
       <ul class="nav-links">
-        <li><a routerLink="/">Home</a></li>
-        <li><a routerLink="/buses">Buses</a></li>
-        <li><a routerLink="/routes">Routes</a></li>
-        <li><a routerLink="/contact">Contact</a></li>
-        <li><a routerLink="/login" class="btn-login">Login</a></li>
-        <li><a routerLink="/register" class="btn-register">Register</a></li>
+        <li><a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a></li>
+        <li><a routerLink="/buses" routerLinkActive="active">Buses</a></li>
+        <li><a routerLink="/routes" routerLinkActive="active">Routes</a></li>
+        <li><a routerLink="/offers" routerLinkActive="active">Offers</a></li>
+        <li><a routerLink="/contact" routerLinkActive="active">Contact</a></li>
       </ul>
+      
+      <!-- Auth Section -->
+      <div class="auth-section">
+        <ng-container *ngIf="!isAuthenticated; else userProfile">
+          <div class="auth-buttons">
+            <a routerLink="/login" class="btn-login">Login</a>
+            <a routerLink="/register" class="btn-register">Register</a>
+          </div>
+        </ng-container>
+        
+        <ng-template #userProfile>
+          <div class="user-profile" (click)="toggleUserMenu()" (clickOutside)="showUserMenu = false">
+            <div class="user-avatar">
+              <span class="avatar-text">{{ getInitials() }}</span>
+            </div>
+            <span class="user-name">{{ getUserDisplayName() }}</span>
+            <span class="dropdown-arrow">▼</span>
+            
+            <!-- Dropdown Menu -->
+            <div class="user-dropdown" *ngIf="showUserMenu">
+              <div class="dropdown-header">
+                <strong>{{ getUserDisplayName() }}</strong>
+                <small>{{ currentUser?.email }}</small>
+              </div>
+              <div class="dropdown-divider"></div>
+              <a (click)="navigateToDashboard()" class="dropdown-item">
+                <span class="item-icon">📊</span> Dashboard
+              </a>
+              <a (click)="navigateToProfile()" class="dropdown-item">
+                <span class="item-icon">👤</span> My Profile
+              </a>
+              <a (click)="navigateToMyBookings()" class="dropdown-item">
+                <span class="item-icon">🎫</span> My Bookings
+              </a>
+              <div class="dropdown-divider"></div>
+              <a (click)="openLogoutConfirmation()" class="dropdown-item logout">
+                <span class="item-icon">🚪</span> Logout
+              </a>
+            </div>
+          </div>
+        </ng-template>
+      </div>
+      
+      <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
     </nav>
   </header>
 
-  <main class="main">
-    <section class="hero">
-      <h1>Book Your Bus Ticket</h1>
-      <p>Safe, Comfortable, and Affordable Travel</p>
-      <a routerLink="/buses" class="btn-book">Book Now</a>
-    </section>
-  </main>
-</div> -->
+  <!-- Logout Notification -->
+  <div class="logout-notification" *ngIf="showLogoutNotification" [@slideInOut]>
+    <div class="notification-content" [ngClass]="{'success': logoutSuccess, 'error': !logoutSuccess}">
+      <span class="notification-icon">{{ logoutSuccess ? '✅' : '❌' }}</span>
+      <span class="notification-message">{{ logoutMessage }}</span>
+      <button class="notification-close" (click)="hideLogoutNotification()">×</button>
+    </div>
+  </div>
+
+  <!-- Logout Confirmation Modal -->
+  <div class="modal" *ngIf="showLogoutModal">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h2>Confirm Logout</h2>
+        <button class="close-btn" (click)="cancelLogout()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="logout-icon">🚪</div>
+        <p class="logout-question">Are you sure you want to logout?</p>
+        <p class="logout-warning">You will need to login again to access your account.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="cancelLogout()">Cancel</button>
+        <button class="btn-danger" (click)="confirmLogout()" [disabled]="isLoading">
+          <span class="spinner-small" *ngIf="isLoading"></span>
+          {{ isLoading ? 'Logging out...' : 'Yes, Logout' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="loading-spinner"></div>
+    <p>Loading...</p>
+  </div>
+
+  <!-- Rest of your content -->
+  <div *ngIf="!isLoading">
+    <!-- Hero Section -->
+    <main class="main">
+      <section class="hero">
+        <div class="hero-content">
+          <h1 class="animate-text">Book Your <span class="highlight">Bus Ticket</span></h1>
+          <p class="animate-text-delay">Safe, Comfortable, and Affordable Travel Across India</p>
+          
+          <!-- Quick Search -->
+          <div class="search-box animate-up">
+            <div class="search-input-group">
+              <div class="search-input">
+                <span class="input-icon">📍</span>
+                <input type="text" placeholder="From" value="Delhi">
+              </div>
+              <div class="search-input">
+                <span class="input-icon">🏁</span>
+                <input type="text" placeholder="To" value="Mumbai">
+              </div>
+              <div class="search-input">
+                <span class="input-icon">📅</span>
+                <input type="date" [value]="currentYear + '-03-15'">
+              </div>
+              <button class="btn-search">Search Buses</button>
+            </div>
+          </div>
+          
+          <div class="stats-container animate-up">
+            <div class="stat-item">
+              <span class="stat-number">50+</span>
+              <span class="stat-label">Bus Operators</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">500+</span>
+              <span class="stat-label">Routes</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">1M+</span>
+              <span class="stat-label">Happy Customers</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">24/7</span>
+              <span class="stat-label">Support</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
 
 
+  <!-- Features Section -->
+  <section class="features-section">
+    <div class="container">
+      <h2 class="section-title">Why Choose <span class="highlight">TravelEase?</span></h2>
+      <div class="features-grid">
+        <div class="feature-card" *ngFor="let feature of features; let i = index" 
+             [style.animation-delay]="i * 0.1 + 's'">
+          <div class="feature-icon">{{ feature.icon }}</div>
+          <h3>{{ feature.title }}</h3>
+          <p>{{ feature.desc }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
+  <!-- Popular Destinations -->
+  <section class="destinations-section">
+    <div class="container">
+      <h2 class="section-title">Popular <span class="highlight">Destinations</span></h2>
+      <div class="destinations-grid">
+        <div class="destination-card" *ngFor="let dest of destinations; let i = index"
+             [style.animation-delay]="i * 0.1 + 's'">
+          <div class="destination-icon">{{ dest.image }}</div>
+          <h3>{{ dest.name }}</h3>
+          <p>{{ dest.routes }} routes</p>
+          <button class="btn-explore" [routerLink]="['/buses']" [queryParams]="{to: dest.name}">Explore →</button>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<div class="home-container">
-  <header class="header">
-    <nav class="navbar">
-      <div class="logo">TravelEase</div>
-      <ul class="nav-links">
-        <li><a routerLink="/">Home</a></li>
-        <li><a routerLink="/buses">Buses</a></li>
-        <li><a routerLink="/routes">Routes</a></li>
-        <li><a routerLink="/contact">Contact</a></li>
-        <li><a routerLink="/login" class="btn-login">Login</a></li>
-        <li><a routerLink="/register" class="btn-register">Register</a></li>
-      </ul>
-    </nav>
-  </header>
+  <!-- How It Works -->
+  <section class="how-it-works">
+    <div class="container">
+      <h2 class="section-title">How It <span class="highlight">Works</span></h2>
+      <div class="steps-container">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-icon">🔍</div>
+          <h3>Search Buses</h3>
+          <p>Enter your source, destination and date</p>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-icon">💺</div>
+          <h3>Select Seats</h3>
+          <p>Choose your preferred seats</p>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-icon">💳</div>
+          <h3>Make Payment</h3>
+          <p>Pay securely via multiple options</p>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div class="step-icon">🎫</div>
+          <h3>Get Ticket</h3>
+          <p>Receive e-ticket via email/SMS</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <main class="main">
-    <section class="hero">
-      <h1>Book Your Bus Ticket</h1>
-      <p>Safe, Comfortable, and Affordable Travel</p>
-      <a routerLink="/buses" class="btn-book">Book Now</a>
-    </section>
-  </main>
+  <!-- Testimonials -->
+  <section class="testimonials-section">
+    <div class="container">
+      <h2 class="section-title">What Our <span class="highlight">Customers Say</span></h2>
+      <div class="testimonials-grid">
+        <div class="testimonial-card" *ngFor="let testimonial of testimonials">
+          <div class="testimonial-header">
+            <span class="testimonial-avatar">{{ testimonial.image }}</span>
+            <div>
+              <h4>{{ testimonial.name }}</h4>
+              <div class="rating">
+                <span *ngFor="let star of [1,2,3,4,5]">⭐</span>
+              </div>
+            </div>
+          </div>
+          <p class="testimonial-text">"{{ testimonial.text }}"</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- App Download Section -->
+  <section class="app-section">
+    <div class="container">
+      <div class="app-content">
+        <div class="app-info">
+          <h2>Download Our <span class="highlight">Mobile App</span></h2>
+          <p>Book buses on the go with our easy-to-use mobile app</p>
+          <div class="app-buttons">
+            <a href="#" class="app-btn">
+              <span class="app-icon">📱</span>
+              <div>
+                <small>Download on</small>
+                <strong>App Store</strong>
+              </div>
+            </a>
+            <a href="#" class="app-btn">
+              <span class="app-icon">🤖</span>
+              <div>
+                <small>Get it on</small>
+                <strong>Google Play</strong>
+              </div>
+            </a>
+          </div>
+        </div>
+        <div class="app-image">
+          <div class="phone-mockup">📱</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <div class="footer-logo">
+            <span class="logo-icon">🚌</span>
+            <span>TravelEase</span>
+          </div>
+          <p>Your trusted partner for bus travel across India. Safe, comfortable, and affordable journeys.</p>
+          <div class="social-links">
+            <a href="#" class="social-link">📘</a>
+            <a href="#" class="social-link">📷</a>
+            <a href="#" class="social-link">🐦</a>
+            <a href="#" class="social-link">📧</a>
+          </div>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a routerLink="/">Home</a></li>
+            <li><a routerLink="/buses">Buses</a></li>
+            <li><a routerLink="/routes">Routes</a></li>
+            <li><a routerLink="/offers">Offers</a></li>
+            <li><a routerLink="/contact">Contact</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Support</h4>
+          <ul>
+            <li><a href="#">FAQ</a></li>
+            <li><a href="#">Terms & Conditions</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Cancellation Policy</a></li>
+            <li><a href="#">Refund Policy</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Contact Us</h4>
+          <ul class="contact-info">
+            <li><span class="contact-icon">📞</span> +91 98765 43210</li>
+            <li><span class="contact-icon">📧</span> support&#64;travelease.com</li>
+            <li><span class="contact-icon">📍</span> 123, MG Road, Bangalore</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; {{ currentYear }} TravelEase. All rights reserved.</p>
+        <div class="payment-methods">
+          <span>💳</span>
+          <span>📱</span>
+          <span>🏦</span>
+          <span>💰</span>
+        </div>
+      </div>
+    </div>
+  </footer>
 </div>

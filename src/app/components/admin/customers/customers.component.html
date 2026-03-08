@@ -1,1 +1,716 @@
-<p>customers works!</p>
+<div class="customers-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Customer Management</h1>
+      <p class="header-subtitle">Manage your customers and their bookings</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-export" (click)="openExportModal()">
+        <span class="icon">📊</span> Export
+      </button>
+      <button class="btn-primary" (click)="openAddModal()">
+        <span class="icon">➕</span> Add Customer
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon total">👥</div>
+      <div class="stat-details">
+        <h3>Total Customers</h3>
+        <p class="stat-value">{{ customers.length }}</p>
+        <span class="stat-change">+12% this month</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon active">✅</div>
+      <div class="stat-details">
+        <h3>Active</h3>
+        <p class="stat-value">{{ getTotalActiveCustomers() }}</p>
+        <span class="stat-change positive">{{ (getTotalActiveCustomers()/customers.length*100).toFixed(1) }}%</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon inactive">⏸️</div>
+      <div class="stat-details">
+        <h3>Inactive</h3>
+        <p class="stat-value">{{ getTotalInactiveCustomers() }}</p>
+        <span class="stat-change">{{ (getTotalInactiveCustomers()/customers.length*100).toFixed(1) }}%</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon blocked">🚫</div>
+      <div class="stat-details">
+        <h3>Blocked</h3>
+        <p class="stat-value">{{ getTotalBlockedCustomers() }}</p>
+        <span class="stat-change negative">{{ (getTotalBlockedCustomers()/customers.length*100).toFixed(1) }}%</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon revenue">💰</div>
+      <div class="stat-details">
+        <h3>Total Revenue</h3>
+        <p class="stat-value">₹{{ getTotalRevenue() | number }}</p>
+        <span class="stat-change positive">+8.5%</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon avg">📊</div>
+      <div class="stat-details">
+        <h3>Avg. Spending</h3>
+        <p class="stat-value">₹{{ getAverageSpending() | number }}</p>
+        <span class="stat-change">per customer</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="charts-section">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h4>Customer Growth</h4>
+        <span class="chart-period">Last 12 months</span>
+      </div>
+      <div class="chart-container">
+        <div class="bar-chart">
+          <div class="bar-container" *ngFor="let data of customerGrowthData">
+            <div class="bar" [style.height.px]="data.count / 2"></div>
+            <span class="bar-label">{{ data.month }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <h4>Booking Trend</h4>
+        <span class="chart-period">Last 12 months</span>
+      </div>
+      <div class="chart-container">
+        <div class="line-chart">
+          <svg viewBox="0 0 300 100" class="trend-line">
+            <polyline 
+              points="10,80 30,70 50,60 70,55 90,45 110,35 130,25 150,20 170,25 190,15 210,10 230,5"
+              fill="none"
+              stroke="#3498db"
+              stroke-width="2"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-card">
+    <div class="filters-header">
+      <h3>Filter Customers</h3>
+      <button class="btn-reset" (click)="resetFilters()">
+        <span class="icon">↺</span> Reset
+      </button>
+    </div>
+    
+    <div class="filters-grid">
+      <div class="filter-group">
+        <label>Search</label>
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input 
+            type="text" 
+            placeholder="Search by name, email, phone, ID..." 
+            [(ngModel)]="searchTerm"
+            (input)="onSearch()"
+          >
+        </div>
+      </div>
+      
+      <div class="filter-group">
+        <label>Status</label>
+        <select [(ngModel)]="selectedStatus" (change)="onFilterChange()">
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="blocked">Blocked</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Gender</label>
+        <select [(ngModel)]="selectedGender" (change)="onFilterChange()">
+          <option value="all">All Genders</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>City</label>
+        <select [(ngModel)]="selectedCity" (change)="onFilterChange()">
+          <option value="all">All Cities</option>
+          <option *ngFor="let city of cities" [value]="city">{{ city }}</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Registered From</label>
+        <input type="date" [(ngModel)]="dateRange.from" (change)="onFilterChange()">
+      </div>
+      
+      <div class="filter-group">
+        <label>Registered To</label>
+        <input type="date" [(ngModel)]="dateRange.to" (change)="onFilterChange()">
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Summary -->
+  <div class="results-summary">
+    <p>Showing <strong>{{ getPaginatedCustomers().length }}</strong> of <strong>{{ filteredCustomers.length }}</strong> customers</p>
+    <div class="items-per-page">
+      <label>Show:</label>
+      <select [(ngModel)]="itemsPerPage" (change)="calculatePagination()">
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Customers Table -->
+  <div class="table-container">
+    <table class="customers-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Customer</th>
+          <th>Contact</th>
+          <th>Location</th>
+          <th>ID Proof</th>
+          <th>Bookings</th>
+          <th>Total Spent</th>
+          <th>Last Booking</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let customer of getPaginatedCustomers()">
+          <td class="customer-id">#{{ customer.customerId }}</td>
+          <td class="customer-info">
+            <div class="customer-name">
+              <span class="gender-icon">{{ getGenderIcon(customer.gender) }}</span>
+              <strong>{{ customer.name }}</strong>
+            </div>
+            <div class="customer-dob">{{ customer.dateOfBirth | date }}</div>
+          </td>
+          <td class="contact-info">
+            <div>{{ customer.email }}</div>
+            <div class="phone">{{ customer.phone }}</div>
+            <div *ngIf="customer.alternatePhone" class="alt-phone">Alt: {{ customer.alternatePhone }}</div>
+          </td>
+          <td class="location-info">
+            <div>{{ customer.city }}</div>
+            <div class="state">{{ customer.state }}</div>
+            <div class="pincode">{{ customer.pincode }}</div>
+          </td>
+          <td class="id-proof">
+            <span class="proof-type">{{ getIdProofLabel(customer.idProofType) }}</span>
+            <div class="proof-number">{{ customer.idProofNumber }}</div>
+          </td>
+          <td class="bookings-count">
+            <span class="count-badge">{{ customer.totalBookings }}</span>
+          </td>
+          <td class="spent-amount">₹{{ customer.totalSpent | number }}</td>
+          <td class="last-booking">{{ customer.lastBooking || 'Never' }}</td>
+          <td>
+            <span class="status-badge" [ngClass]="getStatusClass(customer.status)">
+              {{ customer.status }}
+            </span>
+          </td>
+          <td class="actions">
+            <button class="btn-icon" (click)="openViewModal(customer)" title="View Details">
+              👁️
+            </button>
+            <button class="btn-icon" (click)="openEditModal(customer)" title="Edit">
+              ✏️
+            </button>
+            <button class="btn-icon" (click)="openBookingHistory(customer)" title="Booking History">
+              📋
+            </button>
+            <button class="btn-icon" (click)="sendEmail(customer)" title="Send Email">
+              📧
+            </button>
+            <button class="btn-icon" (click)="sendSMS(customer)" title="Send SMS">
+              💬
+            </button>
+            <button class="btn-icon" (click)="toggleStatus(customer)" [title]="customer.status === 'active' ? 'Deactivate' : 'Activate'">
+              {{ customer.status === 'active' ? '🔴' : '🟢' }}
+            </button>
+            <button class="btn-icon" (click)="openDeleteModal(customer)" title="Delete">
+              🗑️
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="getPaginatedCustomers().length === 0">
+          <td colspan="10" class="no-data">
+            <div class="no-data-content">
+              <span class="no-data-icon">👥</span>
+              <p>No customers found</p>
+              <button class="btn-primary btn-small" (click)="resetFilters()">Clear Filters</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button class="page-btn" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
+      ←
+    </button>
+    <button 
+      class="page-btn" 
+      *ngFor="let page of getPageNumbers()"
+      [class.active]="currentPage === page"
+      (click)="changePage(page)"
+    >
+      {{ page }}
+    </button>
+    <button class="page-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
+      →
+    </button>
+  </div>
+
+  <!-- Add Customer Modal -->
+  <div class="modal" *ngIf="showAddModal">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h2>Add New Customer</h2>
+        <button class="close-btn" (click)="closeAddModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <form>
+          <div class="form-section">
+            <h4>Personal Information</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Full Name *</label>
+                <input type="text" [(ngModel)]="newCustomer.name" name="name" required>
+              </div>
+              <div class="form-group">
+                <label>Email *</label>
+                <input type="email" [(ngModel)]="newCustomer.email" name="email" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Phone *</label>
+                <input type="tel" [(ngModel)]="newCustomer.phone" name="phone" required>
+              </div>
+              <div class="form-group">
+                <label>Alternate Phone</label>
+                <input type="tel" [(ngModel)]="newCustomer.alternatePhone" name="alternatePhone">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Date of Birth *</label>
+                <input type="date" [(ngModel)]="newCustomer.dateOfBirth" name="dateOfBirth" required>
+              </div>
+              <div class="form-group">
+                <label>Gender *</label>
+                <select [(ngModel)]="newCustomer.gender" name="gender">
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Address Information</h4>
+            <div class="form-group">
+              <label>Address</label>
+              <input type="text" [(ngModel)]="newCustomer.address" name="address">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>City</label>
+                <input type="text" [(ngModel)]="newCustomer.city" name="city">
+              </div>
+              <div class="form-group">
+                <label>State</label>
+                <input type="text" [(ngModel)]="newCustomer.state" name="state">
+              </div>
+              <div class="form-group">
+                <label>Pincode</label>
+                <input type="text" [(ngModel)]="newCustomer.pincode" name="pincode">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Identity Proof</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>ID Proof Type</label>
+                <select [(ngModel)]="newCustomer.idProofType" name="idProofType">
+                  <option value="aadhar">Aadhar Card</option>
+                  <option value="pan">PAN Card</option>
+                  <option value="passport">Passport</option>
+                  <option value="driving">Driving License</option>
+                  <option value="voter">Voter ID</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>ID Proof Number</label>
+                <input type="text" [(ngModel)]="newCustomer.idProofNumber" name="idProofNumber">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Preferences (Optional)</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Bus Type Preference</label>
+                <select multiple [(ngModel)]="newCustomer.preferences!.busType" name="busType">
+                  <option value="AC Sleeper">AC Sleeper</option>
+                  <option value="AC Seater">AC Seater</option>
+                  <option value="Non-AC Sleeper">Non-AC Sleeper</option>
+                  <option value="Non-AC Seater">Non-AC Seater</option>
+                  <option value="Luxury">Luxury</option>
+                  <option value="Volvo">Volvo</option>
+                </select>
+                <small>Hold Ctrl to select multiple</small>
+              </div>
+              <div class="form-group">
+                <label>Seat Preference</label>
+                <select [(ngModel)]="newCustomer.preferences!.seatPreference" name="seatPreference">
+                  <option value="any">Any</option>
+                  <option value="window">Window</option>
+                  <option value="aisle">Aisle</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Account Status</h4>
+            <div class="form-group">
+              <label>Status</label>
+              <select [(ngModel)]="newCustomer.status" name="status">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
+        <button class="btn-primary" (click)="saveCustomer()">Save Customer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Customer Modal -->
+  <div class="modal" *ngIf="showViewModal && selectedCustomer">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h2>Customer Details - {{ selectedCustomer.name }}</h2>
+        <button class="close-btn" (click)="closeViewModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="customer-profile">
+          <div class="profile-header">
+            <div class="profile-avatar">
+              {{ getGenderIcon(selectedCustomer.gender) }}
+            </div>
+            <div class="profile-info">
+              <h3>{{ selectedCustomer.name }}</h3>
+              <p class="customer-id-badge">ID: {{ selectedCustomer.customerId }}</p>
+              <span class="status-badge" [ngClass]="getStatusClass(selectedCustomer.status)">
+                {{ selectedCustomer.status }}
+              </span>
+            </div>
+          </div>
+
+          <div class="details-grid">
+            <div class="detail-card">
+              <h5>Contact Information</h5>
+              <p><strong>Email:</strong> {{ selectedCustomer.email }}</p>
+              <p><strong>Phone:</strong> {{ selectedCustomer.phone }}</p>
+              <p *ngIf="selectedCustomer.alternatePhone"><strong>Alt Phone:</strong> {{ selectedCustomer.alternatePhone }}</p>
+            </div>
+
+            <div class="detail-card">
+              <h5>Personal Information</h5>
+              <p><strong>Date of Birth:</strong> {{ selectedCustomer.dateOfBirth | date }}</p>
+              <p><strong>Gender:</strong> {{ selectedCustomer.gender | titlecase }}</p>
+              <p><strong>Registered:</strong> {{ selectedCustomer.registeredOn | date }}</p>
+            </div>
+
+            <div class="detail-card">
+              <h5>Address</h5>
+              <p>{{ selectedCustomer.address }}</p>
+              <p>{{ selectedCustomer.city }}, {{ selectedCustomer.state }} - {{ selectedCustomer.pincode }}</p>
+            </div>
+
+            <div class="detail-card">
+              <h5>Identity Proof</h5>
+              <p><strong>{{ getIdProofLabel(selectedCustomer.idProofType) }}:</strong></p>
+              <p>{{ selectedCustomer.idProofNumber }}</p>
+            </div>
+
+            <div class="detail-card">
+              <h5>Booking Statistics</h5>
+              <p><strong>Total Bookings:</strong> {{ selectedCustomer.totalBookings }}</p>
+              <p><strong>Total Spent:</strong> ₹{{ selectedCustomer.totalSpent | number }}</p>
+              <p><strong>Last Booking:</strong> {{ selectedCustomer.lastBooking || 'Never' }}</p>
+            </div>
+
+            <div class="detail-card" *ngIf="selectedCustomer.preferences">
+              <h5>Preferences</h5>
+              <p><strong>Bus Types:</strong> {{ selectedCustomer.preferences.busType?.join(', ') || 'Any' }}</p>
+              <p><strong>Seat:</strong> {{ selectedCustomer.preferences.seatPreference | titlecase }}</p>
+              <p><strong>Meal:</strong> {{ selectedCustomer.preferences.mealPreference?.join(', ') || 'None' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeViewModal()">Close</button>
+        <button class="btn-primary" (click)="openEditModal(selectedCustomer); closeViewModal()">Edit</button>
+        <button class="btn-primary" (click)="sendEmail(selectedCustomer)">Send Email</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Customer Modal -->
+  <div class="modal" *ngIf="showEditModal && selectedCustomer">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h2>Edit Customer - {{ selectedCustomer.name }}</h2>
+        <button class="close-btn" (click)="closeEditModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <form>
+          <div class="form-section">
+            <h4>Personal Information</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Full Name *</label>
+                <input type="text" [(ngModel)]="selectedCustomer.name" name="editName" required>
+              </div>
+              <div class="form-group">
+                <label>Email *</label>
+                <input type="email" [(ngModel)]="selectedCustomer.email" name="editEmail" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Phone *</label>
+                <input type="tel" [(ngModel)]="selectedCustomer.phone" name="editPhone" required>
+              </div>
+              <div class="form-group">
+                <label>Alternate Phone</label>
+                <input type="tel" [(ngModel)]="selectedCustomer.alternatePhone" name="editAlternatePhone">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Date of Birth *</label>
+                <input type="date" [(ngModel)]="selectedCustomer.dateOfBirth" name="editDateOfBirth" required>
+              </div>
+              <div class="form-group">
+                <label>Gender *</label>
+                <select [(ngModel)]="selectedCustomer.gender" name="editGender">
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Address Information</h4>
+            <div class="form-group">
+              <label>Address</label>
+              <input type="text" [(ngModel)]="selectedCustomer.address" name="editAddress">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>City</label>
+                <input type="text" [(ngModel)]="selectedCustomer.city" name="editCity">
+              </div>
+              <div class="form-group">
+                <label>State</label>
+                <input type="text" [(ngModel)]="selectedCustomer.state" name="editState">
+              </div>
+              <div class="form-group">
+                <label>Pincode</label>
+                <input type="text" [(ngModel)]="selectedCustomer.pincode" name="editPincode">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Identity Proof</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>ID Proof Type</label>
+                <select [(ngModel)]="selectedCustomer.idProofType" name="editIdProofType">
+                  <option value="aadhar">Aadhar Card</option>
+                  <option value="pan">PAN Card</option>
+                  <option value="passport">Passport</option>
+                  <option value="driving">Driving License</option>
+                  <option value="voter">Voter ID</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>ID Proof Number</label>
+                <input type="text" [(ngModel)]="selectedCustomer.idProofNumber" name="editIdProofNumber">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Account Status</h4>
+            <div class="form-group">
+              <label>Status</label>
+              <select [(ngModel)]="selectedCustomer.status" name="editStatus">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="blocked">Blocked</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeEditModal()">Cancel</button>
+        <button class="btn-primary" (click)="updateCustomer()">Update Customer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Booking History Modal -->
+  <div class="modal" *ngIf="showBookingHistoryModal && selectedCustomer">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h2>Booking History - {{ selectedCustomer.name }}</h2>
+        <button class="close-btn" (click)="closeBookingHistory()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="booking-summary-card">
+          <div class="summary-item">
+            <label>Total Bookings</label>
+            <span class="value">{{ selectedCustomer.totalBookings }}</span>
+          </div>
+          <div class="summary-item">
+            <label>Total Spent</label>
+            <span class="value">₹{{ selectedCustomer.totalSpent | number }}</span>
+          </div>
+          <div class="summary-item">
+            <label>Last Booking</label>
+            <span class="value">{{ selectedCustomer.lastBooking || 'Never' }}</span>
+          </div>
+        </div>
+
+        <div class="bookings-timeline">
+          <h4>Recent Bookings</h4>
+          <div class="timeline-item" *ngFor="let i of [1,2,3]">
+            <div class="timeline-date">Feb {{ 20-i }}, 2024</div>
+            <div class="timeline-content">
+              <p><strong>DEL → MUM</strong> (SRS Travels)</p>
+              <p>Seat: L12A • Amount: ₹1,299 • Status: Completed</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeBookingHistory()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Modal -->
+  <div class="modal" *ngIf="showExportModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Export Customer Data</h2>
+        <button class="close-btn" (click)="closeExportModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <p>Choose export format:</p>
+        <div class="export-options">
+          <button class="export-option" (click)="exportData('pdf')">
+            <span class="export-icon">📄</span>
+            <span>PDF</span>
+          </button>
+          <button class="export-option" (click)="exportData('excel')">
+            <span class="export-icon">📊</span>
+            <span>Excel</span>
+          </button>
+          <button class="export-option" (click)="exportData('csv')">
+            <span class="export-icon">📃</span>
+            <span>CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeExportModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal modal-sm" *ngIf="showDeleteModal && selectedCustomer">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Confirm Delete</h2>
+        <button class="close-btn" (click)="closeDeleteModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <p>Are you sure you want to delete customer <strong>"{{ selectedCustomer.name }}"</strong>?</p>
+        <p class="warning-text">This action cannot be undone.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeDeleteModal()">Cancel</button>
+        <button class="btn-danger" (click)="confirmDelete()">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,88 +1,736 @@
-// // src/app/services/auth.service.ts
-// import { Injectable } from '@angular/core';
+// import { Injectable, inject, OnDestroy } from '@angular/core';
 // import { HttpClient } from '@angular/common/http';
-// import { Observable } from 'rxjs';
+// import { Router } from '@angular/router';
+// import { BehaviorSubject, Observable, throwError } from 'rxjs';
+// import { map, catchError, tap } from 'rxjs/operators';
+// import { environment } from '../../environments/environment';
+
+// export interface User {
+//   id: string;
+//   email: string;
+//   firstName: string;
+//   lastName: string;
+//   role: 'customer' | 'admin';
+//   isVerified: boolean;
+// }
+
+// export interface LoginResponse {
+//   message: string;
+//   user: User;
+//   token: string;
+// }
 
 // @Injectable({
 //   providedIn: 'root'
 // })
-// export class AuthService {
-//   private apiUrl = 'http://localhost:3000/api';
+// export class AuthService implements OnDestroy {
+//   private http = inject(HttpClient);
+//   private router = inject(Router);
+  
+//   private apiUrl = `${environment.apiUrl}/auth`;
+//   private currentUserSubject = new BehaviorSubject<User | null>(null);
+//   public currentUser$ = this.currentUserSubject.asObservable();
+//   private tokenKey = 'auth_token';
+//   private tokenCheckInterval: any;
 
-//   constructor(private http: HttpClient) {}
+//   constructor() {
+//     this.loadStoredUser();
+//     this.startTokenCheck();
+//   }
 
-//   login(credentials: any): Observable<any> {
-//     return this.http.post(`${this.apiUrl}/login`, credentials);
+//   ngOnDestroy(): void {
+//     if (this.tokenCheckInterval) {
+//       clearInterval(this.tokenCheckInterval);
+//     }
+//   }
+
+//   private loadStoredUser(): void {
+//     const token = this.getToken();
+//     if (token) {
+//       this.verifyToken().subscribe({
+//         next: (response) => {
+//           this.currentUserSubject.next(response.user);
+//         },
+//         error: () => {
+//           this.logout(false);
+//         }
+//       });
+//     }
+//   }
+
+//   private startTokenCheck(): void {
+//     this.tokenCheckInterval = setInterval(() => {
+//       const token = this.getToken();
+//       if (token && this.isTokenExpired(token)) {
+//         this.logout(false);
+//         this.router.navigate(['/login'], {
+//           queryParams: { sessionExpired: true }
+//         });
+//       }
+//     }, 300000); // Check every 5 minutes
+//   }
+
+//   private isTokenExpired(token: string): boolean {
+//     try {
+//       const payload = JSON.parse(atob(token.split('.')[1]));
+//       return payload.exp < Date.now() / 1000;
+//     } catch {
+//       return true;
+//     }
+//   }
+
+//   login(email: string, password: string, rememberMe: boolean): Observable<LoginResponse> {
+//     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { email, password })
+//       .pipe(
+//         tap(response => {
+//           if (rememberMe) {
+//             localStorage.setItem(this.tokenKey, response.token);
+//           } else {
+//             sessionStorage.setItem(this.tokenKey, response.token);
+//           }
+//           this.currentUserSubject.next(response.user);
+//         })
+//       );
 //   }
 
 //   register(userData: any): Observable<any> {
-//     return this.http.post(`${this.apiUrl}/register`, userData);
+//     return this.http.post(`${this.apiUrl}/signupUser`, userData);
 //   }
 
-//   logout(): void {
-//     localStorage.removeItem('token');
+//   logout(navigate: boolean = true): void {
+//     // Clear tokens
+//     localStorage.removeItem(this.tokenKey);
+//     sessionStorage.removeItem(this.tokenKey);
+//     this.currentUserSubject.next(null);
+    
+//     if (navigate) {
+//       this.router.navigate(['/login']);
+//     }
 //   }
 
-//   isLoggedIn(): boolean {
-//     return !!localStorage.getItem('token');
+//   verifyToken(): Observable<{ valid: boolean; user: User }> {
+//     const token = this.getToken();
+//     return this.http.get<{ valid: boolean; user: User }>(`${this.apiUrl}/verify`, {
+//       headers: { Authorization: `Bearer ${token}` }
+//     });
+//   }
+
+//   forgotPassword(email: string): Observable<any> {
+//     return this.http.post(`${this.apiUrl}/forgot-password`, { email });
+//   }
+
+//   resetPassword(token: string, newPassword: string, confirmPassword: string): Observable<any> {
+//     return this.http.post(`${this.apiUrl}/reset-password?token=${token}`, { newPassword, confirmPassword });
+//   }
+
+//   verifyEmail(token: string): Observable<any> {
+//     return this.http.get(`${this.apiUrl}/verify-email?token=${token}`);
+//   }
+
+//   resendVerification(email: string): Observable<any> {
+//     return this.http.post(`${this.apiUrl}/resend-verification`, { email });
+//   }
+
+//   getToken(): string | null {
+//     return localStorage.getItem(this.tokenKey) || sessionStorage.getItem(this.tokenKey);
+//   }
+
+//   isAuthenticated(): boolean {
+//     const token = this.getToken();
+//     return !!token && !this.isTokenExpired(token);
+//   }
+
+//   isAdmin(): boolean {
+//     const user = this.currentUserSubject.value;
+//     return user?.role === 'admin';
+//   }
+
+//   getCurrentUser(): User | null {
+//     return this.currentUserSubject.value;
+//   }
+
+//   getUserRole(): string | null {
+//     return this.currentUserSubject.value?.role || null;
 //   }
 // }
 
 
-import { Injectable } from '@angular/core';
+
+// import { Injectable, OnDestroy, inject } from '@angular/core';
+// import { HttpClient } from '@angular/common/http';
+// import { Router } from '@angular/router';
+// import { BehaviorSubject, Observable, throwError } from 'rxjs';
+// import { map, catchError, tap } from 'rxjs/operators';
+// import { environment } from '../../environments/environment';
+
+// export interface User {
+//   id: string;
+//   email: string;
+//   firstName: string;
+//   lastName: string;
+//   role: 'customer' | 'admin';
+//   isVerified: boolean;
+// }
+
+// export interface LoginResponse {
+//   message: string;
+//   user: User;
+//   token: string;
+// }
+
+// @Injectable({
+//   providedIn: 'root'
+// })
+// export class AuthService implements OnDestroy {
+//   private http = inject(HttpClient);
+//   private router = inject(Router);
+  
+//   private apiUrl = `${environment.apiUrl}/auth`;
+//   private currentUserSubject = new BehaviorSubject<User | null>(null);
+//   public currentUser$ = this.currentUserSubject.asObservable();
+//   private tokenKey = 'auth_token';
+//   private tokenExpiryKey = 'auth_token_expiry';
+//   private tokenCheckInterval: any;
+//   private storageEventListener: any;
+
+//   constructor() {
+//     this.loadStoredUser();
+//     this.startTokenCheck();
+//     this.listenToStorageChanges();
+//   }
+
+//   ngOnDestroy(): void {
+//     if (this.tokenCheckInterval) {
+//       clearInterval(this.tokenCheckInterval);
+//     }
+//     if (this.storageEventListener) {
+//       window.removeEventListener('storage', this.storageEventListener);
+//     }
+//   }
+
+//   private listenToStorageChanges(): void {
+//     // Listen for storage changes across tabs
+//     this.storageEventListener = (event: StorageEvent) => {
+//       if (event.key === this.tokenKey || event.key === this.tokenExpiryKey) {
+//         // Token changed in another tab
+//         if (!event.newValue) {
+//           // Token was removed in another tab - logout
+//           this.logout(false);
+//         } else {
+//           // Token was added or changed in another tab - reload user
+//           this.loadStoredUser();
+//         }
+//       }
+//     };
+//     window.addEventListener('storage', this.storageEventListener);
+//   }
+
+//   private loadStoredUser(): void {
+//     const token = this.getToken();
+//     const expiry = localStorage.getItem(this.tokenExpiryKey);
+    
+//     if (token && expiry) {
+//       const expiryTime = parseInt(expiry, 10);
+//       const now = Date.now();
+      
+//       if (now < expiryTime) {
+//         try {
+//           // Decode token to get user info
+//           const decoded = this.decodeToken(token);
+//           if (decoded) {
+//             const user: User = {
+//               id: decoded.userId || decoded.id,
+//               email: decoded.email,
+//               firstName: decoded.firstName || '',
+//               lastName: decoded.lastName || '',
+//               role: decoded.role || decoded.userRole || 'customer',
+//               isVerified: decoded.isVerified || true
+//             };
+//             this.currentUserSubject.next(user);
+            
+//             // Auto-refresh token if it's close to expiry (within 1 hour)
+//             const timeUntilExpiry = expiryTime - now;
+//             const oneHour = 60 * 60 * 1000;
+//             if (timeUntilExpiry < oneHour) {
+//               this.refreshToken().subscribe({
+//                 error: () => this.logout(false)
+//               });
+//             }
+//           } else {
+//             this.logout(false);
+//           }
+//         } catch (error) {
+//           console.error('Error loading user from token:', error);
+//           this.logout(false);
+//         }
+//       } else {
+//         // Token expired
+//         this.logout(false);
+//       }
+//     }
+//   }
+
+//   private decodeToken(token: string): any {
+//     try {
+//       const payload = token.split('.')[1];
+//       return JSON.parse(atob(payload));
+//     } catch {
+//       return null;
+//     }
+//   }
+
+//   private refreshToken(): Observable<any> {
+//     const token = this.getToken();
+//     return this.http.post(`${this.apiUrl}/refresh-token`, {}, {
+//       headers: { Authorization: `Bearer ${token}` }
+//     }).pipe(
+//       tap((response: any) => {
+//         if (response.token) {
+//           this.setToken(response.token, true);
+//         }
+//       })
+//     );
+//   }
+
+//   private setToken(token: string, rememberMe: boolean): void {
+//     // Always use localStorage for better cross-tab persistence
+//     localStorage.setItem(this.tokenKey, token);
+    
+//     // Set expiry (24 hours from now for remember me, 1 hour for session)
+//     const expiryTime = Date.now() + (rememberMe ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000);
+//     localStorage.setItem(this.tokenExpiryKey, expiryTime.toString());
+//   }
+
+//   private startTokenCheck(): void {
+//     this.tokenCheckInterval = setInterval(() => {
+//       const token = this.getToken();
+//       const expiry = localStorage.getItem(this.tokenExpiryKey);
+      
+//       if (token && expiry) {
+//         const expiryTime = parseInt(expiry, 10);
+//         if (Date.now() >= expiryTime) {
+//           // Token expired
+//           this.logout(false);
+//           this.router.navigate(['/login'], {
+//             queryParams: { sessionExpired: true }
+//           });
+//         }
+//       }
+//     }, 60000); // Check every minute
+//   }
+
+//   login(email: string, password: string, rememberMe: boolean): Observable<LoginResponse> {
+//     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { email, password })
+//       .pipe(
+//         tap(response => {
+//           this.setToken(response.token, rememberMe);
+//           this.currentUserSubject.next(response.user);
+//         })
+//       );
+//   }
+
+//   register(userData: any): Observable<any> {
+//     return this.http.post(`${this.apiUrl}/signupUser`, userData);
+//   }
+
+//   logout(navigate: boolean = true): void {
+//     localStorage.removeItem(this.tokenKey);
+//     localStorage.removeItem(this.tokenExpiryKey);
+//     this.currentUserSubject.next(null);
+    
+//     if (navigate) {
+//       this.router.navigate(['/login']);
+//     }
+//   }
+
+//   verifyToken(): Observable<{ valid: boolean; user: User }> {
+//     const token = this.getToken();
+//     return this.http.get<{ valid: boolean; user: User }>(`${this.apiUrl}/verify`, {
+//       headers: { Authorization: `Bearer ${token}` }
+//     }).pipe(
+//       tap(response => {
+//         if (response.valid && response.user) {
+//           this.currentUserSubject.next(response.user);
+//         }
+//       }),
+//       catchError(error => {
+//         this.logout(false);
+//         return throwError(() => error);
+//       })
+//     );
+//   }
+
+//   forgotPassword(email: string): Observable<any> {
+//     return this.http.post(`${this.apiUrl}/forgot-password`, { email });
+//   }
+
+//   resetPassword(token: string, newPassword: string, confirmPassword: string): Observable<any> {
+//     return this.http.post(`${this.apiUrl}/reset-password?token=${token}`, { newPassword, confirmPassword });
+//   }
+
+//   verifyEmail(token: string): Observable<any> {
+//     return this.http.get(`${this.apiUrl}/verify-email?token=${token}`);
+//   }
+
+//   resendVerification(email: string): Observable<any> {
+//     return this.http.post(`${this.apiUrl}/resend-verification`, { email });
+//   }
+
+//   getToken(): string | null {
+//     return localStorage.getItem(this.tokenKey);
+//   }
+
+//   isAuthenticated(): boolean {
+//     const token = this.getToken();
+//     const expiry = localStorage.getItem(this.tokenExpiryKey);
+    
+//     if (!token || !expiry) return false;
+    
+//     const expiryTime = parseInt(expiry, 10);
+//     const isValid = Date.now() < expiryTime;
+    
+//     if (!isValid) {
+//       this.logout(false);
+//     }
+    
+//     return isValid;
+//   }
+
+//   isAdmin(): boolean {
+//     const user = this.currentUserSubject.value;
+//     return user?.role === 'admin';
+//   }
+
+//   getCurrentUser(): User | null {
+//     return this.currentUserSubject.value;
+//   }
+
+//   getUserRole(): string | null {
+//     return this.currentUserSubject.value?.role || null;
+//   }
+
+//   refreshUserData(): void {
+//     this.loadStoredUser();
+//   }
+
+//   getSessionTimeRemaining(): number {
+//     const expiry = localStorage.getItem(this.tokenExpiryKey);
+//     if (!expiry) return 0;
+    
+//     const expiryTime = parseInt(expiry, 10);
+//     const remaining = expiryTime - Date.now();
+//     return Math.max(0, remaining);
+//   }
+
+//   getSessionTimeRemainingFormatted(): string {
+//     const remaining = this.getSessionTimeRemaining();
+//     if (remaining <= 0) return 'Expired';
+    
+//     const hours = Math.floor(remaining / (60 * 60 * 1000));
+//     const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+    
+//     if (hours > 0) {
+//       return `${hours}h ${minutes}m`;
+//     }
+//     return `${minutes}m`;
+//   }
+// }
+
+
+
+
+
+
+
+
+import { Injectable, OnDestroy, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { map, catchError, tap } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
+
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: 'customer' | 'admin';
+  isVerified: boolean;
+}
+
+export interface LoginResponse {
+  message: string;
+  user: User;
+  token: string;
+}
 
 @Injectable({
   providedIn: 'root'
 })
-export class AuthService {
-  private isAuthenticated = false;
-  private userRole: string = '';
+export class AuthService implements OnDestroy {
+  private http = inject(HttpClient);
+  private router = inject(Router);
+  
+  private apiUrl = `${environment.apiUrl}/auth`;
+  private currentUserSubject = new BehaviorSubject<User | null>(null);
+  public currentUser$ = this.currentUserSubject.asObservable();
+  
+  // New subject for logout messages
+  private logoutMessageSubject = new BehaviorSubject<string>('');
+  public logoutMessage$ = this.logoutMessageSubject.asObservable();
+  
+  private tokenKey = 'auth_token';
+  private tokenExpiryKey = 'auth_token_expiry';
+  private tokenCheckInterval: any;
+  private storageEventListener: any;
 
-  constructor(private router: Router) {
-    const user = localStorage.getItem('user');
-    if (user) {
-      const userData = JSON.parse(user);
-      this.isAuthenticated = true;
-      this.userRole = userData.role;
+  constructor() {
+    this.loadStoredUser();
+    this.startTokenCheck();
+    this.listenToStorageChanges();
+  }
+
+  ngOnDestroy(): void {
+    if (this.tokenCheckInterval) {
+      clearInterval(this.tokenCheckInterval);
+    }
+    if (this.storageEventListener) {
+      window.removeEventListener('storage', this.storageEventListener);
     }
   }
 
-  login(email: string, password: string): boolean {
-    if (email === 'admin@travel.com' && password === 'admin123') {
-      this.isAuthenticated = true;
-      this.userRole = 'admin';
-      localStorage.setItem('user', JSON.stringify({ email, role: 'admin' }));
-      localStorage.setItem('token', 'dummy-jwt-token');
-      return true;
-    } else if (email === 'user@travel.com' && password === 'user123') {
-      this.isAuthenticated = true;
-      this.userRole = 'user';
-      localStorage.setItem('user', JSON.stringify({ email, role: 'user' }));
-      localStorage.setItem('token', 'dummy-jwt-token');
-      return true;
+  private listenToStorageChanges(): void {
+    this.storageEventListener = (event: StorageEvent) => {
+      if (event.key === this.tokenKey || event.key === this.tokenExpiryKey) {
+        if (!event.newValue) {
+          this.logout(false, 'You have been logged out from another tab');
+        } else {
+          this.loadStoredUser();
+        }
+      }
+    };
+    window.addEventListener('storage', this.storageEventListener);
+  }
+
+  private loadStoredUser(): void {
+    const token = this.getToken();
+    const expiry = localStorage.getItem(this.tokenExpiryKey);
+    
+    if (token && expiry) {
+      const expiryTime = parseInt(expiry, 10);
+      const now = Date.now();
+      
+      if (now < expiryTime) {
+        try {
+          const decoded = this.decodeToken(token);
+          if (decoded) {
+            const user: User = {
+              id: decoded.userId || decoded.id,
+              email: decoded.email,
+              firstName: decoded.firstName || '',
+              lastName: decoded.lastName || '',
+              role: decoded.role || decoded.userRole || 'customer',
+              isVerified: decoded.isVerified || true
+            };
+            this.currentUserSubject.next(user);
+            
+            const timeUntilExpiry = expiryTime - now;
+            const oneHour = 60 * 60 * 1000;
+            if (timeUntilExpiry < oneHour) {
+              this.refreshToken().subscribe({
+                error: () => this.logout(false, 'Session expired')
+              });
+            }
+          } else {
+            this.logout(false, 'Invalid session');
+          }
+        } catch (error) {
+          console.error('Error loading user from token:', error);
+          this.logout(false, 'Session error');
+        }
+      } else {
+        this.logout(false, 'Session expired');
+      }
     }
-    return false;
   }
 
-  register(userData: any): boolean {
-    console.log('Registering user:', userData);
-    return true;
+  private decodeToken(token: string): any {
+    try {
+      const payload = token.split('.')[1];
+      return JSON.parse(atob(payload));
+    } catch {
+      return null;
+    }
   }
 
-  logout(): void {
-    this.isAuthenticated = false;
-    this.userRole = '';
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    this.router.navigate(['/login']);
+  private refreshToken(): Observable<any> {
+    const token = this.getToken();
+    return this.http.post(`${this.apiUrl}/refresh-token`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).pipe(
+      tap((response: any) => {
+        if (response.token) {
+          this.setToken(response.token, true);
+        }
+      })
+    );
   }
 
-  isLoggedIn(): boolean {
-    return this.isAuthenticated;
+  private setToken(token: string, rememberMe: boolean): void {
+    localStorage.setItem(this.tokenKey, token);
+    const expiryTime = Date.now() + (rememberMe ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000);
+    localStorage.setItem(this.tokenExpiryKey, expiryTime.toString());
   }
 
-  getUserRole(): string {
-    return this.userRole;
+  private startTokenCheck(): void {
+    this.tokenCheckInterval = setInterval(() => {
+      const token = this.getToken();
+      const expiry = localStorage.getItem(this.tokenExpiryKey);
+      
+      if (token && expiry) {
+        const expiryTime = parseInt(expiry, 10);
+        if (Date.now() >= expiryTime) {
+          this.logout(false, 'Your session has expired');
+        }
+      }
+    }, 60000);
+  }
+
+  login(email: string, password: string, rememberMe: boolean): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { email, password })
+      .pipe(
+        tap(response => {
+          this.setToken(response.token, rememberMe);
+          this.currentUserSubject.next(response.user);
+          // Clear any logout message on successful login
+          this.logoutMessageSubject.next('');
+        })
+      );
+  }
+
+  register(userData: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/signupUser`, userData);
+  }
+
+  // Updated logout method with optional message
+  logout(navigate: boolean = true, message: string = 'Logged out successfully'): void {
+    // Clear tokens
+    localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.tokenExpiryKey);
+    
+    // Update user subject
+    this.currentUserSubject.next(null);
+    
+    // Set logout message
+    this.logoutMessageSubject.next(message);
+    
+    // Clear message after 5 seconds
+    setTimeout(() => {
+      this.logoutMessageSubject.next('');
+    }, 5000);
+    
+    if (navigate) {
+      this.router.navigate(['/login'], {
+        queryParams: { logout: 'success' }
+      });
+    }
+  }
+
+  verifyToken(): Observable<{ valid: boolean; user: User }> {
+    const token = this.getToken();
+    return this.http.get<{ valid: boolean; user: User }>(`${this.apiUrl}/verify`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).pipe(
+      tap(response => {
+        if (response.valid && response.user) {
+          this.currentUserSubject.next(response.user);
+        }
+      }),
+      catchError(error => {
+        this.logout(false, 'Session verification failed');
+        return throwError(() => error);
+      })
+    );
+  }
+
+  forgotPassword(email: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/forgot-password`, { email });
+  }
+
+  resetPassword(token: string, newPassword: string, confirmPassword: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/reset-password?token=${token}`, { newPassword, confirmPassword });
+  }
+
+  verifyEmail(token: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/verify-email?token=${token}`);
+  }
+
+  resendVerification(email: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/resend-verification`, { email });
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem(this.tokenKey);
+  }
+
+  isAuthenticated(): boolean {
+    const token = this.getToken();
+    const expiry = localStorage.getItem(this.tokenExpiryKey);
+    
+    if (!token || !expiry) return false;
+    
+    const expiryTime = parseInt(expiry, 10);
+    const isValid = Date.now() < expiryTime;
+    
+    if (!isValid) {
+      this.logout(false, 'Session expired');
+    }
+    
+    return isValid;
+  }
+
+  isAdmin(): boolean {
+    const user = this.currentUserSubject.value;
+    return user?.role === 'admin';
+  }
+
+  getCurrentUser(): User | null {
+    return this.currentUserSubject.value;
+  }
+
+  getUserRole(): string | null {
+    return this.currentUserSubject.value?.role || null;
+  }
+
+  refreshUserData(): void {
+    this.loadStoredUser();
+  }
+
+  getSessionTimeRemaining(): number {
+    const expiry = localStorage.getItem(this.tokenExpiryKey);
+    if (!expiry) return 0;
+    
+    const expiryTime = parseInt(expiry, 10);
+    const remaining = expiryTime - Date.now();
+    return Math.max(0, remaining);
+  }
+
+  getSessionTimeRemainingFormatted(): string {
+    const remaining = this.getSessionTimeRemaining();
+    if (remaining <= 0) return 'Expired';
+    
+    const hours = Math.floor(remaining / (60 * 60 * 1000));
+    const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  }
+
+  // Clear logout message (useful when navigating away)
+  clearLogoutMessage(): void {
+    this.logoutMessageSubject.next('');
   }
 }

@@ -2,9 +2,26 @@
   <!-- Header -->
   <div class="page-header">
     <h1>Route Plan Management</h1>
-    <button class="btn-primary" (click)="openAddModal()">
+    <button class="btn-primary" (click)="openAddModal()" [disabled]="isLoading">
       <span class="icon">➕</span> Add New Route
     </button>
+  </div>
+
+  <!-- Messages -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+    <button class="close-btn" (click)="successMessage = ''">×</button>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-error">
+    {{ errorMessage }}
+    <button class="close-btn" (click)="errorMessage = ''">×</button>
+  </div>
+
+  <!-- Loading Indicator -->
+  <div *ngIf="isLoading" class="loading-overlay">
+    <div class="spinner"></div>
+    <p>Loading...</p>
   </div>
 
   <!-- Filters -->
@@ -16,11 +33,12 @@
         placeholder="Search routes..." 
         [(ngModel)]="searchTerm"
         (input)="onSearch()"
+        [disabled]="isLoading"
       >
     </div>
     
     <div class="status-filter">
-      <select [(ngModel)]="selectedStatus" (change)="onStatusFilter()">
+      <select [(ngModel)]="selectedStatus" (change)="onStatusFilter()" [disabled]="isLoading">
         <option value="all">All Status</option>
         <option value="active">Active</option>
         <option value="inactive">Inactive</option>
@@ -33,7 +51,7 @@
     <table class="routes-table">
       <thead>
         <tr>
-          <th>ID</th>
+          <th>S.N.</th>
           <th>Route Name</th>
           <th>Origin</th>
           <th>Destination</th>
@@ -46,36 +64,38 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let route of filteredRoutes">
-          <td>#{{ route.id }}</td>
+        <tr *ngFor="let route of filteredRoutes; let i = index">
+          <td>{{ i + 1 }}</td>
           <td>{{ route.routeName }}</td>
           <td>{{ route.origin }}</td>
           <td>{{ route.destination }}</td>
           <td>{{ route.distance }} km</td>
           <td>{{ route.duration }}</td>
-          <td>{{ route.stops }}</td>
-          <td>{{ route.busesAssigned }}</td>
+          <td>{{ route.totalStops || route.stops || 0 }}</td>
+          <td>{{ route.busesAssigned || 0 }}</td>
           <td>
             <span class="status-badge" [ngClass]="getStatusClass(route.status)">
               {{ route.status }}
             </span>
           </td>
           <td class="actions">
-            <button class="btn-icon" (click)="openStopsModal(route)" title="View Stops">
+            <button class="btn-icon" (click)="openStopsModal(route)" title="View Stops" [disabled]="isLoading">
               🗺️
             </button>
-            <button class="btn-icon" (click)="openEditModal(route)" title="Edit">
+            <button class="btn-icon" (click)="openEditModal(route)" title="Edit" [disabled]="isLoading">
               ✏️
             </button>
-            <button class="btn-icon" (click)="toggleStatus(route)" [title]="route.status === 'active' ? 'Deactivate' : 'Activate'">
+            <button class="btn-icon" (click)="toggleStatus(route)" 
+                    [title]="route.status === 'active' ? 'Deactivate' : 'Activate'"
+                    [disabled]="isLoading">
               {{ route.status === 'active' ? '🔴' : '🟢' }}
             </button>
-            <button class="btn-icon" (click)="openDeleteModal(route)" title="Delete">
+            <button class="btn-icon" (click)="openDeleteModal(route)" title="Delete" [disabled]="isLoading">
               🗑️
             </button>
           </td>
         </tr>
-        <tr *ngIf="filteredRoutes.length === 0">
+        <tr *ngIf="filteredRoutes.length === 0 && !isLoading">
           <td colspan="10" class="no-data">No routes found</td>
         </tr>
       </tbody>
@@ -87,45 +107,41 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2>Add New Route</h2>
-        <button class="close-btn" (click)="closeAddModal()">×</button>
+        <button class="close-btn" (click)="closeAddModal()" [disabled]="isLoading">×</button>
       </div>
       
       <div class="modal-body">
-        <form>
+        <form #addForm="ngForm">
           <div class="form-row">
             <div class="form-group">
-              <label>Route Name</label>
+              <label>Route Name <span class="required">*</span></label>
               <input type="text" [(ngModel)]="newRoute.routeName" name="routeName" required>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label>Origin</label>
+              <label>Origin <span class="required">*</span></label>
               <input type="text" [(ngModel)]="newRoute.origin" name="origin" required>
             </div>
             <div class="form-group">
-              <label>Destination</label>
+              <label>Destination <span class="required">*</span></label>
               <input type="text" [(ngModel)]="newRoute.destination" name="destination" required>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label>Distance (km)</label>
-              <input type="number" [(ngModel)]="newRoute.distance" name="distance" required>
+              <label>Distance (km) <span class="required">*</span></label>
+              <input type="number" [(ngModel)]="newRoute.distance" name="distance" min="1" required>
             </div>
             <div class="form-group">
-              <label>Duration</label>
+              <label>Duration <span class="required">*</span></label>
               <input type="text" [(ngModel)]="newRoute.duration" name="duration" placeholder="e.g., 24 hrs" required>
             </div>
           </div>
 
           <div class="form-row">
-            <div class="form-group">
-              <label>Number of Stops</label>
-              <input type="number" [(ngModel)]="newRoute.stops" name="stops" required>
-            </div>
             <div class="form-group">
               <label>Status</label>
               <select [(ngModel)]="newRoute.status" name="status">
@@ -138,8 +154,10 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
-        <button class="btn-primary" (click)="saveRoute()">Save Route</button>
+        <button class="btn-secondary" (click)="closeAddModal()" [disabled]="isLoading">Cancel</button>
+        <button class="btn-primary" (click)="saveRoute()" [disabled]="isLoading">
+          {{ isLoading ? 'Saving...' : 'Save Route' }}
+        </button>
       </div>
     </div>
   </div>
@@ -149,45 +167,41 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2>Edit Route</h2>
-        <button class="close-btn" (click)="closeEditModal()">×</button>
+        <button class="close-btn" (click)="closeEditModal()" [disabled]="isLoading">×</button>
       </div>
       
       <div class="modal-body">
-        <form>
+        <form #editForm="ngForm">
           <div class="form-row">
             <div class="form-group">
-              <label>Route Name</label>
+              <label>Route Name <span class="required">*</span></label>
               <input type="text" [(ngModel)]="selectedRoute.routeName" name="editRouteName" required>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label>Origin</label>
+              <label>Origin <span class="required">*</span></label>
               <input type="text" [(ngModel)]="selectedRoute.origin" name="editOrigin" required>
             </div>
             <div class="form-group">
-              <label>Destination</label>
+              <label>Destination <span class="required">*</span></label>
               <input type="text" [(ngModel)]="selectedRoute.destination" name="editDestination" required>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label>Distance (km)</label>
-              <input type="number" [(ngModel)]="selectedRoute.distance" name="editDistance" required>
+              <label>Distance (km) <span class="required">*</span></label>
+              <input type="number" [(ngModel)]="selectedRoute.distance" name="editDistance" min="1" required>
             </div>
             <div class="form-group">
-              <label>Duration</label>
+              <label>Duration <span class="required">*</span></label>
               <input type="text" [(ngModel)]="selectedRoute.duration" name="editDuration" required>
             </div>
           </div>
 
           <div class="form-row">
-            <div class="form-group">
-              <label>Number of Stops</label>
-              <input type="number" [(ngModel)]="selectedRoute.stops" name="editStops" required>
-            </div>
             <div class="form-group">
               <label>Status</label>
               <select [(ngModel)]="selectedRoute.status" name="editStatus">
@@ -200,8 +214,10 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeEditModal()">Cancel</button>
-        <button class="btn-primary" (click)="updateRoute()">Update Route</button>
+        <button class="btn-secondary" (click)="closeEditModal()" [disabled]="isLoading">Cancel</button>
+        <button class="btn-primary" (click)="updateRoute()" [disabled]="isLoading">
+          {{ isLoading ? 'Updating...' : 'Update Route' }}
+        </button>
       </div>
     </div>
   </div>
@@ -211,39 +227,112 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2>Route Stops - {{ selectedRoute.routeName }}</h2>
-        <button class="close-btn" (click)="closeStopsModal()">×</button>
+        <button class="close-btn" (click)="closeStopsModal()" [disabled]="isLoading">×</button>
       </div>
       
       <div class="modal-body">
         <div class="route-summary">
-          <p><strong>Origin:</strong> {{ selectedRoute.origin }}</p>
-          <p><strong>Destination:</strong> {{ selectedRoute.destination }}</p>
-          <p><strong>Total Distance:</strong> {{ selectedRoute.distance }} km</p>
-          <p><strong>Duration:</strong> {{ selectedRoute.duration }}</p>
+          <div class="summary-item">
+            <span class="label">Origin:</span>
+            <span class="value">{{ selectedRoute.origin }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Destination:</span>
+            <span class="value">{{ selectedRoute.destination }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Total Distance:</span>
+            <span class="value">{{ selectedRoute.distance }} km</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Duration:</span>
+            <span class="value">{{ selectedRoute.duration }}</span>
+          </div>
         </div>
 
-        <table class="stops-table">
+        <div class="stops-header">
+          <h3>Stops</h3>
+          <button class="btn-small btn-primary" (click)="openAddStopModal()" [disabled]="isLoading">
+            ➕ Add Stop
+          </button>
+        </div>
+
+        <table class="stops-table" *ngIf="routeStops.length > 0">
           <thead>
             <tr>
-              <th>Stop</th>
+              <th>#</th>
+              <th>Stop Name</th>
               <th>Arrival Time</th>
               <th>Departure Time</th>
-              <th>Fare from Origin</th>
+              <th>Fare (₹)</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let stop of routeStops">
+            <tr *ngFor="let stop of routeStops; let i = index">
+              <td>{{ i + 1 }}</td>
               <td>{{ stop.name }}</td>
               <td>{{ stop.arrivalTime }}</td>
               <td>{{ stop.departureTime }}</td>
               <td>₹{{ stop.fare }}</td>
+              <td class="actions">
+                <button class="btn-icon-small" (click)="openEditStopModal(stop, i)" title="Edit Stop">✏️</button>
+                <button class="btn-icon-small" (click)="removeStop(i)" title="Remove Stop">🗑️</button>
+              </td>
             </tr>
           </tbody>
         </table>
+
+        <div *ngIf="routeStops.length === 0" class="no-stops">
+          No stops added yet. Click "Add Stop" to add stops for this route.
+        </div>
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeStopsModal()">Close</button>
+        <button class="btn-secondary" (click)="closeStopsModal()" [disabled]="isLoading">Close</button>
+        <button class="btn-primary" (click)="saveStops()" [disabled]="isLoading">
+          {{ isLoading ? 'Saving...' : 'Save Stops' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Stop Modal -->
+  <div class="modal modal-sm" *ngIf="showAddStopModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>{{ editingStopIndex >= 0 ? 'Edit' : 'Add' }} Stop</h2>
+        <button class="close-btn" (click)="closeAddStopModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <form>
+          <div class="form-group">
+            <label>Stop Name <span class="required">*</span></label>
+            <input type="text" [(ngModel)]="currentStop.name" name="stopName" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Arrival Time <span class="required">*</span></label>
+              <input type="text" [(ngModel)]="currentStop.arrivalTime" name="arrivalTime" placeholder="e.g., 06:00 AM" required>
+            </div>
+            <div class="form-group">
+              <label>Departure Time <span class="required">*</span></label>
+              <input type="text" [(ngModel)]="currentStop.departureTime" name="departureTime" placeholder="e.g., 06:30 AM" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Fare (₹) <span class="required">*</span></label>
+            <input type="number" [(ngModel)]="currentStop.fare" name="fare" min="0" required>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAddStopModal()">Cancel</button>
+        <button class="btn-primary" (click)="saveStop()">Save Stop</button>
       </div>
     </div>
   </div>
@@ -253,7 +342,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2>Confirm Delete</h2>
-        <button class="close-btn" (click)="closeDeleteModal()">×</button>
+        <button class="close-btn" (click)="closeDeleteModal()" [disabled]="isLoading">×</button>
       </div>
       
       <div class="modal-body">
@@ -262,8 +351,10 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeDeleteModal()">Cancel</button>
-        <button class="btn-danger" (click)="confirmDelete()">Delete</button>
+        <button class="btn-secondary" (click)="closeDeleteModal()" [disabled]="isLoading">Cancel</button>
+        <button class="btn-danger" (click)="confirmDelete()" [disabled]="isLoading">
+          {{ isLoading ? 'Deleting...' : 'Delete' }}
+        </button>
       </div>
     </div>
   </div>
