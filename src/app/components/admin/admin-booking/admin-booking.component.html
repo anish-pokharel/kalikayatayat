@@ -1,0 +1,508 @@
+<div class="admin-bookings-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Booking Management</h1>
+      <p class="header-subtitle">View and manage all customer bookings</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-export" (click)="exportToExcel()">
+        <span class="icon">📊</span> Excel
+      </button>
+      <button class="btn-export" (click)="exportToPDF()">
+        <span class="icon">📄</span> PDF
+      </button>
+      <button class="btn-print" (click)="printReport()">
+        <span class="icon">🖨️</span> Print
+      </button>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+    <button class="close-btn" (click)="successMessage = ''">×</button>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-error">
+    {{ errorMessage }}
+    <button class="close-btn" (click)="errorMessage = ''">×</button>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="stats-grid">
+    <div class="stat-card total">
+      <div class="stat-icon">📊</div>
+      <div class="stat-details">
+        <h3>Total Bookings</h3>
+        <p class="stat-value">{{ statistics.totalBookings }}</p>
+        <span class="stat-label">All time</span>
+      </div>
+    </div>
+
+    <div class="stat-card revenue">
+      <div class="stat-icon">💰</div>
+      <div class="stat-details">
+        <h3>Total Revenue</h3>
+        <p class="stat-value">{{ formatCurrency(statistics.totalRevenue) }}</p>
+        <span class="stat-label">{{ statistics.totalBookings }} bookings</span>
+      </div>
+    </div>
+
+    <div class="stat-card confirmed">
+      <div class="stat-icon">✅</div>
+      <div class="stat-details">
+        <h3>Confirmed</h3>
+        <p class="stat-value">{{ statistics.confirmedBookings }}</p>
+        <span class="stat-label">{{ ((statistics.confirmedBookings / statistics.totalBookings) * 100 || 0).toFixed(1) }}%</span>
+      </div>
+    </div>
+
+    <div class="stat-card pending">
+      <div class="stat-icon">⏳</div>
+      <div class="stat-details">
+        <h3>Pending</h3>
+        <p class="stat-value">{{ statistics.pendingBookings }}</p>
+        <span class="stat-label">{{ ((statistics.pendingBookings / statistics.totalBookings) * 100 || 0).toFixed(1) }}%</span>
+      </div>
+    </div>
+
+    <div class="stat-card cancelled">
+      <div class="stat-icon">❌</div>
+      <div class="stat-details">
+        <h3>Cancelled</h3>
+        <p class="stat-value">{{ statistics.cancelledBookings }}</p>
+        <span class="stat-label">{{ ((statistics.cancelledBookings / statistics.totalBookings) * 100 || 0).toFixed(1) }}%</span>
+      </div>
+    </div>
+
+    <div class="stat-card completed">
+      <div class="stat-icon">🎫</div>
+      <div class="stat-details">
+        <h3>Completed</h3>
+        <p class="stat-value">{{ statistics.completedBookings }}</p>
+        <span class="stat-label">{{ ((statistics.completedBookings / statistics.totalBookings) * 100 || 0).toFixed(1) }}%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-card">
+    <div class="filters-header">
+      <h3>Filter Bookings</h3>
+      <button class="btn-reset" (click)="resetFilters()">
+        <span class="icon">↺</span> Reset
+      </button>
+    </div>
+    
+    <div class="filters-grid">
+      <div class="filter-group">
+        <label>Search</label>
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input 
+            type="text" 
+            placeholder="Booking ID, Passenger, Phone..." 
+            [(ngModel)]="searchTerm"
+            (input)="onSearch()"
+          >
+        </div>
+      </div>
+      
+      <div class="filter-group">
+        <label>Booking Status</label>
+        <select [(ngModel)]="selectedStatus" (change)="onFilterChange()">
+          <option value="all">All Status</option>
+          <option *ngFor="let status of statusOptions" [value]="status.value">
+            {{ status.label }}
+          </option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Payment Status</label>
+        <select [(ngModel)]="selectedPaymentStatus" (change)="onFilterChange()">
+          <option value="all">All Payments</option>
+          <option *ngFor="let status of paymentStatusOptions" [value]="status.value">
+            {{ status.label }}
+          </option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Bus</label>
+        <select [(ngModel)]="selectedBus" (change)="onFilterChange()">
+          <option value="all">All Buses</option>
+          <option *ngFor="let bus of buses" [value]="bus._id">
+            {{ bus.busName }} ({{ bus.busNumber }})
+          </option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Date Range</label>
+        <select [(ngModel)]="selectedDateRange" (change)="onDateRangeChange()">
+          <option *ngFor="let option of dateRangeOptions" [value]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
+      
+      <div class="filter-group" *ngIf="selectedDateRange === 'custom'">
+        <label>From</label>
+        <input type="date" [(ngModel)]="dateRange.from" (change)="onFilterChange()">
+      </div>
+      
+      <div class="filter-group" *ngIf="selectedDateRange === 'custom'">
+        <label>To</label>
+        <input type="date" [(ngModel)]="dateRange.to" (change)="onFilterChange()">
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Summary -->
+  <div class="results-summary">
+    <p>Showing <strong>{{ filteredBookings.length }}</strong> of <strong>{{ totalItems }}</strong> bookings</p>
+    <div class="items-per-page">
+      <label>Show:</label>
+      <select [(ngModel)]="itemsPerPage" (change)="loadBookings()">
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading bookings...</p>
+  </div>
+
+  <!-- Bookings Table -->
+  <div class="table-container" *ngIf="!isLoading">
+    <table class="bookings-table">
+      <thead>
+        <tr>
+          <th>Booking ID</th>
+          <th>Passenger</th>
+          <th>Bus Details</th>
+          <th>Route</th>
+          <th>Journey Date</th>
+          <th>Seats</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Payment</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let booking of filteredBookings">
+          <td class="booking-id">
+            <strong>#{{ booking.bookingId }}</strong>
+            <div class="booking-date">{{ booking.bookingDate | date:'mediumDate' }}</div>
+          </td>
+          
+          <td class="passenger-info">
+            <div *ngFor="let passenger of booking.seats.slice(0, 2)" class="passenger">
+              <span class="passenger-name">{{ passenger.passengerName }}</span>
+              <span class="passenger-seat">{{ passenger.seatNumber }}</span>
+            </div>
+            <div *ngIf="booking.seats.length > 2" class="more-passengers">
+              +{{ booking.seats.length - 2 }} more
+            </div>
+          </td>
+          
+          <td class="bus-info">
+            <strong>{{ booking.busDetails.busName }}</strong>
+            <div class="bus-number">{{ booking.busDetails.busNumber }}</div>
+            <div class="bus-type">{{ booking.busDetails.busType }}</div>
+          </td>
+          
+          <td class="route-info">
+            <div class="route">
+              <span class="origin">{{ booking.routeDetails.origin }}</span>
+              <span class="arrow">→</span>
+              <span class="destination">{{ booking.routeDetails.destination }}</span>
+            </div>
+            <div class="timing">
+              {{ booking.routeDetails.departureTime }} - {{ booking.routeDetails.arrivalTime }}
+            </div>
+          </td>
+          
+          <td class="journey-date">
+            {{ booking.journeyDate | date:'mediumDate' }}
+          </td>
+          
+          <td class="seats-count">
+            <span class="seat-badge">{{ booking.seats.length }}</span>
+          </td>
+          
+          <td class="amount">
+            {{ formatCurrency(booking.totalAmount + booking.taxAmount) }}
+          </td>
+          
+          <td>
+            <span class="status-badge" [ngClass]="getStatusClass(booking.status)">
+              {{ booking.status }}
+            </span>
+          </td>
+          
+          <td>
+            <span class="payment-badge" [ngClass]="getPaymentStatusClass(booking.paymentStatus)">
+              {{ booking.paymentStatus }}
+            </span>
+          </td>
+          
+          <td class="actions">
+            <button class="btn-icon" (click)="viewBookingDetails(booking)" title="View Details">
+              👁️
+            </button>
+            <button class="btn-icon" (click)="openUpdateStatusModal(booking)" title="Update Status">
+              ✏️
+            </button>
+          </td>
+        </tr>
+        
+        <tr *ngIf="filteredBookings.length === 0">
+          <td colspan="10" class="no-data">
+            <div class="no-data-content">
+              <span class="no-data-icon">📅</span>
+              <p>No bookings found</p>
+              <button class="btn-primary btn-small" (click)="resetFilters()">Clear Filters</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button class="page-btn" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
+      ← Prev
+    </button>
+    
+    <button 
+      class="page-btn" 
+      *ngFor="let page of getPageNumbers()"
+      [class.active]="currentPage === page"
+      (click)="changePage(page)"
+    >
+      {{ page }}
+    </button>
+    
+    <button class="page-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
+      Next →
+    </button>
+  </div>
+
+  <!-- Booking Details Modal -->
+  <div class="modal" *ngIf="showDetailsModal && selectedBooking">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h2>Booking Details - {{ selectedBooking.bookingId }}</h2>
+        <button class="close-btn" (click)="closeDetailsModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="booking-details-grid">
+          <!-- Booking Information -->
+          <div class="detail-section">
+            <h4>Booking Information</h4>
+            <div class="detail-row">
+              <span class="label">Booking ID:</span>
+              <span class="value">{{ selectedBooking.bookingId }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Booking Date:</span>
+              <span class="value">{{ selectedBooking.bookingDate | date:'medium' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Journey Date:</span>
+              <span class="value">{{ selectedBooking.journeyDate | date:'fullDate' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Status:</span>
+              <span class="value">
+                <span class="status-badge" [ngClass]="getStatusClass(selectedBooking.status)">
+                  {{ selectedBooking.status }}
+                </span>
+              </span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Payment Status:</span>
+              <span class="value">
+                <span class="payment-badge" [ngClass]="getPaymentStatusClass(selectedBooking.paymentStatus)">
+                  {{ selectedBooking.paymentStatus }}
+                </span>
+              </span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Payment Method:</span>
+              <span class="value">{{ selectedBooking.paymentMethod | uppercase }}</span>
+            </div>
+          </div>
+
+          <!-- Bus Information -->
+          <div class="detail-section">
+            <h4>Bus Information</h4>
+            <div class="detail-row">
+              <span class="label">Bus Name:</span>
+              <span class="value">{{ selectedBooking.busDetails.busName }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Bus Number:</span>
+              <span class="value">{{ selectedBooking.busDetails.busNumber }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Bus Type:</span>
+              <span class="value">{{ selectedBooking.busDetails.busType }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Operator:</span>
+              <span class="value">{{ selectedBooking.busDetails.operator }}</span>
+            </div>
+          </div>
+
+          <!-- Route Information -->
+          <div class="detail-section">
+            <h4>Journey Details</h4>
+            <div class="detail-row">
+              <span class="label">From:</span>
+              <span class="value">{{ selectedBooking.routeDetails.origin }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">To:</span>
+              <span class="value">{{ selectedBooking.routeDetails.destination }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Departure:</span>
+              <span class="value">{{ selectedBooking.routeDetails.departureTime }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Arrival:</span>
+              <span class="value">{{ selectedBooking.routeDetails.arrivalTime }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Duration:</span>
+              <span class="value">{{ selectedBooking.routeDetails.duration }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Distance:</span>
+              <span class="value">{{ selectedBooking.routeDetails.distance }} km</span>
+            </div>
+          </div>
+
+          <!-- Passenger Details -->
+          <div class="detail-section full-width">
+            <h4>Passenger Details</h4>
+            <table class="passenger-table">
+              <thead>
+                <tr>
+                  <th>Seat</th>
+                  <th>Name</th>
+                  <th>Age</th>
+                  <th>Gender</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let passenger of selectedBooking.seats">
+                  <td><span class="seat-badge">{{ passenger.seatNumber }}</span></td>
+                  <td>{{ passenger.passengerName }}</td>
+                  <td>{{ passenger.passengerAge }}</td>
+                  <td>{{ passenger.passengerGender }}</td>
+                  <td>{{ passenger.passengerPhone }}</td>
+                  <td>{{ passenger.passengerEmail || 'N/A' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Payment Details -->
+          <div class="detail-section">
+            <h4>Payment Details</h4>
+            <div class="detail-row">
+              <span class="label">Base Fare:</span>
+              <span class="value">{{ formatCurrency(selectedBooking.totalAmount) }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Tax (GST):</span>
+              <span class="value">{{ formatCurrency(selectedBooking.taxAmount) }}</span>
+            </div>
+            <div class="detail-row total">
+              <span class="label">Total Amount:</span>
+              <span class="value">{{ formatCurrency(selectedBooking.totalAmount + selectedBooking.taxAmount) }}</span>
+            </div>
+          </div>
+
+          <!-- Cancellation Details (if cancelled) -->
+          <div class="detail-section" *ngIf="selectedBooking.cancellationDetails">
+            <h4>Cancellation Details</h4>
+            <div class="detail-row">
+              <span class="label">Cancelled On:</span>
+              <span class="value">{{ selectedBooking.cancellationDetails.cancelledAt | date:'medium' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Refund Amount:</span>
+              <span class="value">{{ formatCurrency(selectedBooking.cancellationDetails.refundAmount) }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Reason:</span>
+              <span class="value">{{ selectedBooking.cancellationDetails.reason }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeDetailsModal()">Close</button>
+        <button class="btn-primary" (click)="openUpdateStatusModal(selectedBooking)">
+          Update Status
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Update Status Modal -->
+  <div class="modal" *ngIf="showUpdateStatusModal && selectedBooking">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Update Booking Status</h2>
+        <button class="close-btn" (click)="closeUpdateStatusModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <p>Update status for booking <strong>{{ selectedBooking.bookingId }}</strong></p>
+        
+        <div class="form-group">
+          <label>New Status</label>
+          <select [(ngModel)]="newStatus" class="form-control">
+            <option *ngFor="let status of statusOptions" [value]="status.value">
+              {{ status.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Reason (Optional)</label>
+          <textarea 
+            [(ngModel)]="statusUpdateReason" 
+            rows="3" 
+            placeholder="Enter reason for status change"
+            class="form-control">
+          </textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeUpdateStatusModal()">Cancel</button>
+        <button class="btn-primary" (click)="updateBookingStatus()">Update Status</button>
+      </div>
+    </div>
+  </div>
+</div>

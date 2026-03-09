@@ -2,42 +2,37 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
+import { BusService, Bus, BoardingPoint } from '../../../services/bus.service';
+import { BookingService, Passenger, BookingRequest } from '../../../services/booking.service';
+import { AuthService, User } from '../../../services/auth.service';
 
 interface Seat {
   id: number;
   number: string;
   row: number;
   column: 'A' | 'B' | 'C' | 'D';
-  deck?: 'lower' | 'upper';
   price: number;
-  status: 'available' | 'booked' | 'selected' | 'blocked';
-  gender?: 'male' | 'female' | 'none';
-  type: 'sleeper' | 'seater';
+  status: 'available' | 'booked' | 'selected' | 'ladies' | 'occupied';
+  isLadies?: boolean;
   tempSelected?: boolean;
+  bookedBy?: string; // To track who booked the seat
+  bookingId?: string; // Reference to booking
 }
 
-interface BusDetails {
-  id: number;
-  name: string;
-  operator: string;
-  type: string;
-  origin: string;
-  destination: string;
-  departureTime: string;
-  arrivalTime: string;
-  duration: string;
-  price: number;
-  busType: 'sleeper' | 'seater' | 'semi-sleeper';
-  totalSeats: number;
-}
-
-interface Passenger {
+interface PassengerDetail {
   seatNumber: string;
   name: string;
   age: number | null;
   gender: string;
-  phone: string;  // Added phone property
-  email?: string; // Optional email
+  phone: string;
+  email?: string;
+}
+
+interface RouteStop {
+  name: string;
+  arrivalTime: string;
+  departureTime: string;
+  fare: number;
 }
 
 @Component({
@@ -48,22 +43,24 @@ interface Passenger {
   styleUrls: ['./seat-selection.component.css']
 })
 export class SeatSelectionComponent implements OnInit {
-  busId: number = 0;
-  busDetails: BusDetails | null = null;
+  busId: string = '';
+  busDetails: Bus | null = null;
+  currentUser: User | null = null;
   
-  lowerDeckSeats: Seat[] = [];
-  upperDeckSeats: Seat[] = [];
+  // Seats
+  seats: Seat[] = [];
   selectedSeats: Seat[] = [];
   tempSelectedSeats: Seat[] = [];
-  showUpperDeck: boolean = false;
+  occupiedSeats: Seat[] = []; // Track occupied seats from database
   
-  // Maximum seats allowed
+  // Boarding points from route stops
+  boardingPoints: any[] = [];
+  selectedBoardingPoint: any = null;
+  
   maxSeats: number = 6;
-  
-  // Multi-select mode
   isMultiSelectMode: boolean = false;
   
-  passengers: Passenger[] = [];
+  passengers: PassengerDetail[] = [];
   
   bookingSummary = {
     baseFare: 0,
@@ -74,230 +71,292 @@ export class SeatSelectionComponent implements OnInit {
   showPassengerModal: boolean = false;
   showLimitWarning: boolean = false;
   showMultiSelectConfirm: boolean = false;
-  currentSeat: Seat | null = null;
+  showBookingSuccess: boolean = false;
+  
+  isLoading: boolean = true;
+  isBooking: boolean = false;
+  errorMessage: string = '';
+  successMessage: string = '';
+  bookingResponse: any = null;
+
+  // Seat layout configuration
+  seatsPerRow: number = 4;
+  totalRows: number = 0;
 
   constructor(
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private busService: BusService,
+    private bookingService: BookingService,
+    private authService: AuthService
   ) {}
 
   ngOnInit() {
+    this.currentUser = this.authService.getCurrentUser();
+    
     this.route.params.subscribe(params => {
-      this.busId = +params['id'];
+      this.busId = params['id'];
       this.loadBusDetails();
-      this.loadSeats();
+      this.loadOccupiedSeats(); // Load already booked seats
+    });
+
+    this.route.queryParams.subscribe(params => {
+      if (params['passengers']) {
+        this.maxSeats = parseInt(params['passengers']);
+      }
     });
   }
 
   loadBusDetails() {
-    const busData: {[key: number]: BusDetails} = {
-      1: {
-        id: 1,
-        name: 'VRL Volvo Multi-Axle Sleeper',
-        operator: 'VRL Travels',
-        type: 'AC Sleeper',
-        origin: 'Delhi',
-        destination: 'Mumbai',
-        departureTime: '18:30',
-        arrivalTime: '06:30',
-        duration: '12h 00m',
-        price: 1299,
-        busType: 'sleeper',
-        totalSeats: 36
+    this.isLoading = true;
+    this.busService.getBusById(this.busId).subscribe({
+      next: (response: any) => {
+        if (response.success && response.data) {
+          this.busDetails = response.data;
+          this.generateSeats();
+          // Load boarding points from route AFTER bus details are loaded
+          if (this.busDetails && this.busDetails.routeId) {
+            this.loadBoardingPointsFromRoute(this.busDetails.routeId);
+          } else {
+            this.setDefaultBoardingPoints();
+          }
+        }
+        this.isLoading = false;
       },
-      2: {
-        id: 2,
-        name: 'SRS Luxury Volvo',
-        operator: 'SRS Travels',
-        type: 'AC Seater',
-        origin: 'Delhi',
-        destination: 'Mumbai',
-        departureTime: '20:00',
-        arrivalTime: '08:00',
-        duration: '12h 00m',
-        price: 999,
-        busType: 'seater',
-        totalSeats: 40
+      error: (error) => {
+        console.error('Error loading bus details:', error);
+        this.errorMessage = 'Failed to load bus details';
+        this.isLoading = false;
       }
-    };
-
-    this.busDetails = busData[this.busId] || {
-      id: this.busId,
-      name: 'Volvo Multi-Axle Bus',
-      operator: 'Travels',
-      type: 'AC Sleeper',
-      origin: 'Delhi',
-      destination: 'Mumbai',
-      departureTime: '18:30',
-      arrivalTime: '06:30',
-      duration: '12h',
-      price: 1299,
-      busType: 'sleeper',
-      totalSeats: 36
-    };
+    });
   }
 
-  loadSeats() {
-    this.loadLowerDeckSeats();
-    this.loadUpperDeckSeats();
+  // Load already occupied/booked seats from database
+  loadOccupiedSeats() {
+    this.busService.getBookedSeats(this.busId).subscribe({
+      next: (response: any) => {
+        if (response.success && response.data) {
+          this.occupiedSeats = response.data.map((seat: any) => ({
+            id: this.generateSeatId(seat.seatNumber),
+            number: seat.seatNumber,
+            status: 'occupied',
+            bookedBy: seat.passengerName,
+            bookingId: seat.bookingId
+          }));
+          
+          // Update seats if they're already generated
+          if (this.seats.length > 0) {
+            this.updateSeatsWithOccupied();
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error loading occupied seats:', error);
+      }
+    });
   }
 
-  loadLowerDeckSeats() {
-    const seats: Seat[] = [];
-    let id = 1;
-    
-    for (let row = 1; row <= 8; row++) {
-      // Column A
-      seats.push({
-        id: id++,
-        number: `L${row}A`,
-        row: row,
-        column: 'A',
-        deck: 'lower',
-        price: this.busDetails?.price || 1299,
-        status: this.getSeatStatus(row, 'A'),
-        type: 'sleeper',
-        gender: Math.random() > 0.7 ? 'male' : 'none',
-        tempSelected: false
-      });
-      
-      // Column B
-      seats.push({
-        id: id++,
-        number: `L${row}B`,
-        row: row,
-        column: 'B',
-        deck: 'lower',
-        price: this.busDetails?.price || 1299,
-        status: this.getSeatStatus(row, 'B'),
-        type: 'sleeper',
-        gender: Math.random() > 0.7 ? 'female' : 'none',
-        tempSelected: false
-      });
-      
-      // Column C
-      seats.push({
-        id: id++,
-        number: `L${row}C`,
-        row: row,
-        column: 'C',
-        deck: 'lower',
-        price: this.busDetails?.price || 1299,
-        status: this.getSeatStatus(row, 'C'),
-        type: 'sleeper',
-        gender: Math.random() > 0.7 ? 'male' : 'none',
-        tempSelected: false
-      });
-      
-      // Column D
-      seats.push({
-        id: id++,
-        number: `L${row}D`,
-        row: row,
-        column: 'D',
-        deck: 'lower',
-        price: this.busDetails?.price || 1299,
-        status: this.getSeatStatus(row, 'D'),
-        type: 'sleeper',
-        gender: Math.random() > 0.7 ? 'female' : 'none',
-        tempSelected: false
-      });
-    }
-    
-    this.lowerDeckSeats = seats;
+  // Generate a numeric ID from seat number (e.g., "1A" -> 1)
+  generateSeatId(seatNumber: string): number {
+    const match = seatNumber.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 0;
   }
 
-  loadUpperDeckSeats() {
-    const seats: Seat[] = [];
-    let id = 100;
-    
-    for (let row = 1; row <= 8; row++) {
-      seats.push({
-        id: id++,
-        number: `U${row}A`,
-        row: row,
-        column: 'A',
-        deck: 'upper',
-        price: this.busDetails?.price || 1299,
-        status: this.getSeatStatus(row + 10, 'A'),
-        type: 'sleeper',
-        gender: Math.random() > 0.7 ? 'male' : 'none',
-        tempSelected: false
-      });
-      
-      seats.push({
-        id: id++,
-        number: `U${row}B`,
-        row: row,
-        column: 'B',
-        deck: 'upper',
-        price: this.busDetails?.price || 1299,
-        status: this.getSeatStatus(row + 10, 'B'),
-        type: 'sleeper',
-        gender: Math.random() > 0.7 ? 'female' : 'none',
-        tempSelected: false
-      });
-      
-      seats.push({
-        id: id++,
-        number: `U${row}C`,
-        row: row,
-        column: 'C',
-        deck: 'upper',
-        price: this.busDetails?.price || 1299,
-        status: this.getSeatStatus(row + 10, 'C'),
-        type: 'sleeper',
-        gender: Math.random() > 0.7 ? 'male' : 'none',
-        tempSelected: false
-      });
-      
-      seats.push({
-        id: id++,
-        number: `U${row}D`,
-        row: row,
-        column: 'D',
-        deck: 'upper',
-        price: this.busDetails?.price || 1299,
-        status: this.getSeatStatus(row + 10, 'D'),
-        type: 'sleeper',
-        gender: Math.random() > 0.7 ? 'female' : 'none',
-        tempSelected: false
-      });
-    }
-    
-    this.upperDeckSeats = seats;
+  // Update seats array with occupied status
+  updateSeatsWithOccupied() {
+    this.occupiedSeats.forEach(occupied => {
+      const seat = this.seats.find(s => s.number === occupied.number);
+      if (seat) {
+        seat.status = 'occupied';
+        seat.bookedBy = occupied.bookedBy;
+        seat.bookingId = occupied.bookingId;
+      }
+    });
   }
 
-  getSeatStatus(row: number, column: string): 'available' | 'booked' | 'selected' | 'blocked' {
-    const bookedSeats = [
-      'L3B', 'L4C', 'L5A', 'L6D', 'L7B', 'L8C',
-      'U2A', 'U3D', 'U4B', 'U5C', 'U7A'
+  loadBoardingPointsFromRoute(routeId: string) {
+    console.log('Loading route stops for route:', routeId);
+    
+    this.busService.getRouteStops(routeId).subscribe({
+      next: (response: any) => {
+        console.log('Route stops response:', response);
+        
+        if (response.success && response.data) {
+          // Clear existing boarding points
+          this.boardingPoints = [];
+          
+          // Add origin as first boarding point
+          if (this.busDetails && this.busDetails.origin) {
+            this.boardingPoints.push({
+              id: 'origin',
+              name: this.busDetails.origin,
+              time: this.busDetails.departureTime || '08:00',
+              address: this.busDetails.origin + ' Bus Stand',
+              city: this.busDetails.origin,
+              fare: 0,
+              isActive: true
+            });
+          }
+          
+          // Add stops from route
+          const stops = response.data.stops || [];
+          stops.forEach((stop: any, index: number) => {
+            this.boardingPoints.push({
+              id: `stop-${index}`,
+              name: stop.name,
+              time: stop.arrivalTime,
+              address: stop.name,
+              city: this.busDetails?.origin || '',
+              fare: stop.fare || 0,
+              isActive: true
+            });
+          });
+          
+          // Add destination as last boarding point
+          if (this.busDetails && this.busDetails.destination) {
+            this.boardingPoints.push({
+              id: 'destination',
+              name: this.busDetails.destination,
+              time: this.busDetails.arrivalTime || '20:00',
+              address: this.busDetails.destination + ' Bus Stand',
+              city: this.busDetails.destination,
+              fare: this.busDetails.fare || 0,
+              isActive: true
+            });
+          }
+          
+          console.log('Final boarding points:', this.boardingPoints);
+          
+          // Select first boarding point by default
+          if (this.boardingPoints.length > 0) {
+            this.selectedBoardingPoint = this.boardingPoints[0];
+          }
+        } else {
+          this.setDefaultBoardingPoints();
+        }
+      },
+      error: (error) => {
+        console.error('Error loading route stops:', error);
+        this.setDefaultBoardingPoints();
+      }
+    });
+  }
+
+  setDefaultBoardingPoints() {
+    console.log('Using default boarding points');
+    this.boardingPoints = [
+      {
+        id: 1,
+        name: this.busDetails?.origin || 'Main Bus Stand',
+        time: this.busDetails?.departureTime || '08:00',
+        address: this.busDetails?.origin || 'City Center',
+        city: this.busDetails?.origin || 'City',
+        fare: 0,
+        isActive: true
+      },
+      {
+        id: 2,
+        name: this.busDetails?.destination || 'City Bus Stand',
+        time: this.busDetails?.arrivalTime || '20:00',
+        address: this.busDetails?.destination || 'City Center',
+        city: this.busDetails?.destination || 'City',
+        fare: this.busDetails?.fare || 0,
+        isActive: true
+      }
     ];
+    this.selectedBoardingPoint = this.boardingPoints[0];
+  }
+
+  generateSeats() {
+    if (!this.busDetails) return;
+
+    const totalSeats = this.busDetails.totalSeats || 40;
+    const basePrice = this.busDetails.fare || 1200;
     
-    const seatNum = `${row}${column}`;
-    
-    if (bookedSeats.includes(seatNum)) {
-      return 'booked';
+    this.totalRows = Math.ceil(totalSeats / this.seatsPerRow);
+    this.seats = [];
+
+    for (let i = 1; i <= totalSeats; i++) {
+      const row = Math.ceil(i / this.seatsPerRow);
+      const columnIndex = (i - 1) % this.seatsPerRow;
+      const column = this.getColumnLetter(columnIndex);
+      
+      // Determine if it's a ladies seat (e.g., every 5th seat)
+      const isLadies = i % 5 === 0;
+      
+      // Initially set as available
+      this.seats.push({
+        id: i,
+        number: `${row}${column}`,
+        row: row,
+        column: column,
+        price: basePrice,
+        status: isLadies ? 'ladies' : 'available',
+        isLadies: isLadies,
+        tempSelected: false
+      });
     }
     
-    return 'available';
+    // Update with occupied seats if any
+    if (this.occupiedSeats.length > 0) {
+      this.updateSeatsWithOccupied();
+    }
   }
 
-  toggleDeck() {
-    this.showUpperDeck = !this.showUpperDeck;
+  getColumnLetter(index: number): 'A' | 'B' | 'C' | 'D' {
+    const columns: ('A' | 'B' | 'C' | 'D')[] = ['A', 'B', 'C', 'D'];
+    return columns[index];
   }
 
-  getCurrentDeckSeats(): Seat[] {
-    return this.showUpperDeck ? this.upperDeckSeats : this.lowerDeckSeats;
+  getSeatsByRow(row: number): Seat[] {
+    return this.seats.filter(seat => seat.row === row);
   }
 
-  getSeatsByColumn(column: 'A' | 'B' | 'C' | 'D'): Seat[] {
-    return this.getCurrentDeckSeats()
-      .filter(seat => seat.column === column)
-      .sort((a, b) => a.row - b.row);
+  getRowNumbers(): number[] {
+    return Array.from({ length: this.totalRows }, (_, i) => i + 1);
   }
 
-  // Toggle multi-select mode
+  toggleSeat(seat: Seat) {
+    // Don't allow selection of booked or occupied seats
+    if (seat.status === 'booked' || seat.status === 'occupied') return;
+
+    if (seat.status === 'ladies' && this.currentUser?.gender !== 'female') {
+      this.errorMessage = 'Ladies seats can only be booked by female passengers';
+      setTimeout(() => this.errorMessage = '', 3000);
+      return;
+    }
+
+    if (this.isMultiSelectMode) {
+      if (seat.tempSelected) {
+        seat.tempSelected = false;
+        this.tempSelectedSeats = this.tempSelectedSeats.filter(s => s.id !== seat.id);
+      } else {
+        const totalAfterAdd = this.selectedSeats.length + this.tempSelectedSeats.length + 1;
+        if (totalAfterAdd > this.maxSeats) {
+          this.showLimitWarning = true;
+          setTimeout(() => this.showLimitWarning = false, 3000);
+          return;
+        }
+        seat.tempSelected = true;
+        this.tempSelectedSeats.push(seat);
+      }
+    } else {
+      if (this.selectedSeats.length >= this.maxSeats) {
+        this.showLimitWarning = true;
+        setTimeout(() => this.showLimitWarning = false, 3000);
+        return;
+      }
+
+      if (seat.status === 'selected') {
+        this.removeSelectedSeat(seat);
+      } else {
+        seat.status = 'selected';
+        this.selectedSeats.push(seat);
+        this.calculateTotal();
+      }
+    }
+  }
+
   toggleMultiSelectMode() {
     this.isMultiSelectMode = !this.isMultiSelectMode;
     if (!this.isMultiSelectMode) {
@@ -305,126 +364,43 @@ export class SeatSelectionComponent implements OnInit {
     }
   }
 
-  // Clear temporary selection
   clearTempSelection() {
-    this.getCurrentDeckSeats().forEach(seat => {
-      if (seat.tempSelected) {
-        seat.tempSelected = false;
-      }
-    });
+    this.tempSelectedSeats.forEach(seat => seat.tempSelected = false);
     this.tempSelectedSeats = [];
   }
 
-  // Updated toggleSeat method for multi-select
-  toggleSeat(seat: Seat) {
-    if (seat.status === 'booked' || seat.status === 'blocked' || seat.status === 'selected') {
-      return;
-    }
-    
-    if (this.isMultiSelectMode) {
-      // Multi-select mode
-      if (seat.tempSelected) {
-        seat.tempSelected = false;
-        this.tempSelectedSeats = this.tempSelectedSeats.filter(s => s.id !== seat.id);
-      } else {
-        // Check if adding this seat would exceed max seats
-        const totalAfterAdd = this.selectedSeats.length + this.tempSelectedSeats.length + 1;
-        if (totalAfterAdd > this.maxSeats) {
-          this.showLimitWarning = true;
-          setTimeout(() => {
-            this.showLimitWarning = false;
-          }, 3000);
-          return;
-        }
-        seat.tempSelected = true;
-        this.tempSelectedSeats.push(seat);
-      }
-    } else {
-      // Single select mode - direct selection
-      if (this.selectedSeats.length >= this.maxSeats) {
-        this.showLimitWarning = true;
-        setTimeout(() => {
-          this.showLimitWarning = false;
-        }, 3000);
-        return;
-      }
-      
-      this.currentSeat = seat;
-      this.passengers = [{
-        seatNumber: seat.number,
-        name: '',
-        age: null,
-        gender: 'male',
-        phone: '',
-        email: ''
-      }];
-      this.showPassengerModal = true;
-    }
-  }
-
-  // Confirm multi-selection
   confirmMultiSelection() {
-    if (this.tempSelectedSeats.length === 0) {
+    if (this.tempSelectedSeats.length === 0) return;
+
+    // Check ladies seats
+    const hasInvalidLadies = this.tempSelectedSeats.some(s => 
+      s.isLadies && this.currentUser?.gender !== 'female'
+    );
+
+    if (hasInvalidLadies) {
+      this.errorMessage = 'Ladies seats can only be booked by female passengers';
+      setTimeout(() => this.errorMessage = '', 3000);
       return;
     }
-    
-    // Prepare passengers array for all temp selected seats
-    this.passengers = this.tempSelectedSeats.map(seat => ({
-      seatNumber: seat.number,
-      name: '',
-      age: null,
-      gender: 'male',
-      phone: '',
-      email: ''
-    }));
-    
-    this.showMultiSelectConfirm = false;
-    this.showPassengerModal = true;
+
+    this.tempSelectedSeats.forEach(seat => {
+      seat.status = 'selected';
+      seat.tempSelected = false;
+    });
+
+    this.selectedSeats = [...this.selectedSeats, ...this.tempSelectedSeats];
+    this.tempSelectedSeats = [];
+    this.calculateTotal();
+    this.isMultiSelectMode = false;
   }
 
-  // Cancel multi-selection
   cancelMultiSelection() {
     this.clearTempSelection();
     this.showMultiSelectConfirm = false;
   }
 
-  // Confirm all passenger details
-  confirmAllPassengers() {
-    // Validate all passengers have required fields
-    const isValid = this.passengers.every(p => p.name && p.age && p.phone);
-    
-    if (!isValid) {
-      alert('Please fill in all passenger details');
-      return;
-    }
-    
-    // Mark all temp selected seats as selected
-    this.tempSelectedSeats.forEach(seat => {
-      const seatToUpdate = this.findSeatById(seat.id);
-      if (seatToUpdate) {
-        seatToUpdate.status = 'selected';
-        seatToUpdate.tempSelected = false;
-      }
-    });
-    
-    this.selectedSeats = [...this.selectedSeats, ...this.tempSelectedSeats];
-    this.tempSelectedSeats = [];
-    this.calculateTotal();
-    this.showPassengerModal = false;
-    this.isMultiSelectMode = false;
-  }
-
-  // Find seat by ID in both decks
-  findSeatById(id: number): Seat | undefined {
-    return [...this.lowerDeckSeats, ...this.upperDeckSeats].find(s => s.id === id);
-  }
-
-  // Remove a selected seat
   removeSelectedSeat(seat: Seat) {
-    const seatToUpdate = this.findSeatById(seat.id);
-    if (seatToUpdate) {
-      seatToUpdate.status = 'available';
-    }
+    seat.status = 'available';
     this.selectedSeats = this.selectedSeats.filter(s => s.id !== seat.id);
     this.calculateTotal();
   }
@@ -444,31 +420,249 @@ export class SeatSelectionComponent implements OnInit {
       alert('Please select at least one seat');
       return;
     }
+
+    if (!this.selectedBoardingPoint) {
+      alert('Please select a boarding point');
+      return;
+    }
+
+    if (!this.authService.isAuthenticated()) {
+      localStorage.setItem('pendingBooking', JSON.stringify({
+        busId: this.busId,
+        seats: this.selectedSeats.map(s => ({
+          seatNumber: s.number,
+          name: '',
+          age: null,
+          gender: 'male',
+          phone: '',
+          email: ''
+        })),
+        boardingPoint: this.selectedBoardingPoint,
+        totalAmount: this.bookingSummary.total,
+        taxAmount: this.bookingSummary.tax,
+        journeyDate: this.route.snapshot.queryParams['date'] || new Date().toISOString().split('T')[0]
+      }));
+      this.router.navigate(['/login'], { 
+        queryParams: { returnUrl: this.router.url } 
+      });
+      return;
+    }
+
+    this.preparePassengers();
+    this.showPassengerModal = true;
+  }
+
+  preparePassengers() {
+    this.passengers = this.selectedSeats.map(seat => ({
+      seatNumber: seat.number,
+      name: this.currentUser ? `${this.currentUser.firstName} ${this.currentUser.lastName}` : '',
+      age: null,
+      gender: this.currentUser?.gender || 'male',
+      phone: this.currentUser?.phone || '',
+      email: this.currentUser?.email || ''
+    }));
+  }
+
+  confirmAllPassengers() {
+    const isValid = this.passengers.every(p => 
+      p.name && p.name.trim() !== '' && 
+      p.age && p.age > 0 && p.age < 120 && 
+      p.phone && p.phone.length === 10
+    );
+
+    if (!isValid) {
+      alert('Please fill all passenger details correctly');
+      return;
+    }
+
+    this.createBooking();
+  }
+
+  // createBooking() {
+  //   this.isBooking = true;
+  //   this.errorMessage = '';
+
+  //   // Validate ages
+  //   const hasValidAges = this.passengers.every(p => p.age !== null && p.age > 0);
+  //   if (!hasValidAges) {
+  //     this.isBooking = false;
+  //     alert('Please enter valid age for all passengers');
+  //     return;
+  //   }
+
+  //   // Validate boarding point
+  //   if (!this.selectedBoardingPoint) {
+  //     this.isBooking = false;
+  //     alert('Please select a boarding point');
+  //     return;
+  //   }
+
+  //   // Create booking data with proper typing
+  //   const bookingData: any = {
+  //     busId: this.busId,
+  //     seats: this.passengers.map(p => ({
+  //       seatNumber: p.seatNumber,
+  //       passengerName: p.name,
+  //       passengerAge: Number(p.age),
+  //       passengerGender: p.gender,
+  //       passengerPhone: p.phone,
+  //       passengerEmail: p.email || undefined
+  //     })),
+  //     boardingPoint: {
+  //       name: this.selectedBoardingPoint.name,
+  //       time: this.selectedBoardingPoint.time,
+  //       address: this.selectedBoardingPoint.address,
+  //       fare: this.selectedBoardingPoint.fare
+  //     },
+  //     totalAmount: Number(this.bookingSummary.total),
+  //     taxAmount: Number(this.bookingSummary.tax),
+  //     journeyDate: this.route.snapshot.queryParams['date'] || new Date().toISOString().split('T')[0],
+  //     paymentMethod: 'card'
+  //   };
+
+  //   this.bookingService.createBooking(bookingData).subscribe({
+  //     next: (response: any) => {
+  //       this.isBooking = false;
+  //       if (response.success) {
+  //         // Mark selected seats as occupied
+  //         this.markSeatsAsOccupied(response.data);
+          
+  //         this.successMessage = `Booking successful! ID: ${response.data.bookingId}`;
+  //         this.showBookingSuccess = true;
+  //         this.bookingResponse = response.data;
+          
+  //         // Close passenger modal
+  //         this.showPassengerModal = false;
+          
+  //         // Clear selections
+  //         this.selectedSeats = [];
+  //         this.tempSelectedSeats = [];
+  //         this.passengers = [];
+  //         this.calculateTotal();
+          
+  //         // Show success message for 3 seconds then navigate
+  //         setTimeout(() => {
+  //           this.showBookingSuccess = false;
+  //           this.router.navigate(['/booking', response.data.booking._id]);
+  //         }, 3000);
+  //       }
+  //     },
+  //     error: (error) => {
+  //       this.isBooking = false;
+  //       console.error('Booking error:', error);
+  //       this.errorMessage = error.error?.message || 'Booking failed. Please try again.';
+  //     }
+  //   });
+  // }
+createBooking() {
+  this.isBooking = true;
+  this.errorMessage = '';
+
+  // Validate ages
+  const hasValidAges = this.passengers.every(p => p.age !== null && p.age > 0);
+  if (!hasValidAges) {
+    this.isBooking = false;
+    alert('Please enter valid age for all passengers');
+    return;
+  }
+
+  // Validate boarding point
+  if (!this.selectedBoardingPoint) {
+    this.isBooking = false;
+    alert('Please select a boarding point');
+    return;
+  }
+
+  // Create booking data matching backend expected structure
+  const bookingData = {
+    busId: this.busId,
+    seats: this.passengers.map(p => ({
+      seatNumber: p.seatNumber,
+      passengerName: p.name,
+      passengerAge: Number(p.age),
+      passengerGender: p.gender,
+      passengerPhone: p.phone,
+      passengerEmail: p.email || undefined
+    })),
+    totalAmount: Number(this.bookingSummary.total),
+    taxAmount: Number(this.bookingSummary.tax),
+    journeyDate: this.route.snapshot.queryParams['date'] || new Date().toISOString().split('T')[0],
+    paymentMethod: 'card'
+    // REMOVED: boardingPoint from here - it should be separate
+  };
+
+  console.log('Sending booking data:', bookingData);
+
+  this.bookingService.createBooking(bookingData).subscribe({
+    next: (response: any) => {
+      this.isBooking = false;
+      if (response.success) {
+        // Mark selected seats as occupied
+        this.markSeatsAsOccupied(response.data);
+        
+        this.successMessage = `Booking successful! ID: ${response.data.bookingId}`;
+        this.showBookingSuccess = true;
+        this.bookingResponse = response.data;
+        
+        // Close passenger modal
+        this.showPassengerModal = false;
+        
+        // Clear selections
+        this.selectedSeats = [];
+        this.tempSelectedSeats = [];
+        this.passengers = [];
+        this.calculateTotal();
+        
+        // Show success message for 3 seconds then navigate
+        setTimeout(() => {
+          this.showBookingSuccess = false;
+          this.router.navigate(['/booking', response.data.booking._id]);
+        }, 3000);
+      }
+    },
+    error: (error) => {
+      this.isBooking = false;
+      console.error('Booking error:', error);
+      this.errorMessage = error.error?.message || 'Booking failed. Please try again.';
+    }
+  });
+}
+
+  // Mark seats as occupied after successful booking
+  markSeatsAsOccupied(bookingData: any) {
+    const bookedSeatNumbers = this.passengers.map(p => p.seatNumber);
     
-    alert(`Proceeding to payment with ${this.selectedSeats.length} seats`);
-    // Navigate to payment page
-    // this.router.navigate(['/payment'], { state: { seats: this.selectedSeats, bus: this.busDetails } });
+    this.seats.forEach(seat => {
+      if (bookedSeatNumbers.includes(seat.number)) {
+        seat.status = 'occupied';
+        seat.bookedBy = this.currentUser?.firstName + ' ' + this.currentUser?.lastName;
+        seat.bookingId = bookingData.bookingId;
+      }
+    });
+    
+    // Also update the selectedSeats and tempSelectedSeats arrays
+    this.selectedSeats = [];
+    this.tempSelectedSeats = [];
   }
 
   getSeatStatusClass(seat: Seat): string {
-    if (seat.tempSelected) {
-      return 'seat-temp-selected';
-    }
-    switch(seat.status) {
-      case 'available': return 'seat-available';
-      case 'booked': return 'seat-booked';
-      case 'selected': return 'seat-selected';
-      case 'blocked': return 'seat-blocked';
-      default: return '';
-    }
+    if (seat.tempSelected) return 'seat-temp-selected';
+    if (seat.status === 'selected') return 'seat-selected';
+    if (seat.status === 'ladies') return 'seat-ladies';
+    if (seat.status === 'booked' || seat.status === 'occupied') return 'seat-occupied';
+    return 'seat-available';
   }
 
   getAvailableSeatsCount(): number {
-    return this.getCurrentDeckSeats().filter(s => s.status === 'available').length;
+    return this.seats.filter(s => s.status === 'available' || s.status === 'ladies').length;
   }
 
   getBookedSeatsCount(): number {
-    return this.getCurrentDeckSeats().filter(s => s.status === 'booked').length;
+    return this.seats.filter(s => s.status === 'booked' || s.status === 'occupied').length;
+  }
+
+  getLadiesSeatsCount(): number {
+    return this.seats.filter(s => s.status === 'ladies').length;
   }
 
   getSelectedSeatsCount(): number {
@@ -487,27 +681,21 @@ export class SeatSelectionComponent implements OnInit {
     this.router.navigate(['/buses']);
   }
 
-  getRowNumbers(): number[] {
-    return [1, 2, 3, 4, 5, 6, 7, 8];
-  }
-
-  // Update passenger details
   updatePassenger(index: number, field: string, value: any) {
     if (this.passengers[index]) {
       (this.passengers[index] as any)[field] = value;
     }
   }
 
-  // Check if all passengers are valid
+  getSafeBusDetails() {
+    return this.busDetails || {};
+  }
+
   areAllPassengersValid(): boolean {
     return this.passengers.every(p => 
-      p.name && 
-      p.name.trim() !== '' && 
-      p.age !== null && 
-      p.age > 0 && 
-      p.age < 120 && 
-      p.phone && 
-      p.phone.length === 10
+      p.name && p.name.trim() !== '' && 
+      p.age !== null && p.age > 0 && p.age < 120 && 
+      p.phone && p.phone.length === 10
     );
   }
 }

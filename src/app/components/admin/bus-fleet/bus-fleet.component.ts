@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { BusService, Bus, Route, FareInfo } from '../../../services/bus.service';
+import { BusService, Bus, Route, FareInfo, ApiResponse } from '../../../services/bus.service';
 import { Subscription, debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
 @Component({
@@ -34,7 +34,6 @@ export class BusFleetComponent implements OnInit, OnDestroy {
   errorMessage: string = '';
   successMessage: string = '';
   
-  // Fare info from declarations
   currentFareInfo: FareInfo | null = null;
   
   newBus: any = {
@@ -79,7 +78,6 @@ export class BusFleetComponent implements OnInit, OnDestroy {
     this.loadRoutes();
     this.loadBuses();
     
-    // Setup search debounce
     const searchSub = this.searchSubject.pipe(
       debounceTime(500),
       distinctUntilChanged()
@@ -95,12 +93,12 @@ export class BusFleetComponent implements OnInit, OnDestroy {
 
   loadRoutes(): void {
     const sub = this.busService.getRoutes().subscribe({
-      next: (response) => {
+      next: (response: ApiResponse<Route[]>) => {
         if (response.success && response.data) {
           this.routes = response.data.filter(route => route.status === 'active');
         }
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading routes:', error);
         this.errorMessage = 'Failed to load routes';
       }
@@ -118,14 +116,14 @@ export class BusFleetComponent implements OnInit, OnDestroy {
       this.selectedStatus,
       this.searchTerm
     ).subscribe({
-      next: (response) => {
+      next: (response: ApiResponse<Bus[]>) => {
         if (response.success && response.data) {
           this.buses = response.data;
           this.filteredBuses = [...this.buses];
         }
         this.isLoading = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading buses:', error);
         this.errorMessage = 'Failed to load buses';
         this.isLoading = false;
@@ -142,34 +140,33 @@ export class BusFleetComponent implements OnInit, OnDestroy {
     this.loadBuses();
   }
 
-  // Auto-calculate fare when route or bus type changes - USING FARE DECLARATIONS
   onRouteOrTypeChange(): void {
     if (this.newBus.routeId && this.newBus.busType) {
-      this.calculateFare(this.newBus.routeId, this.newBus.busType);
+      this.calculateFareFromDeclaration(this.newBus.routeId, this.newBus.busType);
     }
   }
 
-  calculateFare(routeId: string, busType: string): void {
+  calculateFareFromDeclaration(routeId: string, busType: string): void {
     this.isCalculatingFare = true;
     this.currentFareInfo = null;
     
     const sub = this.busService.getBusFare(routeId, busType).subscribe({
-      next: (response) => {
+      next: (response: ApiResponse<FareInfo>) => {
         if (response.success && response.data) {
           this.currentFareInfo = response.data;
           this.newBus.fare = response.data.fare;
           
           if (response.data.source === 'fare_declaration') {
-            this.successMessage = `Fare loaded from fare declarations: ₹${response.data.fare}`;
+            this.successMessage = `✅ Fare loaded from Fare Declaration: ₹${response.data.fare}`;
           } else {
-            this.successMessage = `Fare calculated based on route distance: ₹${response.data.fare}`;
+            this.successMessage = `⚠️ No fare declaration found. Calculated fare: ₹${response.data.fare}`;
           }
           
           setTimeout(() => this.successMessage = '', 3000);
         }
         this.isCalculatingFare = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error calculating fare:', error);
         this.errorMessage = 'Failed to calculate fare';
         this.isCalculatingFare = false;
@@ -218,7 +215,7 @@ export class BusFleetComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
 
     const sub = this.busService.createBus(this.newBus).subscribe({
-      next: (response) => {
+      next: (response: ApiResponse<Bus>) => {
         if (response.success) {
           this.successMessage = 'Bus created successfully!';
           this.loadBuses();
@@ -227,7 +224,7 @@ export class BusFleetComponent implements OnInit, OnDestroy {
         }
         this.isLoading = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error creating bus:', error);
         this.errorMessage = error.error?.message || 'Failed to create bus';
         this.isLoading = false;
@@ -236,18 +233,18 @@ export class BusFleetComponent implements OnInit, OnDestroy {
     this.subscriptions.add(sub);
   }
 
-  openEditModal(bus: any): void {
+  openEditModal(bus: Bus): void {
     if (bus._id) {
       this.isLoading = true;
       const sub = this.busService.getBusById(bus._id).subscribe({
-        next: (response) => {
+        next: (response: ApiResponse<Bus>) => {
           if (response.success && response.data) {
             this.selectedBus = response.data;
             this.showEditModal = true;
           }
           this.isLoading = false;
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error fetching bus:', error);
           this.errorMessage = 'Failed to load bus details';
           this.isLoading = false;
@@ -270,7 +267,7 @@ export class BusFleetComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
 
     const sub = this.busService.updateBus(this.selectedBus._id, this.selectedBus).subscribe({
-      next: (response) => {
+      next: (response: ApiResponse<Bus>) => {
         if (response.success) {
           this.successMessage = 'Bus updated successfully!';
           this.loadBuses();
@@ -279,7 +276,7 @@ export class BusFleetComponent implements OnInit, OnDestroy {
         }
         this.isLoading = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error updating bus:', error);
         this.errorMessage = error.error?.message || 'Failed to update bus';
         this.isLoading = false;
@@ -288,7 +285,7 @@ export class BusFleetComponent implements OnInit, OnDestroy {
     this.subscriptions.add(sub);
   }
 
-  openDetailsModal(bus: any): void {
+  openDetailsModal(bus: Bus): void {
     this.selectedBus = bus;
     this.showDetailsModal = true;
   }
@@ -298,7 +295,7 @@ export class BusFleetComponent implements OnInit, OnDestroy {
     this.selectedBus = null;
   }
 
-  openDeleteModal(bus: any): void {
+  openDeleteModal(bus: Bus): void {
     this.selectedBus = bus;
     this.showDeleteModal = true;
   }
@@ -314,7 +311,7 @@ export class BusFleetComponent implements OnInit, OnDestroy {
       this.errorMessage = '';
 
       const sub = this.busService.deleteBus(this.selectedBus._id).subscribe({
-        next: (response) => {
+        next: (response: ApiResponse<null>) => {
           if (response.success) {
             this.successMessage = 'Bus deleted successfully!';
             this.loadBuses();
@@ -323,7 +320,7 @@ export class BusFleetComponent implements OnInit, OnDestroy {
           }
           this.isLoading = false;
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error deleting bus:', error);
           this.errorMessage = error.error?.message || 'Failed to delete bus';
           this.isLoading = false;
@@ -333,36 +330,49 @@ export class BusFleetComponent implements OnInit, OnDestroy {
     }
   }
 
-  toggleStatus(bus: any): void {
-    if (bus._id) {
-      this.isLoading = true;
-      const sub = this.busService.toggleBusStatus(bus._id).subscribe({
-        next: (response) => {
-          if (response.success) {
-            bus.status = bus.status === 'active' ? 'inactive' : 'active';
-            this.successMessage = `Bus ${bus.status === 'active' ? 'activated' : 'deactivated'}!`;
-            setTimeout(() => this.successMessage = '', 3000);
-          }
-          this.isLoading = false;
-        },
-        error: (error) => {
-          console.error('Error toggling status:', error);
-          this.errorMessage = error.error?.message || 'Failed to toggle status';
-          this.isLoading = false;
-        }
-      });
-      this.subscriptions.add(sub);
-    }
-  }
+  // toggleStatus(bus: Bus): void {
+  //   if (bus._id) {
+  //     this.isLoading = true;
+  //     const sub = this.busService.toggleBusStatus(bus._id).subscribe({
+  //       next: (response: any) => {
+  //         if (response.success) {
+  //           bus.status = bus.status === 'active' ? 'inactive' : 'active';
+  //           this.successMessage = `Bus ${bus.status === 'active' ? 'activated' : 'deactivated'}!`;
+  //           setTimeout(() => this.successMessage = '', 3000);
+  //         }
+  //         this.isLoading = false;
+  //       },
+  //       error: (error: any) => {
+  //         console.error('Error toggling status:', error);
+  //         this.errorMessage = error.error?.message || 'Failed to toggle status';
+  //         this.isLoading = false;
+  //       }
+  //     });
+  //     this.subscriptions.add(sub);
+  //   }
+  // }
 
-  getStatusClass(status: string): string {
-    switch(status) {
-      case 'active': return 'status-active';
-      case 'inactive': return 'status-inactive';
-      case 'maintenance': return 'status-maintenance';
-      default: return '';
-    }
-  }
+ getStatusClass(status: string | undefined): string {
+  if (!status) return 'status-unknown';
+  
+  const statusMap: {[key: string]: string} = {
+    'active': 'status-active',
+    'inactive': 'status-inactive',
+    'maintenance': 'status-maintenance',
+    'cancelled': 'status-cancelled',
+    'scheduled': 'status-scheduled'
+  };
+  
+  return statusMap[status.toLowerCase()] || 'status-unknown';
+}
+
+// Also update toggleStatus to handle undefined
+toggleStatus(bus: any): void {
+  if (!bus) return;
+  // Your existing toggle logic
+  console.log('Toggling status for bus:', bus);
+}
+
 
   getRouteName(routeId: string): string {
     const route = this.routes.find(r => r._id === routeId);

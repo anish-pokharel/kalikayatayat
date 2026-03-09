@@ -3,17 +3,28 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
+export interface SeatCapacity {
+  totalSeats: number;
+  seatLayout: '2x2' | '2x1' | '1x2' | '2x3';
+  lowerDeckSeats: number;
+  upperDeckSeats: number;
+}
+
 export interface Fare {
   _id?: string;
   routeId: string;
   routeName: string;
   origin?: string;
   destination?: string;
+  distance?: number;
   busType: string;
   baseFare: number;
+  seatCapacity: SeatCapacity;
   effectiveFrom: Date | string;
   effectiveTo: Date | string;
   status: 'active' | 'inactive';
+  createdBy?: any;
+  createdAt?: string;
 }
 
 export interface Route {
@@ -21,6 +32,7 @@ export interface Route {
   routeName: string;
   origin: string;
   destination: string;
+  distance: number;
   status: string;
 }
 
@@ -36,9 +48,9 @@ export interface ApiResponse<T> {
 })
 export class FareService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}`; // Base API URL
+  private apiUrl = `${environment.apiUrl}`;
 
-  // Get all routes from your existing endpoint
+  // Get all routes
   getRoutes(): Observable<ApiResponse<Route[]>> {
     return this.http.get<ApiResponse<Route[]>>(`${this.apiUrl}/routes`);
   }
@@ -63,7 +75,7 @@ export class FareService {
     return this.http.get<ApiResponse<Fare>>(`${this.apiUrl}/fares/${id}`);
   }
 
-  // Create new fare
+  // Create fare
   createFare(fareData: Partial<Fare>): Observable<ApiResponse<Fare>> {
     return this.http.post<ApiResponse<Fare>>(`${this.apiUrl}/fares`, fareData);
   }

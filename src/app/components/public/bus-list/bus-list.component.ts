@@ -2,32 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
-
-interface Bus {
-  id: number;
-  name: string;
-  type: 'AC Sleeper' | 'AC Seater' | 'Non-AC Sleeper' | 'Non-AC Seater' | 'Luxury' | 'Volvo';
-  operator: string;
-  route: string;
-  origin: string;
-  destination: string;
-  departureTime: string;
-  arrivalTime: string;
-  duration: string;
-  price: number;
-  availableSeats: number;
-  totalSeats: number;
-  rating: number;
-  amenities: string[];
-  status: 'available' | 'full' | 'cancelled';
-}
-
-interface SearchCriteria {
-  from: string;
-  to: string;
-  date: string;
-  passengers: number;
-}
+import { BusService, Bus, SearchCriteria, ApiResponse, SearchResponse } from '../../../services/bus.service';
 
 @Component({
   selector: 'app-bus-list',
@@ -39,7 +14,11 @@ interface SearchCriteria {
 export class BusListComponent implements OnInit {
   buses: Bus[] = [];
   filteredBuses: Bus[] = [];
-  popularRoutes: string[] = ['Delhi-Mumbai', 'Bangalore-Chennai', 'Mumbai-Pune', 'Delhi-Agra', 'Kolkata-Delhi'];
+  popularRoutes: string[] = [];
+  operators: string[] = [];
+  
+  date: Date = new Date();
+  passengers: number = 1;
   
   searchCriteria: SearchCriteria = {
     from: '',
@@ -48,152 +27,140 @@ export class BusListComponent implements OnInit {
     passengers: 1
   };
   
-  filters = {
+  filters: {
+    busType: string;
+    priceRange: string;
+    departureTime: string;
+    operator: string;
+    amenities: string[];
+  } = {
     busType: 'all',
     priceRange: 'all',
     departureTime: 'all',
-    operator: 'all'
+    operator: 'all',
+    amenities: []
   };
   
   sortBy: string = 'departure';
   
   showSearchResults: boolean = false;
   loading: boolean = false;
+  errorMessage: string = '';
+  searchMessage: string = '';
 
-  constructor(private router: Router) {}
+  constructor(
+    private busService: BusService,
+    private router: Router
+  ) {
+    this.date = new Date(this.searchCriteria.date);
+    this.passengers = this.searchCriteria.passengers;
+  }
 
   ngOnInit() {
-    this.loadBuses();
-  }
-
-  loadBuses() {
-    this.buses = [
-      {
-        id: 1,
-        name: 'VRL Volvo AC Sleeper',
-        type: 'AC Sleeper',
-        operator: 'VRL Travels',
-        route: 'Delhi-Mumbai',
-        origin: 'Delhi',
-        destination: 'Mumbai',
-        departureTime: '18:30',
-        arrivalTime: '06:30',
-        duration: '12h 00m',
-        price: 1299,
-        availableSeats: 12,
-        totalSeats: 36,
-        rating: 4.5,
-        amenities: ['AC', 'Charging Point', 'Water Bottle', 'Blanket', 'Reading Light'],
-        status: 'available'
-      },
-      {
-        id: 2,
-        name: 'SRS Luxury AC Seater',
-        type: 'AC Seater',
-        operator: 'SRS Travels',
-        route: 'Delhi-Mumbai',
-        origin: 'Delhi',
-        destination: 'Mumbai',
-        departureTime: '20:00',
-        arrivalTime: '08:00',
-        duration: '12h 00m',
-        price: 999,
-        availableSeats: 0,
-        totalSeats: 40,
-        rating: 4.2,
-        amenities: ['AC', 'Charging Point', 'Water Bottle', 'TV'],
-        status: 'full'
-      },
-      {
-        id: 3,
-        name: 'Orange Tours Volvo',
-        type: 'Volvo',
-        operator: 'Orange Tours',
-        route: 'Bangalore-Chennai',
-        origin: 'Bangalore',
-        destination: 'Chennai',
-        departureTime: '22:00',
-        arrivalTime: '05:00',
-        duration: '7h 00m',
-        price: 899,
-        availableSeats: 8,
-        totalSeats: 32,
-        rating: 4.7,
-        amenities: ['AC', 'Charging Point', 'Water Bottle', 'Blanket', 'Snacks'],
-        status: 'available'
-      },
-      {
-        id: 4,
-        name: 'Kallada Non-AC Sleeper',
-        type: 'Non-AC Sleeper',
-        operator: 'Kallada Travels',
-        route: 'Mumbai-Pune',
-        origin: 'Mumbai',
-        destination: 'Pune',
-        departureTime: '23:30',
-        arrivalTime: '03:00',
-        duration: '3h 30m',
-        price: 499,
-        availableSeats: 15,
-        totalSeats: 40,
-        rating: 3.9,
-        amenities: ['Charging Point', 'Water Bottle'],
-        status: 'available'
-      },
-      {
-        id: 5,
-        name: 'City Express AC Sleeper',
-        type: 'AC Sleeper',
-        operator: 'City Express',
-        route: 'Delhi-Agra',
-        origin: 'Delhi',
-        destination: 'Agra',
-        departureTime: '07:00',
-        arrivalTime: '11:00',
-        duration: '4h 00m',
-        price: 799,
-        availableSeats: 5,
-        totalSeats: 30,
-        rating: 4.0,
-        amenities: ['AC', 'Charging Point', 'Water Bottle'],
-        status: 'available'
-      }
-    ];
-    this.filteredBuses = [...this.buses];
-  }
-
-  searchBuses() {
-    this.loading = true;
-    this.showSearchResults = true;
+    this.loadPopularRoutes();
+    this.loadOperators();
     
-    setTimeout(() => {
-      this.filteredBuses = this.buses.filter(bus => {
-        const matchesFrom = !this.searchCriteria.from || 
-          bus.origin.toLowerCase().includes(this.searchCriteria.from.toLowerCase());
-        const matchesTo = !this.searchCriteria.to || 
-          bus.destination.toLowerCase().includes(this.searchCriteria.to.toLowerCase());
-        return matchesFrom && matchesTo;
-      });
-      this.loading = false;
-    }, 1000);
+    // Check for query params from home page
+    const urlParams = new URLSearchParams(window.location.search);
+    const to = urlParams.get('to');
+    const from = urlParams.get('from');
+    const date = urlParams.get('date');
+    
+    if (from) this.searchCriteria.from = from;
+    if (to) this.searchCriteria.to = to;
+    if (date) this.searchCriteria.date = date;
+    
+    if (from || to) {
+      this.searchBuses();
+    }
   }
 
-  applyFilters() {
+  loadPopularRoutes(): void {
+    this.busService.getPopularRoutes().subscribe({
+      next: (response: ApiResponse<string[]>) => {
+        if (response.success && response.data) {
+          this.popularRoutes = response.data;
+        }
+      },
+      error: (error: any) => {
+        console.error('Error loading popular routes:', error);
+      }
+    });
+  }
+
+  loadOperators(): void {
+    this.busService.getOperators().subscribe({
+      next: (response: ApiResponse<string[]>) => {
+        if (response.success && response.data) {
+          this.operators = response.data;
+        }
+      },
+      error: (error: any) => {
+        console.error('Error loading operators:', error);
+      }
+    });
+  }
+
+  searchBuses(): void {
+    if (!this.searchCriteria.from || !this.searchCriteria.to) {
+      this.errorMessage = 'Please enter both origin and destination';
+      setTimeout(() => this.errorMessage = '', 3000);
+      return;
+    }
+
+    this.loading = true;
+    this.errorMessage = '';
+    this.searchMessage = '';
+    this.showSearchResults = true;
+
+    // Update component properties
+    this.date = new Date(this.searchCriteria.date);
+    this.passengers = this.searchCriteria.passengers;
+
+    this.busService.searchBuses(this.searchCriteria).subscribe({
+      next: (response: SearchResponse) => {
+        if (response.success) {
+          this.buses = response.data || [];
+          this.filteredBuses = [...this.buses];
+          
+          if (this.buses.length === 0) {
+            this.searchMessage = `No buses found from ${response.from} to ${response.to}`;
+          } else {
+            this.searchMessage = `Found ${response.count} buses from ${response.from} to ${response.to}`;
+          }
+          
+          this.applyFilters();
+        }
+        this.loading = false;
+      },
+      error: (error: any) => {
+        console.error('Error searching buses:', error);
+        this.errorMessage = 'Failed to search buses. Please try again.';
+        this.loading = false;
+      }
+    });
+  }
+
+  applyFilters(): void {
     this.filteredBuses = this.buses.filter(bus => {
-      if (this.filters.busType !== 'all' && bus.type !== this.filters.busType) {
+      // Filter by bus type
+      if (this.filters.busType !== 'all' && bus.busType !== this.filters.busType) {
         return false;
       }
       
+      // Filter by price range
       if (this.filters.priceRange !== 'all') {
         const [min, max] = this.filters.priceRange.split('-').map(Number);
+        const price = bus.fare || bus.price || 0;
         if (max) {
-          if (bus.price < min || bus.price > max) return false;
+          if (price < min || price > max) return false;
         } else {
-          if (bus.price < min) return false;
+          if (price < min) return false;
         }
       }
       
-      if (this.filters.departureTime !== 'all') {
+      // Filter by departure time
+      if (this.filters.departureTime !== 'all' && bus.departureTime) {
         const hour = parseInt(bus.departureTime.split(':')[0]);
         if (this.filters.departureTime === 'morning' && (hour < 6 || hour >= 12)) return false;
         if (this.filters.departureTime === 'afternoon' && (hour < 12 || hour >= 18)) return false;
@@ -201,8 +168,19 @@ export class BusListComponent implements OnInit {
         if (this.filters.departureTime === 'night' && (hour >= 0 && hour < 6)) return false;
       }
       
-      if (this.filters.operator !== 'all' && bus.operator !== this.filters.operator) {
-        return false;
+      // Filter by operator
+      if (this.filters.operator !== 'all') {
+        const busOperator = bus.operator || (bus.busName ? bus.busName.split(' ')[0] : '');
+        if (busOperator !== this.filters.operator) return false;
+      }
+      
+      // Filter by amenities
+      if (this.filters.amenities && this.filters.amenities.length > 0) {
+        if (!bus.amenities || bus.amenities.length === 0) return false;
+        const hasAllAmenities = this.filters.amenities.every((amenity: string) => 
+          bus.amenities?.includes(amenity)
+        );
+        if (!hasAllAmenities) return false;
       }
       
       return true;
@@ -211,42 +189,65 @@ export class BusListComponent implements OnInit {
     this.sortBuses();
   }
 
-  sortBuses() {
+  sortBuses(): void {
     switch(this.sortBy) {
       case 'price':
-        this.filteredBuses.sort((a, b) => a.price - b.price);
+        this.filteredBuses.sort((a, b) => (a.fare || a.price || 0) - (b.fare || b.price || 0));
         break;
       case 'price-desc':
-        this.filteredBuses.sort((a, b) => b.price - a.price);
+        this.filteredBuses.sort((a, b) => (b.fare || b.price || 0) - (a.fare || a.price || 0));
         break;
       case 'departure':
-        this.filteredBuses.sort((a, b) => a.departureTime.localeCompare(b.departureTime));
+        this.filteredBuses.sort((a, b) => {
+          if (!a.departureTime) return 1;
+          if (!b.departureTime) return -1;
+          return a.departureTime.localeCompare(b.departureTime);
+        });
         break;
       case 'rating':
-        this.filteredBuses.sort((a, b) => b.rating - a.rating);
+        this.filteredBuses.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       case 'seats':
-        this.filteredBuses.sort((a, b) => b.availableSeats - a.availableSeats);
+        this.filteredBuses.sort((a, b) => (b.availableSeats || 0) - (a.availableSeats || 0));
         break;
     }
   }
 
-  resetFilters() {
+  resetFilters(): void {
     this.filters = {
       busType: 'all',
       priceRange: 'all',
       departureTime: 'all',
-      operator: 'all'
+      operator: 'all',
+      amenities: []
     };
     this.sortBy = 'departure';
     this.filteredBuses = [...this.buses];
   }
 
-  selectBus(bus: Bus) {
-    this.router.navigate(['/seat-selection', bus.id]);
+  filterByAmenity(amenity: string, event: any): void {
+    if (!this.filters.amenities) {
+      this.filters.amenities = [];
+    }
+    
+    if (event.target.checked) {
+      this.filters.amenities.push(amenity);
+    } else {
+      this.filters.amenities = this.filters.amenities.filter((a: string) => a !== amenity);
+    }
+    
+    this.applyFilters();
   }
 
-  getBusTypeIcon(type: string): string {
+  selectBus(bus: Bus): void {
+    if (bus._id) {
+      this.router.navigate(['/seat-selection', bus._id], {
+        queryParams: { passengers: this.searchCriteria.passengers }
+      });
+    }
+  }
+
+  getBusTypeIcon(type: string | undefined): string {
     const icons: {[key: string]: string} = {
       'AC Sleeper': '🛏️',
       'AC Seater': '💺',
@@ -255,19 +256,68 @@ export class BusListComponent implements OnInit {
       'Luxury': '⭐',
       'Volvo': '🚌'
     };
-    return icons[type] || '🚌';
+    return icons[type || ''] || '🚌';
   }
 
-  getStatusClass(status: string): string {
-    switch(status) {
-      case 'available': return 'status-available';
+  getAmenityIcon(amenity: string): string {
+    const icons: {[key: string]: string} = {
+      'AC': '❄️',
+      'WiFi': '📶',
+      'Charging Point': '🔌',
+      'Snacks': '🍪',
+      'Blanket': '🧣',
+      'Water Bottle': '💧',
+      'Movie': '🎬'
+    };
+    return icons[amenity] || '✓';
+  }
+
+  getStarsArray(rating: number | undefined): any[] {
+    return new Array(Math.floor(rating || 0));
+  }
+
+  getOperatorName(bus: Bus): string {
+    return bus.operator || (bus.busName ? bus.busName.split(' ')[0] : 'Travels');
+  }
+
+  getStatusClass(status: string | undefined): string {
+    switch(status?.toLowerCase()) {
+      case 'active': return 'status-active';
       case 'full': return 'status-full';
       case 'cancelled': return 'status-cancelled';
-      default: return '';
+      default: return 'status-scheduled';
     }
   }
 
   getAvailableSeatsPercentage(bus: Bus): number {
-    return (bus.availableSeats / bus.totalSeats) * 100;
+    const available = bus.availableSeats || 0;
+    const total = bus.totalSeats || 1;
+    return (available / total) * 100;
+  }
+
+  getTotalSeats(bus: Bus): number {
+    return bus.totalSeats || 0;
+  }
+
+  getAvailableSeats(bus: Bus): number {
+    return bus.availableSeats || 0;
+  }
+
+  getBookedSeats(bus: Bus): number {
+    return (bus.totalSeats || 0) - (bus.availableSeats || 0);
+  }
+
+  getPrice(bus: Bus): number {
+    return bus.fare || bus.price || 0;
+  }
+
+  hasAmenities(bus: Bus): boolean {
+    return !!(bus.amenities && bus.amenities.length > 0);
+  }
+
+  swapLocations(): void {
+    const temp = this.searchCriteria.from;
+    this.searchCriteria.from = this.searchCriteria.to;
+    this.searchCriteria.to = temp;
   }
 }

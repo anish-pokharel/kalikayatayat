@@ -28,8 +28,8 @@
   <!-- Filters -->
   <div class="filters-section">
     <div class="search-box">
-      <input type="text" placeholder="Search routes or bus types..." 
-             [(ngModel)]="searchTerm" (input)="onSearch()" [disabled]="isLoading">
+      <input type="text" placeholder="Search routes or bus types..." [(ngModel)]="searchTerm" (input)="onSearch()"
+        [disabled]="isLoading">
     </div>
     <div class="filter-group">
       <select [(ngModel)]="selectedRoute" (change)="onFilterChange()" [disabled]="isLoading">
@@ -83,6 +83,7 @@
           <th>Route</th>
           <th>Bus Type</th>
           <th>Base Fare (₹)</th>
+          <th>Seats</th>
           <th>Valid From</th>
           <th>Valid To</th>
           <th>Status</th>
@@ -97,6 +98,12 @@
           </td>
           <td>{{ fare.busType }}</td>
           <td class="fare-amount">₹{{ fare.baseFare }}</td>
+          <td>
+            <div class="seat-info">
+              <span class="seat-total">{{ fare.seatCapacity.totalSeats || 40 }}</span>
+              <small class="seat-layout">{{ fare.seatCapacity.seatLayout || '2x2' }}</small>
+            </div>
+          </td>
           <td>{{ fare.effectiveFrom | date:'dd MMM yyyy' }}</td>
           <td>{{ fare.effectiveTo | date:'dd MMM yyyy' }}</td>
           <td>
@@ -106,15 +113,15 @@
           </td>
           <td class="actions">
             <button class="btn-icon" (click)="openEditModal(fare)" title="Edit Fare">✏️</button>
-            <button class="btn-icon" (click)="toggleStatus(fare)" 
-                    [title]="fare.status === 'active' ? 'Deactivate' : 'Activate'">
+            <button class="btn-icon" (click)="toggleStatus(fare)"
+              [title]="fare.status === 'active' ? 'Deactivate' : 'Activate'">
               {{ fare.status === 'active' ? '🔴' : '🟢' }}
             </button>
             <button class="btn-icon" (click)="openDeleteModal(fare)" title="Delete Fare">🗑️</button>
           </td>
         </tr>
         <tr *ngIf="filteredFares.length === 0">
-          <td colspan="7" class="no-data">No fares found</td>
+          <td colspan="8" class="no-data">No fares found</td>
         </tr>
       </tbody>
     </table>
@@ -129,7 +136,7 @@
       </div>
       <div class="modal-body">
         <form #addForm="ngForm">
-          <!-- SELECT ROUTE - DYNAMIC FROM YOUR BACKEND -->
+          <!-- SELECT ROUTE -->
           <div class="form-group">
             <label>Select Route <span class="required">*</span></label>
             <select [(ngModel)]="newFare.routeId" name="routeId" required>
@@ -154,21 +161,57 @@
           <!-- BASE FARE -->
           <div class="form-group">
             <label>Base Fare (₹) <span class="required">*</span></label>
-            <input type="number" [(ngModel)]="newFare.baseFare" name="baseFare" 
-                   required min="1" placeholder="Enter fare amount">
+            <input type="number" [(ngModel)]="newFare.baseFare" name="baseFare" required min="1"
+              placeholder="Enter fare amount">
+          </div>
+
+          <!-- SEAT CAPACITY SECTION -->
+          <div class="form-section">
+            <h3>Seat Configuration</h3>
+
+            <div class="form-row">
+              <div class="form-group half">
+                <label>Total Seats <span class="required">*</span></label>
+                <input type="number" [(ngModel)]="newFare.seatCapacity.totalSeats" name="totalSeats" required min="10"
+                  max="60" (change)="onTotalSeatsChange()" placeholder="Enter total seats">
+                <small class="field-hint">Min: 10, Max: 60 seats</small>
+              </div>
+
+              <div class="form-group half">
+                <label>Seat Layout</label>
+                <select [(ngModel)]="newFare.seatCapacity.seatLayout" name="seatLayout">
+                  <option *ngFor="let layout of seatLayouts" [value]="layout">{{ layout }}</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group half">
+                <label>Lower Deck Seats</label>
+                <input type="number" [(ngModel)]="newFare.seatCapacity.lowerDeckSeats" name="lowerDeckSeats" readonly
+                  class="readonly-field">
+                <small class="field-hint">Auto-calculated</small>
+              </div>
+
+              <div class="form-group half">
+                <label>Upper Deck Seats</label>
+                <input type="number" [(ngModel)]="newFare.seatCapacity.upperDeckSeats" name="upperDeckSeats" readonly
+                  class="readonly-field">
+                <small class="field-hint">Auto-calculated</small>
+              </div>
+            </div>
           </div>
 
           <!-- EFFECTIVE DATES -->
           <div class="form-row">
             <div class="form-group half">
               <label>Effective From <span class="required">*</span></label>
-              <input type="date" [(ngModel)]="newFare.effectiveFrom" name="effectiveFrom" 
-                     required [min]="today">
+              <input type="date" [(ngModel)]="newFare.effectiveFrom" name="effectiveFrom" required [min]="today">
             </div>
             <div class="form-group half">
               <label>Effective To <span class="required">*</span></label>
-              <input type="date" [(ngModel)]="newFare.effectiveTo" name="effectiveTo" 
-                     required [min]="newFare.effectiveFrom || today">
+              <input type="date" [(ngModel)]="newFare.effectiveTo" name="effectiveTo" required
+                [min]="newFare.effectiveFrom || today">
             </div>
           </div>
 
@@ -218,14 +261,53 @@
             <label>Base Fare (₹) <span class="required">*</span></label>
             <input type="number" [(ngModel)]="selectedFare.baseFare" name="editBaseFare" required min="1">
           </div>
+
+          <!-- SEAT CAPACITY SECTION (EDIT) -->
+          <div class="form-section">
+            <h3>Seat Configuration</h3>
+
+            <div class="form-row">
+              <div class="form-group half">
+                <label>Total Seats <span class="required">*</span></label>
+                <input type="number" [(ngModel)]="selectedFare.seatCapacity.totalSeats" name="editTotalSeats" required
+                  min="10" max="60" (change)="onEditTotalSeatsChange()" placeholder="Enter total seats">
+              </div>
+
+              <div class="form-group half">
+                <label>Seat Layout</label>
+                <select [(ngModel)]="selectedFare.seatCapacity.seatLayout" name="editSeatLayout">
+                  <option *ngFor="let layout of seatLayouts" [value]="layout">{{ layout }}</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group half">
+                <label>Lower Deck Seats</label>
+                <input type="number" [(ngModel)]="selectedFare.seatCapacity.lowerDeckSeats" name="editLowerDeckSeats"
+                  readonly class="readonly-field">
+                <small class="field-hint">Auto-calculated</small>
+              </div>
+
+              <div class="form-group half">
+                <label>Upper Deck Seats</label>
+                <input type="number" [(ngModel)]="selectedFare.seatCapacity.upperDeckSeats" name="editUpperDeckSeats"
+                  readonly class="readonly-field">
+                <small class="field-hint">Auto-calculated</small>
+              </div>
+            </div>
+          </div>
+
           <div class="form-row">
             <div class="form-group half">
               <label>Effective From <span class="required">*</span></label>
-              <input type="date" [(ngModel)]="selectedFare.effectiveFrom" name="editEffectiveFrom" required [min]="today">
+              <input type="date" [(ngModel)]="selectedFare.effectiveFrom" name="editEffectiveFrom" required
+                [min]="today">
             </div>
             <div class="form-group half">
               <label>Effective To <span class="required">*</span></label>
-              <input type="date" [(ngModel)]="selectedFare.effectiveTo" name="editEffectiveTo" required [min]="selectedFare.effectiveFrom || today">
+              <input type="date" [(ngModel)]="selectedFare.effectiveTo" name="editEffectiveTo" required
+                [min]="selectedFare.effectiveFrom || today">
             </div>
           </div>
           <div class="form-group">

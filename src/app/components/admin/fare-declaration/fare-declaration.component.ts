@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { FareService, Fare, Route } from '../../../services/fare.service';
+import { FareService, Fare, Route, ApiResponse } from '../../../services/fare.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -21,7 +21,7 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
   selectedRoute: string = 'all';
   selectedBusType: string = 'all';
   selectedStatus: string = 'all';
-  
+  seatLayouts: string[] = ['2x2', '2x1', '1x2', '2x3'];
   showAddModal: boolean = false;
   showEditModal: boolean = false;
   showDeleteModal: boolean = false;
@@ -34,10 +34,17 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
   
   today: string = new Date().toISOString().split('T')[0];
   
+  
   newFare: any = {
     routeId: '',
     busType: 'AC Sleeper',
     baseFare: 0,
+    seatCapacity: {
+      totalSeats: 40,
+      seatLayout: '2x2',
+      lowerDeckSeats: 20,
+      upperDeckSeats: 20
+    },
     effectiveFrom: '',
     effectiveTo: '',
     status: 'active'
@@ -65,17 +72,14 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
     this.subscriptions.unsubscribe();
   }
 
-  // Load routes from your existing /routes endpoint
   loadRoutes(): void {
     const sub = this.fareService.getRoutes().subscribe({
-      next: (response) => {
+      next: (response: ApiResponse<Route[]>) => {
         if (response.success && response.data) {
-          // Filter only active routes for dropdown
           this.routes = response.data.filter(route => route.status === 'active');
-          console.log('Routes loaded:', this.routes);
         }
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading routes:', error);
         this.errorMessage = 'Failed to load routes';
       }
@@ -93,14 +97,14 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
       this.selectedStatus,
       this.searchTerm
     ).subscribe({
-      next: (response) => {
+      next: (response: ApiResponse<Fare[]>) => {
         if (response.success && response.data) {
           this.fares = response.data;
           this.filteredFares = [...this.fares];
         }
         this.isLoading = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading fares:', error);
         this.errorMessage = 'Failed to load fares';
         this.isLoading = false;
@@ -117,13 +121,28 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
     this.loadFares();
   }
 
-  // Get route name by ID
+  // Update deck distribution when total seats change
+ onTotalSeatsChange(): void {
+  const totalSeats = this.newFare.seatCapacity?.totalSeats || 40;
+  if (this.newFare.seatCapacity) {
+    this.newFare.seatCapacity.lowerDeckSeats = Math.ceil(totalSeats / 2);
+    this.newFare.seatCapacity.upperDeckSeats = Math.floor(totalSeats / 2);
+  }
+}
+
+onEditTotalSeatsChange(): void {
+  if (this.selectedFare?.seatCapacity) {
+    const totalSeats = this.selectedFare.seatCapacity.totalSeats || 40;
+    this.selectedFare.seatCapacity.lowerDeckSeats = Math.ceil(totalSeats / 2);
+    this.selectedFare.seatCapacity.upperDeckSeats = Math.floor(totalSeats / 2);
+  }
+}
+
   getRouteName(routeId: string): string {
     const route = this.routes.find(r => r._id === routeId);
     return route ? route.routeName : 'Unknown';
   }
 
-  // Get route details by ID
   getRouteDetails(routeId: string): { origin: string; destination: string } {
     const route = this.routes.find(r => r._id === routeId);
     return {
@@ -137,6 +156,12 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
       routeId: '',
       busType: 'AC Sleeper',
       baseFare: 0,
+      seatCapacity: {
+        totalSeats: 40,
+        seatLayout: '2x2',
+        lowerDeckSeats: 20,
+        upperDeckSeats: 20
+      },
       effectiveFrom: '',
       effectiveTo: '',
       status: 'active'
@@ -155,7 +180,7 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
 
     const sub = this.fareService.createFare(this.newFare).subscribe({
-      next: (response) => {
+      next: (response: any) => {
         if (response.success) {
           this.successMessage = 'Fare created successfully!';
           this.loadFares();
@@ -164,7 +189,7 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
         }
         this.isLoading = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error creating fare:', error);
         this.errorMessage = error.error?.message || 'Failed to create fare';
         this.isLoading = false;
@@ -177,14 +202,14 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
     if (fare._id) {
       this.isLoading = true;
       const sub = this.fareService.getFareById(fare._id).subscribe({
-        next: (response) => {
+        next: (response: any) => {
           if (response.success && response.data) {
             this.selectedFare = response.data;
             this.showEditModal = true;
           }
           this.isLoading = false;
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error fetching fare:', error);
           this.errorMessage = 'Failed to load fare details';
           this.isLoading = false;
@@ -207,7 +232,7 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
 
     const sub = this.fareService.updateFare(this.selectedFare._id, this.selectedFare).subscribe({
-      next: (response) => {
+      next: (response: any) => {
         if (response.success) {
           this.successMessage = 'Fare updated successfully!';
           this.loadFares();
@@ -216,7 +241,7 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
         }
         this.isLoading = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error updating fare:', error);
         this.errorMessage = error.error?.message || 'Failed to update fare';
         this.isLoading = false;
@@ -241,7 +266,7 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
       this.errorMessage = '';
 
       const sub = this.fareService.deleteFare(this.selectedFare._id).subscribe({
-        next: (response) => {
+        next: (response: any) => {
           if (response.success) {
             this.successMessage = 'Fare deleted successfully!';
             this.loadFares();
@@ -250,7 +275,7 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
           }
           this.isLoading = false;
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error deleting fare:', error);
           this.errorMessage = error.error?.message || 'Failed to delete fare';
           this.isLoading = false;
@@ -264,7 +289,7 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
     if (fare._id) {
       this.isLoading = true;
       const sub = this.fareService.toggleFareStatus(fare._id).subscribe({
-        next: (response) => {
+        next: (response: any) => {
           if (response.success) {
             fare.status = fare.status === 'active' ? 'inactive' : 'active';
             this.successMessage = `Fare ${fare.status === 'active' ? 'activated' : 'deactivated'}!`;
@@ -272,7 +297,7 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
           }
           this.isLoading = false;
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error toggling status:', error);
           this.errorMessage = error.error?.message || 'Failed to toggle status';
           this.isLoading = false;
@@ -305,6 +330,10 @@ export class FareDeclarationComponent implements OnInit, OnDestroy {
     }
     if (!fare.baseFare || fare.baseFare <= 0) {
       this.errorMessage = 'Base fare must be greater than 0';
+      return false;
+    }
+    if (!fare.seatCapacity?.totalSeats || fare.seatCapacity.totalSeats < 10 || fare.seatCapacity.totalSeats > 60) {
+      this.errorMessage = 'Total seats must be between 10 and 60';
       return false;
     }
     if (!fare.effectiveFrom || !fare.effectiveTo) {

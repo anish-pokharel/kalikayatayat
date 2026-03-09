@@ -1,1 +1,151 @@
-<p>booking works!</p>
+<div class="confirmation-container">
+  <!-- Loading State -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading booking details...</p>
+  </div>
+
+  <!-- Error Message -->
+  <div class="error-message" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Success Message -->
+  <div class="success-message" *ngIf="!isLoading && booking">
+    <span class="success-icon">✅</span>
+    <h2>Booking Confirmed!</h2>
+    <p>Your booking has been successfully confirmed</p>
+  </div>
+
+  <!-- Booking Details -->
+  <div class="booking-card" *ngIf="!isLoading && booking">
+    <div class="card-header">
+      <h2>Booking Details</h2>
+      <div class="booking-id">
+        <span class="label">Booking ID:</span>
+        <span class="value">{{ booking.bookingId }}</span>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <!-- Bus Information -->
+      <div class="info-section">
+        <h3>Bus Information</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">Bus Name:</span>
+            <span class="value">{{ booking.busDetails.busName }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Bus Number:</span>
+            <span class="value">{{ booking.busDetails.busNumber }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Bus Type:</span>
+            <span class="value">{{ booking.busDetails.busType }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Operator:</span>
+            <span class="value">{{ booking.busDetails.operator }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Journey Details -->
+      <div class="info-section">
+        <h3>Journey Details</h3>
+        <div class="journey-details">
+          <div class="route-points">
+            <div class="point">
+              <span class="city">{{ booking.routeDetails.origin }}</span>
+              <span class="time">{{ booking.routeDetails.departureTime }}</span>
+            </div>
+            <div class="arrow">→</div>
+            <div class="point">
+              <span class="city">{{ booking.routeDetails.destination }}</span>
+              <span class="time">{{ booking.routeDetails.arrivalTime }}</span>
+            </div>
+          </div>
+          <div class="journey-info">
+            <span class="duration">Duration: {{ booking.routeDetails.duration }}</span>
+            <span class="date">Journey Date: {{ booking.journeyDate | date:'fullDate' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Passenger Details -->
+      <div class="info-section">
+        <h3>Passenger Details</h3>
+        <table class="passenger-table">
+          <thead>
+            <tr>
+              <th>Seat</th>
+              <th>Name</th>
+              <th>Age</th>
+              <th>Gender</th>
+              <th>Phone</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let passenger of booking.seats">
+              <td><span class="seat-badge">{{ passenger.seatNumber }}</span></td>
+              <td>{{ passenger.passengerName }}</td>
+              <td>{{ passenger.passengerAge }}</td>
+              <td>{{ passenger.passengerGender }}</td>
+              <td>{{ passenger.passengerPhone }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Payment Details -->
+      <div class="info-section">
+        <h3>Payment Details</h3>
+        <div class="payment-details">
+          <div class="payment-row">
+            <span>Base Fare:</span>
+            <span>₹{{ booking.totalAmount }}</span>
+          </div>
+          <div class="payment-row">
+            <span>GST (18%):</span>
+            <span>₹{{ booking.taxAmount }}</span>
+          </div>
+          <div class="payment-row total">
+            <span>Total Amount:</span>
+            <span>₹{{ booking.totalAmount + booking.taxAmount }}</span>
+          </div>
+          <div class="payment-status">
+            <span class="status-badge status-paid">PAID</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Important Notes -->
+      <div class="info-section notes">
+        <h3>Important Notes</h3>
+        <ul>
+          <li>Please arrive at least 30 minutes before departure</li>
+          <li>Carry a valid ID proof for all passengers</li>
+          <li>Free cancellation up to 4 hours before departure</li>
+          <li>This is a paperless e-ticket. Show this on your mobile device</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-footer">
+      <button class="btn-secondary" (click)="goToMyBookings()" [disabled]="downloadInProgress">
+        My Bookings
+      </button>
+      <button class="btn-secondary" (click)="downloadTicket()" [disabled]="downloadInProgress">
+        <span *ngIf="!downloadInProgress">📥 Download Ticket</span>
+        <span *ngIf="downloadInProgress" class="spinner-small"></span>
+      </button>
+      <button class="btn-primary" (click)="printTicket()" [disabled]="downloadInProgress">
+        🖨️ Print Ticket
+      </button>
+      <button class="btn-primary" (click)="goToHome()" [disabled]="downloadInProgress">
+        Back to Home
+      </button>
+    </div>
+  </div>
+</div>

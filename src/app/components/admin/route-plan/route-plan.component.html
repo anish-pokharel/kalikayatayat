@@ -223,15 +223,18 @@
   </div>
 
   <!-- View Stops Modal -->
-  <div class="modal modal-lg" *ngIf="showStopsModal && selectedRoute">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Route Stops - {{ selectedRoute.routeName }}</h2>
-        <button class="close-btn" (click)="closeStopsModal()" [disabled]="isLoading">×</button>
-      </div>
-      
-      <div class="modal-body">
-        <div class="route-summary">
+<!-- View Stops Modal (Boarding Points) -->
+<div class="modal modal-lg" *ngIf="showStopsModal && selectedRoute">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Route Stops / Boarding Points - {{ selectedRoute.routeName }}</h2>
+      <button class="close-btn" (click)="closeStopsModal()" [disabled]="isLoading">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <!-- Route Summary -->
+      <div class="route-summary">
+        <div class="summary-card">
           <div class="summary-item">
             <span class="label">Origin:</span>
             <span class="value">{{ selectedRoute.origin }}</span>
@@ -241,7 +244,7 @@
             <span class="value">{{ selectedRoute.destination }}</span>
           </div>
           <div class="summary-item">
-            <span class="label">Total Distance:</span>
+            <span class="label">Distance:</span>
             <span class="value">{{ selectedRoute.distance }} km</span>
           </div>
           <div class="summary-item">
@@ -249,15 +252,72 @@
             <span class="value">{{ selectedRoute.duration }}</span>
           </div>
         </div>
+      </div>
 
-        <div class="stops-header">
-          <h3>Stops</h3>
-          <button class="btn-small btn-primary" (click)="openAddStopModal()" [disabled]="isLoading">
-            ➕ Add Stop
-          </button>
+      <!-- Stops Header with Actions -->
+      <div class="stops-header">
+        <div class="stops-title">
+          <h3>Boarding Points / Stops</h3>
+          <span class="stops-count" *ngIf="routeStops.length > 0">
+            {{ routeStops.length }} stop{{ routeStops.length > 1 ? 's' : '' }}
+          </span>
+        </div>
+        <button class="btn-add-stop" (click)="openAddStopModal()" [disabled]="isLoading">
+          <span class="icon">➕</span> Add Boarding Point
+        </button>
+      </div>
+
+      <!-- Stops Timeline View -->
+      <div class="stops-timeline" *ngIf="routeStops.length > 0">
+        <div class="timeline-start">
+          <div class="timeline-dot start"></div>
+          <div class="timeline-content">
+            <span class="time">{{ selectedRoute.origin }}</span>
+            <span class="type">Origin</span>
+          </div>
         </div>
 
-        <table class="stops-table" *ngIf="routeStops.length > 0">
+        <div class="timeline-stop" *ngFor="let stop of routeStops; let i = index">
+          <div class="timeline-line"></div>
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="stop-info">
+              <div class="stop-header">
+                <span class="stop-name">{{ stop.name }}</span>
+                <div class="stop-actions">
+                  <button class="btn-icon-small" (click)="openEditStopModal(stop, i)" title="Edit Stop">✏️</button>
+                  <button class="btn-icon-small" (click)="removeStop(i)" title="Remove Stop">🗑️</button>
+                </div>
+              </div>
+              <div class="stop-details">
+                <span class="time-badge">
+                  <span class="label">Arrival:</span> {{ stop.arrivalTime }}
+                </span>
+                <span class="time-badge">
+                  <span class="label">Departure:</span> {{ stop.departureTime }}
+                </span>
+                <span class="fare-badge">
+                  <span class="label">Fare:</span> ₹{{ stop.fare }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="timeline-end">
+          <div class="timeline-line"></div>
+          <div class="timeline-dot end"></div>
+          <div class="timeline-content">
+            <span class="time">{{ selectedRoute.destination }}</span>
+            <span class="type">Destination</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table View as Alternative -->
+      <div class="stops-table-container" *ngIf="routeStops.length > 0">
+        <h4>Stops List</h4>
+        <table class="stops-table">
           <thead>
             <tr>
               <th>#</th>
@@ -271,7 +331,7 @@
           <tbody>
             <tr *ngFor="let stop of routeStops; let i = index">
               <td>{{ i + 1 }}</td>
-              <td>{{ stop.name }}</td>
+              <td><strong>{{ stop.name }}</strong></td>
               <td>{{ stop.arrivalTime }}</td>
               <td>{{ stop.departureTime }}</td>
               <td>₹{{ stop.fare }}</td>
@@ -282,61 +342,111 @@
             </tr>
           </tbody>
         </table>
-
-        <div *ngIf="routeStops.length === 0" class="no-stops">
-          No stops added yet. Click "Add Stop" to add stops for this route.
-        </div>
       </div>
 
-      <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeStopsModal()" [disabled]="isLoading">Close</button>
-        <button class="btn-primary" (click)="saveStops()" [disabled]="isLoading">
-          {{ isLoading ? 'Saving...' : 'Save Stops' }}
+      <div *ngIf="routeStops.length === 0" class="no-stops">
+        <div class="no-stops-icon">🗺️</div>
+        <h4>No Boarding Points Added</h4>
+        <p>Click the "Add Boarding Point" button to add stops for this route.</p>
+        <button class="btn-primary" (click)="openAddStopModal()" [disabled]="isLoading">
+          ➕ Add First Boarding Point
         </button>
       </div>
     </div>
-  </div>
 
-  <!-- Add/Edit Stop Modal -->
-  <div class="modal modal-sm" *ngIf="showAddStopModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>{{ editingStopIndex >= 0 ? 'Edit' : 'Add' }} Stop</h2>
-        <button class="close-btn" (click)="closeAddStopModal()">×</button>
-      </div>
-      
-      <div class="modal-body">
-        <form>
-          <div class="form-group">
-            <label>Stop Name <span class="required">*</span></label>
-            <input type="text" [(ngModel)]="currentStop.name" name="stopName" required>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Arrival Time <span class="required">*</span></label>
-              <input type="text" [(ngModel)]="currentStop.arrivalTime" name="arrivalTime" placeholder="e.g., 06:00 AM" required>
-            </div>
-            <div class="form-group">
-              <label>Departure Time <span class="required">*</span></label>
-              <input type="text" [(ngModel)]="currentStop.departureTime" name="departureTime" placeholder="e.g., 06:30 AM" required>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Fare (₹) <span class="required">*</span></label>
-            <input type="number" [(ngModel)]="currentStop.fare" name="fare" min="0" required>
-          </div>
-        </form>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeAddStopModal()">Cancel</button>
-        <button class="btn-primary" (click)="saveStop()">Save Stop</button>
-      </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeStopsModal()" [disabled]="isLoading">Close</button>
+      <button class="btn-primary" (click)="saveStops()" [disabled]="isLoading || routeStops.length === 0">
+        {{ isLoading ? 'Saving...' : 'Save All Stops' }}
+      </button>
     </div>
   </div>
+</div>
 
+  <!-- Add/Edit Stop Modal -->
+
+<!-- Add/Edit Stop Modal -->
+<div class="modal modal-sm" *ngIf="showAddStopModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>{{ editingStopIndex >= 0 ? 'Edit' : 'Add' }} Boarding Point</h2>
+      <button class="close-btn" (click)="closeAddStopModal()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <form #stopForm="ngForm">
+        <div class="form-group">
+          <label>Stop/Boarding Point Name <span class="required">*</span></label>
+          <input 
+            type="text" 
+            [(ngModel)]="currentStop.name" 
+            name="stopName" 
+            required
+            placeholder="e.g., Majestic Bus Stand"
+            #stopName="ngModel">
+          <div *ngIf="stopName.invalid && stopName.touched" class="error-message">
+            Stop name is required
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Arrival Time <span class="required">*</span></label>
+            <input 
+              type="time" 
+              [(ngModel)]="currentStop.arrivalTime" 
+              name="arrivalTime" 
+              required
+              placeholder="HH:MM"
+              #arrivalTime="ngModel">
+            <div *ngIf="arrivalTime.invalid && arrivalTime.touched" class="error-message">
+              Valid arrival time required
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Departure Time <span class="required">*</span></label>
+            <input 
+              type="time" 
+              [(ngModel)]="currentStop.departureTime" 
+              name="departureTime" 
+              required
+              placeholder="HH:MM"
+              #departureTime="ngModel">
+            <div *ngIf="departureTime.invalid && departureTime.touched" class="error-message">
+              Valid departure time required
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Fare (₹) <span class="required">*</span></label>
+          <input 
+            type="number" 
+            [(ngModel)]="currentStop.fare" 
+            name="fare" 
+            min="0" 
+            required
+            #fare="ngModel">
+          <div *ngIf="fare.invalid && fare.touched" class="error-message">
+            Valid fare required (minimum 0)
+          </div>
+        </div>
+
+        <div class="form-hint" *ngIf="currentStop.arrivalTime && currentStop.departureTime">
+          <span class="hint-icon">ℹ️</span>
+          <span>Stop duration: {{ calculateStopDuration(currentStop.arrivalTime, currentStop.departureTime) }}</span>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeAddStopModal()">Cancel</button>
+      <button class="btn-primary" (click)="saveStop()" [disabled]="!stopForm.form.valid">
+        {{ editingStopIndex >= 0 ? 'Update' : 'Save' }} Boarding Point
+      </button>
+    </div>
+  </div>
+</div>
   <!-- Delete Confirmation Modal -->
   <div class="modal modal-sm" *ngIf="showDeleteModal && selectedRoute">
     <div class="modal-content">

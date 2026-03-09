@@ -1,305 +1,3 @@
-// import { Component, OnInit } from '@angular/core';
-// import { CommonModule } from '@angular/common';
-// import { FormsModule } from '@angular/forms';
-// import { RouterModule } from '@angular/router';
-
-// interface Route {
-//   id: number;
-//   routeName: string;
-//   origin: string;
-//   destination: string;
-//   distance: number;
-//   duration: string;
-//   stops: number;
-//   status: 'active' | 'inactive';
-//   busesAssigned: number;
-// }
-
-// interface Stop {
-//   id: number;
-//   name: string;
-//   arrivalTime: string;
-//   departureTime: string;
-//   fare: number;
-// }
-
-// @Component({
-//   selector: 'app-route-plan',
-//   standalone: true,
-//   imports: [CommonModule, FormsModule, RouterModule],
-//   templateUrl: './route-plan.component.html',
-//   styleUrls: ['./route-plan.component.css']
-// })
-// export class RoutePlanComponent implements OnInit {
-//   routes: Route[] = [];
-//   filteredRoutes: Route[] = [];
-//   searchTerm: string = '';
-//   selectedStatus: string = 'all';
-  
-//   showAddModal: boolean = false;
-//   showEditModal: boolean = false;
-//   showStopsModal: boolean = false;
-//   showDeleteModal: boolean = false;
-  
-//   selectedRoute: Route | null = null;
-//   routeStops: Stop[] = [];
-  
-//   newRoute: Omit<Route, 'id'> = {
-//     routeName: '',
-//     origin: '',
-//     destination: '',
-//     distance: 0,
-//     duration: '',
-//     stops: 0,
-//     status: 'active',
-//     busesAssigned: 0
-//   };
-
-//   ngOnInit() {
-//     this.loadRoutes();
-//   }
-
-//   loadRoutes() {
-//     // Sample data - In real app, this would come from a service
-//     this.routes = [
-//       {
-//         id: 1,
-//         routeName: 'Delhi-Mumbai Express',
-//         origin: 'Delhi',
-//         destination: 'Mumbai',
-//         distance: 1400,
-//         duration: '24 hrs',
-//         stops: 5,
-//         status: 'active',
-//         busesAssigned: 8
-//       },
-//       {
-//         id: 2,
-//         routeName: 'Bangalore-Chennai',
-//         origin: 'Bangalore',
-//         destination: 'Chennai',
-//         distance: 350,
-//         duration: '7 hrs',
-//         stops: 3,
-//         status: 'active',
-//         busesAssigned: 12
-//       },
-//       {
-//         id: 3,
-//         routeName: 'Mumbai-Pune',
-//         origin: 'Mumbai',
-//         destination: 'Pune',
-//         distance: 150,
-//         duration: '3.5 hrs',
-//         stops: 2,
-//         status: 'active',
-//         busesAssigned: 15
-//       },
-//       {
-//         id: 4,
-//         routeName: 'Delhi-Agra',
-//         origin: 'Delhi',
-//         destination: 'Agra',
-//         distance: 230,
-//         duration: '4 hrs',
-//         stops: 2,
-//         status: 'inactive',
-//         busesAssigned: 0
-//       },
-//       {
-//         id: 5,
-//         routeName: 'Kolkata-Delhi',
-//         origin: 'Kolkata',
-//         destination: 'Delhi',
-//         distance: 1500,
-//         duration: '28 hrs',
-//         stops: 8,
-//         status: 'active',
-//         busesAssigned: 5
-//       }
-//     ];
-//     this.filterRoutes();
-//   }
-
-//   filterRoutes() {
-//     this.filteredRoutes = this.routes.filter(route => {
-//       const matchesSearch = 
-//         route.routeName.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-//         route.origin.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-//         route.destination.toLowerCase().includes(this.searchTerm.toLowerCase());
-      
-//       const matchesStatus = this.selectedStatus === 'all' || route.status === this.selectedStatus;
-      
-//       return matchesSearch && matchesStatus;
-//     });
-//   }
-
-//   onSearch() {
-//     this.filterRoutes();
-//   }
-
-//   onStatusFilter() {
-//     this.filterRoutes();
-//   }
-
-//   openAddModal() {
-//     this.newRoute = {
-//       routeName: '',
-//       origin: '',
-//       destination: '',
-//       distance: 0,
-//       duration: '',
-//       stops: 0,
-//       status: 'active',
-//       busesAssigned: 0
-//     };
-//     this.showAddModal = true;
-//   }
-
-//   closeAddModal() {
-//     this.showAddModal = false;
-//   }
-
-//   // FIXED: No more duplicate id issue
-//   saveRoute() {
-//     // In real app, this would call a service
-//     const newId = this.routes.length + 1;
-//     const route: Route = {
-//       id: newId,
-//       routeName: this.newRoute.routeName,
-//       origin: this.newRoute.origin,
-//       destination: this.newRoute.destination,
-//       distance: this.newRoute.distance,
-//       duration: this.newRoute.duration,
-//       stops: this.newRoute.stops,
-//       status: this.newRoute.status,
-//       busesAssigned: this.newRoute.busesAssigned
-//     };
-//     this.routes.push(route);
-//     this.filterRoutes();
-//     this.closeAddModal();
-//   }
-
-//   openEditModal(route: Route) {
-//     this.selectedRoute = { ...route };
-//     this.showEditModal = true;
-//   }
-
-//   closeEditModal() {
-//     this.showEditModal = false;
-//     this.selectedRoute = null;
-//   }
-
-//   updateRoute() {
-//     if (this.selectedRoute) {
-//       const index = this.routes.findIndex(r => r.id === this.selectedRoute!.id);
-//       if (index !== -1) {
-//         this.routes[index] = this.selectedRoute;
-//         this.filterRoutes();
-//       }
-//       this.closeEditModal();
-//     }
-//   }
-
-//   openStopsModal(route: Route) {
-//     this.selectedRoute = route;
-//     this.loadStops(route.id);
-//     this.showStopsModal = true;
-//   }
-
-//   closeStopsModal() {
-//     this.showStopsModal = false;
-//     this.selectedRoute = null;
-//     this.routeStops = [];
-//   }
-
-//   loadStops(routeId: number) {
-//     // Sample stops data - In real app, this would come from a service based on routeId
-//     if (routeId === 1) {
-//       this.routeStops = [
-//         {
-//           id: 1,
-//           name: 'Delhi ISBT',
-//           arrivalTime: '06:00 AM',
-//           departureTime: '06:30 AM',
-//           fare: 0
-//         },
-//         {
-//           id: 2,
-//           name: 'Gurugram',
-//           arrivalTime: '07:15 AM',
-//           departureTime: '07:30 AM',
-//           fare: 150
-//         },
-//         {
-//           id: 3,
-//           name: 'Jaipur',
-//           arrivalTime: '11:30 AM',
-//           departureTime: '12:00 PM',
-//           fare: 450
-//         },
-//         {
-//           id: 4,
-//           name: 'Ajmer',
-//           arrivalTime: '02:45 PM',
-//           departureTime: '03:00 PM',
-//           fare: 650
-//         },
-//         {
-//           id: 5,
-//           name: 'Mumbai Central',
-//           arrivalTime: '06:00 AM',
-//           departureTime: '06:30 AM',
-//           fare: 1400
-//         }
-//       ];
-//     } else {
-//       this.routeStops = [
-//         {
-//           id: 1,
-//           name: 'Origin Stop',
-//           arrivalTime: '08:00 AM',
-//           departureTime: '08:30 AM',
-//           fare: 0
-//         },
-//         {
-//           id: 2,
-//           name: 'Destination Stop',
-//           arrivalTime: '08:00 PM',
-//           departureTime: '08:30 PM',
-//           fare: 500
-//         }
-//       ];
-//     }
-//   }
-
-//   openDeleteModal(route: Route) {
-//     this.selectedRoute = route;
-//     this.showDeleteModal = true;
-//   }
-
-//   closeDeleteModal() {
-//     this.showDeleteModal = false;
-//     this.selectedRoute = null;
-//   }
-
-//   confirmDelete() {
-//     if (this.selectedRoute) {
-//       this.routes = this.routes.filter(r => r.id !== this.selectedRoute!.id);
-//       this.filterRoutes();
-//       this.closeDeleteModal();
-//     }
-//   }
-
-//   toggleStatus(route: Route) {
-//     route.status = route.status === 'active' ? 'inactive' : 'active';
-//     // In real app, this would call a service
-//   }
-
-//   getStatusClass(status: string): string {
-//     return status === 'active' ? 'status-active' : 'status-inactive';
-//   }
-// }
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -339,6 +37,9 @@ export class RoutePlanComponent implements OnInit {
   errorMessage: string = '';
   successMessage: string = '';
 
+  // Time validation
+  timePattern = '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$';
+
   newRoute: any = {
     routeName: '',
     origin: '',
@@ -363,7 +64,6 @@ export class RoutePlanComponent implements OnInit {
     this.routeService.getRoutes(this.selectedStatus, this.searchTerm).subscribe({
       next: (response) => {
         if (response.success) {
-          // Add temporary sequential ID for display purposes
           this.routes = response.data.map((route: any, index: number) => ({
             ...route,
             displayId: index + 1
@@ -381,7 +81,6 @@ export class RoutePlanComponent implements OnInit {
   }
 
   filterRoutes() {
-    // Client-side filtering as backup, though backend already filters
     this.filteredRoutes = this.routes.filter(route => {
       const matchesSearch = this.searchTerm === '' || 
         route.routeName.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
@@ -395,11 +94,11 @@ export class RoutePlanComponent implements OnInit {
   }
 
   onSearch() {
-    this.loadRoutes(); // Reload with search filter from backend
+    this.loadRoutes();
   }
 
   onStatusFilter() {
-    this.loadRoutes(); // Reload with status filter from backend
+    this.loadRoutes();
   }
 
   openAddModal() {
@@ -499,6 +198,7 @@ export class RoutePlanComponent implements OnInit {
     });
   }
 
+  // STOPS MANAGEMENT (BOARDING POINTS)
   openStopsModal(route: Route) {
     this.selectedRoute = route;
     if (route._id) {
@@ -559,6 +259,7 @@ export class RoutePlanComponent implements OnInit {
       return;
     }
 
+    // Sort stops by arrival time
     if (this.editingStopIndex >= 0) {
       // Update existing stop
       this.routeStops[this.editingStopIndex] = { ...this.currentStop };
@@ -566,6 +267,11 @@ export class RoutePlanComponent implements OnInit {
       // Add new stop
       this.routeStops.push({ ...this.currentStop });
     }
+    
+    // Sort stops by arrival time
+    this.routeStops.sort((a, b) => {
+      return this.timeToMinutes(a.arrivalTime) - this.timeToMinutes(b.arrivalTime);
+    });
     
     this.closeAddStopModal();
   }
@@ -594,6 +300,13 @@ export class RoutePlanComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  // Helper method to convert time string to minutes for sorting
+  timeToMinutes(time: string): number {
+    if (!time) return 0;
+    const [hours, minutes] = time.split(':').map(Number);
+    return (hours * 60) + (minutes || 0);
   }
 
   openDeleteModal(route: Route) {
@@ -669,10 +382,33 @@ export class RoutePlanComponent implements OnInit {
       this.errorMessage = 'Please fill in all stop fields';
       return false;
     }
+    
+    // Validate time format
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(stop.arrivalTime) || !timeRegex.test(stop.departureTime)) {
+      this.errorMessage = 'Please enter valid time in HH:MM format (e.g., 09:30)';
+      return false;
+    }
+    
     if (stop.fare < 0) {
       this.errorMessage = 'Fare cannot be negative';
       return false;
     }
     return true;
   }
+  calculateStopDuration(arrival: string, departure: string): string {
+  if (!arrival || !departure) return '';
+  
+  const [arrHours, arrMins] = arrival.split(':').map(Number);
+  const [depHours, depMins] = departure.split(':').map(Number);
+  
+  let totalMins = (depHours * 60 + depMins) - (arrHours * 60 + arrMins);
+  
+  if (totalMins < 0) totalMins += 24 * 60; // Handle next day
+  
+  const hours = Math.floor(totalMins / 60);
+  const mins = totalMins % 60;
+  
+  return `${hours}h ${mins}m`;
+}
 }

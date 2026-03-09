@@ -738,7 +738,74 @@ button:disabled {
   display: block;
   padding: 4px 0;
 }
+/* Fare Info Styles */
+.fare-info {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
 
+.auto-calc {
+  color: #27ae60;
+  display: block;
+  padding: 4px 0;
+}
+
+.auto-calc small {
+  color: #666;
+  font-size: 11px;
+  display: block;
+  margin-top: 2px;
+}
+
+.calculated-info {
+  color: #f39c12;
+  display: block;
+  padding: 4px 0;
+}
+
+.calculated-info small {
+  color: #666;
+  font-size: 11px;
+  display: block;
+  margin-top: 2px;
+}
+
+.hint {
+  color: #e74c3c;
+  font-style: italic;
+}
+
+input.auto-calculated {
+  border-left: 4px solid #27ae60;
+}
+
+input.calculated {
+  border-left: 4px solid #f39c12;
+}
+
+.calculating {
+  color: #3498db;
+  font-size: 12px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.route-detail {
+  font-size: 11px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.field-hint {
+  display: block;
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+}
 .calculated-info small {
   color: #666;
   font-size: 11px;

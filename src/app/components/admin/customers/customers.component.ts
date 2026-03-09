@@ -1,46 +1,8 @@
-// import { Component } from '@angular/core';
-
-// @Component({
-//   selector: 'app-customers',
-//   standalone: true,
-//   imports: [],
-//   templateUrl: './customers.component.html',
-//   styleUrl: './customers.component.css'
-// })
-// export class CustomersComponent {
-
-// }
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-
-interface Customer {
-  id: number;
-  customerId: string;
-  name: string;
-  email: string;
-  phone: string;
-  alternatePhone?: string;
-  dateOfBirth: string;
-  gender: 'male' | 'female' | 'other';
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  idProofType: 'aadhar' | 'pan' | 'passport' | 'driving' | 'voter';
-  idProofNumber: string;
-  totalBookings: number;
-  totalSpent: number;
-  lastBooking: string;
-  registeredOn: string;
-  status: 'active' | 'inactive' | 'blocked';
-  preferences?: {
-    busType?: string[];
-    seatPreference?: 'window' | 'aisle' | 'any';
-    mealPreference?: string[];
-  };
-}
+import { CustomerService, Customer, CustomerStats } from '../../../services/customer.service';
 
 @Component({
   selector: 'app-customers',
@@ -52,6 +14,16 @@ interface Customer {
 export class CustomersComponent implements OnInit {
   customers: Customer[] = [];
   filteredCustomers: Customer[] = [];
+  customerStats: CustomerStats = {
+    totalCustomers: 0,
+    activeCustomers: 0,
+    inactiveCustomers: 0,
+    blockedCustomers: 0,
+    totalRevenue: 0,
+    averageSpending: 0,
+    growthData: [],
+    bookingTrend: []
+  };
   
   searchTerm: string = '';
   selectedStatus: string = 'all';
@@ -71,18 +43,27 @@ export class CustomersComponent implements OnInit {
   
   selectedCustomer: Customer | null = null;
   cities: string[] = [];
+  customerBookings: any[] = [];
+  
+  // Loading states
+  isLoading: boolean = false;
+  isStatsLoading: boolean = false;
+  errorMessage: string = '';
+  successMessage: string = '';
   
   // Pagination
   currentPage: number = 1;
   itemsPerPage: number = 10;
   totalPages: number = 1;
+  totalItems: number = 0;
   
   // Chart data
   customerGrowthData: any[] = [];
   bookingTrendData: any[] = [];
   
-  newCustomer: Omit<Customer, 'id' | 'customerId' | 'totalBookings' | 'totalSpent' | 'lastBooking' | 'registeredOn'> = {
-    name: '',
+  newCustomer: any = {
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     alternatePhone: '',
@@ -102,237 +83,85 @@ export class CustomersComponent implements OnInit {
     }
   };
 
+  constructor(private customerService: CustomerService) {}
+
   ngOnInit() {
     this.loadCustomers();
-    this.loadCustomerGrowthData();
-    this.loadBookingTrendData();
-    this.extractCities();
+    this.loadCustomerStats();
+    this.loadCities();
   }
 
   loadCustomers() {
-    this.customers = [
-      {
-        id: 1,
-        customerId: 'CUST001',
-        name: 'Rajesh Kumar',
-        email: 'rajesh.k@email.com',
-        phone: '9876543210',
-        alternatePhone: '9876543211',
-        dateOfBirth: '1985-05-15',
-        gender: 'male',
-        address: '123 Gandhi Nagar',
-        city: 'Delhi',
-        state: 'Delhi',
-        pincode: '110001',
-        idProofType: 'aadhar',
-        idProofNumber: '1234-5678-9012',
-        totalBookings: 12,
-        totalSpent: 24500,
-        lastBooking: '2024-02-15',
-        registeredOn: '2023-01-10',
-        status: 'active',
-        preferences: {
-          busType: ['AC Sleeper', 'Volvo'],
-          seatPreference: 'window',
-          mealPreference: ['Vegetarian']
+    this.isLoading = true;
+    const filters = {
+      status: this.selectedStatus,
+      gender: this.selectedGender,
+      city: this.selectedCity,
+      search: this.searchTerm,
+      fromDate: this.dateRange.from,
+      toDate: this.dateRange.to,
+      page: this.currentPage,
+      limit: this.itemsPerPage
+    };
+
+    this.customerService.getCustomers(filters).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.customers = response.data.map(customer => ({
+            ...customer,
+            name: `${customer.firstName} ${customer.lastName}`
+          }));
+          this.filteredCustomers = this.customers;
+          this.totalItems = response.count || this.customers.length;
+          this.calculatePagination();
         }
+        this.isLoading = false;
       },
-      {
-        id: 2,
-        customerId: 'CUST002',
-        name: 'Priya Sharma',
-        email: 'priya.s@email.com',
-        phone: '9876543212',
-        dateOfBirth: '1990-08-22',
-        gender: 'female',
-        address: '456 Lake View',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        pincode: '400001',
-        idProofType: 'pan',
-        idProofNumber: 'ABCDE1234F',
-        totalBookings: 8,
-        totalSpent: 18900,
-        lastBooking: '2024-02-10',
-        registeredOn: '2023-03-15',
-        status: 'active',
-        preferences: {
-          busType: ['AC Seater'],
-          seatPreference: 'aisle'
-        }
-      },
-      {
-        id: 3,
-        customerId: 'CUST003',
-        name: 'Amit Patel',
-        email: 'amit.p@email.com',
-        phone: '9876543213',
-        dateOfBirth: '1988-11-03',
-        gender: 'male',
-        address: '789 Tech Park',
-        city: 'Bangalore',
-        state: 'Karnataka',
-        pincode: '560001',
-        idProofType: 'passport',
-        idProofNumber: 'P1234567',
-        totalBookings: 5,
-        totalSpent: 11200,
-        lastBooking: '2024-01-25',
-        registeredOn: '2023-06-20',
-        status: 'inactive'
-      },
-      {
-        id: 4,
-        customerId: 'CUST004',
-        name: 'Sneha Reddy',
-        email: 'sneha.r@email.com',
-        phone: '9876543214',
-        dateOfBirth: '1992-02-28',
-        gender: 'female',
-        address: '321 Jubilee Hills',
-        city: 'Hyderabad',
-        state: 'Telangana',
-        pincode: '500001',
-        idProofType: 'driving',
-        idProofNumber: 'TS0123456789',
-        totalBookings: 15,
-        totalSpent: 35600,
-        lastBooking: '2024-02-18',
-        registeredOn: '2022-12-05',
-        status: 'active',
-        preferences: {
-          busType: ['Luxury', 'Volvo'],
-          seatPreference: 'window'
-        }
-      },
-      {
-        id: 5,
-        customerId: 'CUST005',
-        name: 'Vikram Singh',
-        email: 'vikram.s@email.com',
-        phone: '9876543215',
-        dateOfBirth: '1983-07-19',
-        gender: 'male',
-        address: '567 Civil Lines',
-        city: 'Jaipur',
-        state: 'Rajasthan',
-        pincode: '302001',
-        idProofType: 'voter',
-        idProofNumber: 'RJ1234567',
-        totalBookings: 3,
-        totalSpent: 6800,
-        lastBooking: '2024-01-05',
-        registeredOn: '2023-09-12',
-        status: 'blocked'
-      },
-      {
-        id: 6,
-        customerId: 'CUST006',
-        name: 'Anjali Nair',
-        email: 'anjali.n@email.com',
-        phone: '9876543216',
-        dateOfBirth: '1995-12-10',
-        gender: 'female',
-        address: '432 Marine Drive',
-        city: 'Kochi',
-        state: 'Kerala',
-        pincode: '682001',
-        idProofType: 'aadhar',
-        idProofNumber: '2345-6789-0123',
-        totalBookings: 7,
-        totalSpent: 15900,
-        lastBooking: '2024-02-05',
-        registeredOn: '2023-07-18',
-        status: 'active'
-      },
-      {
-        id: 7,
-        customerId: 'CUST007',
-        name: 'Rahul Verma',
-        email: 'rahul.v@email.com',
-        phone: '9876543217',
-        dateOfBirth: '1987-09-30',
-        gender: 'male',
-        address: '876 Sector 62',
-        city: 'Noida',
-        state: 'Uttar Pradesh',
-        pincode: '201301',
-        idProofType: 'pan',
-        idProofNumber: 'FGHIJ5678K',
-        totalBookings: 10,
-        totalSpent: 22300,
-        lastBooking: '2024-02-12',
-        registeredOn: '2023-04-25',
-        status: 'active'
-      },
-      {
-        id: 8,
-        customerId: 'CUST008',
-        name: 'Kavita Joshi',
-        email: 'kavita.j@email.com',
-        phone: '9876543218',
-        dateOfBirth: '1993-04-17',
-        gender: 'female',
-        address: '234 FC Road',
-        city: 'Pune',
-        state: 'Maharashtra',
-        pincode: '411001',
-        idProofType: 'passport',
-        idProofNumber: 'P7654321',
-        totalBookings: 2,
-        totalSpent: 4500,
-        lastBooking: '2024-01-18',
-        registeredOn: '2023-11-30',
-        status: 'inactive'
+      error: (error) => {
+        console.error('Error loading customers:', error);
+        this.errorMessage = 'Failed to load customers';
+        this.isLoading = false;
       }
-    ];
-    this.filterCustomers();
-    this.calculatePagination();
+    });
   }
 
-  loadCustomerGrowthData() {
-    this.customerGrowthData = [
-      { month: 'Jan', count: 45 },
-      { month: 'Feb', count: 52 },
-      { month: 'Mar', count: 68 },
-      { month: 'Apr', count: 74 },
-      { month: 'May', count: 89 },
-      { month: 'Jun', count: 102 },
-      { month: 'Jul', count: 118 },
-      { month: 'Aug', count: 135 },
-      { month: 'Sep', count: 149 },
-      { month: 'Oct', count: 162 },
-      { month: 'Nov', count: 178 },
-      { month: 'Dec', count: 194 }
-    ];
+  loadCustomerStats() {
+    this.isStatsLoading = true;
+    this.customerService.getCustomerStats().subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.customerStats = response.data;
+          this.customerGrowthData = response.data.growthData;
+          this.bookingTrendData = response.data.bookingTrend;
+        }
+        this.isStatsLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading stats:', error);
+        this.isStatsLoading = false;
+      }
+    });
   }
 
-  loadBookingTrendData() {
-    this.bookingTrendData = [
-      { month: 'Jan', bookings: 78 },
-      { month: 'Feb', bookings: 92 },
-      { month: 'Mar', bookings: 105 },
-      { month: 'Apr', bookings: 98 },
-      { month: 'May', bookings: 112 },
-      { month: 'Jun', bookings: 128 },
-      { month: 'Jul', bookings: 145 },
-      { month: 'Aug', bookings: 162 },
-      { month: 'Sep', bookings: 158 },
-      { month: 'Oct', bookings: 172 },
-      { month: 'Nov', bookings: 189 },
-      { month: 'Dec', bookings: 210 }
-    ];
-  }
-
-  extractCities() {
-    const uniqueCities = [...new Set(this.customers.map(c => c.city))];
-    this.cities = uniqueCities.sort();
+  loadCities() {
+    this.customerService.getCities().subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.cities = response.data;
+        }
+      },
+      error: (error) => {
+        console.error('Error loading cities:', error);
+      }
+    });
   }
 
   filterCustomers() {
+    // Client-side filtering as backup, though backend already filters
     this.filteredCustomers = this.customers.filter(customer => {
+      const customerName = `${customer.firstName} ${customer.lastName}`.toLowerCase();
       const matchesSearch = this.searchTerm === '' || 
-        customer.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        customerName.includes(this.searchTerm.toLowerCase()) ||
         customer.email.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         customer.phone.includes(this.searchTerm) ||
         customer.customerId.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
@@ -348,17 +177,18 @@ export class CustomersComponent implements OnInit {
       return matchesSearch && matchesStatus && matchesGender && matchesCity && matchesDateRange;
     });
     
+    this.totalItems = this.filteredCustomers.length;
     this.calculatePagination();
   }
 
   onSearch() {
     this.currentPage = 1;
-    this.filterCustomers();
+    this.loadCustomers(); // Reload from backend with search
   }
 
   onFilterChange() {
     this.currentPage = 1;
-    this.filterCustomers();
+    this.loadCustomers(); // Reload from backend with filters
   }
 
   resetFilters() {
@@ -367,25 +197,26 @@ export class CustomersComponent implements OnInit {
     this.selectedGender = 'all';
     this.selectedCity = 'all';
     this.dateRange = { from: '', to: '' };
-    this.filterCustomers();
+    this.currentPage = 1;
+    this.loadCustomers();
   }
 
   calculatePagination() {
-    this.totalPages = Math.ceil(this.filteredCustomers.length / this.itemsPerPage);
+    this.totalPages = Math.ceil(this.totalItems / this.itemsPerPage);
     if (this.currentPage > this.totalPages) {
       this.currentPage = this.totalPages || 1;
     }
   }
 
   getPaginatedCustomers(): Customer[] {
-    const start = (this.currentPage - 1) * this.itemsPerPage;
-    const end = start + this.itemsPerPage;
-    return this.filteredCustomers.slice(start, end);
+    // Backend handles pagination, so this just returns the current page data
+    return this.filteredCustomers;
   }
 
   changePage(page: number) {
     if (page >= 1 && page <= this.totalPages) {
       this.currentPage = page;
+      this.loadCustomers(); // Reload from backend with new page
     }
   }
 
@@ -395,7 +226,8 @@ export class CustomersComponent implements OnInit {
 
   openAddModal() {
     this.newCustomer = {
-      name: '',
+      firstName: '',
+      lastName: '',
       email: '',
       phone: '',
       alternatePhone: '',
@@ -422,42 +254,43 @@ export class CustomersComponent implements OnInit {
   }
 
   saveCustomer() {
-    const newId = this.customers.length + 1;
-    const customerId = `CUST${String(newId).padStart(3, '0')}`;
-    const today = new Date().toISOString().split('T')[0];
-    
-    const customer: Customer = {
-      id: newId,
-      customerId: customerId,
-      name: this.newCustomer.name,
-      email: this.newCustomer.email,
-      phone: this.newCustomer.phone,
-      alternatePhone: this.newCustomer.alternatePhone,
-      dateOfBirth: this.newCustomer.dateOfBirth,
-      gender: this.newCustomer.gender,
-      address: this.newCustomer.address,
-      city: this.newCustomer.city,
-      state: this.newCustomer.state,
-      pincode: this.newCustomer.pincode,
-      idProofType: this.newCustomer.idProofType,
-      idProofNumber: this.newCustomer.idProofNumber,
-      totalBookings: 0,
-      totalSpent: 0,
-      lastBooking: '',
-      registeredOn: today,
-      status: this.newCustomer.status,
-      preferences: this.newCustomer.preferences
-    };
-    
-    this.customers.push(customer);
-    this.extractCities();
-    this.filterCustomers();
-    this.closeAddModal();
+    this.isLoading = true;
+    this.customerService.createCustomer(this.newCustomer).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.successMessage = 'Customer created successfully';
+          this.loadCustomers();
+          this.loadCustomerStats();
+          this.loadCities();
+          this.closeAddModal();
+          setTimeout(() => this.successMessage = '', 3000);
+        }
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error creating customer:', error);
+        this.errorMessage = error.error?.message || 'Failed to create customer';
+        this.isLoading = false;
+      }
+    });
   }
 
   openViewModal(customer: Customer) {
-    this.selectedCustomer = { ...customer };
-    this.showViewModal = true;
+    this.customerService.getCustomerById(customer._id!).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.selectedCustomer = {
+            ...response.data,
+            name: `${response.data.firstName} ${response.data.lastName}`
+          };
+          this.showViewModal = true;
+        }
+      },
+      error: (error) => {
+        console.error('Error loading customer details:', error);
+        this.errorMessage = 'Failed to load customer details';
+      }
+    });
   }
 
   closeViewModal() {
@@ -466,8 +299,18 @@ export class CustomersComponent implements OnInit {
   }
 
   openEditModal(customer: Customer) {
-    this.selectedCustomer = { ...customer };
-    this.showEditModal = true;
+    this.customerService.getCustomerById(customer._id!).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.selectedCustomer = response.data;
+          this.showEditModal = true;
+        }
+      },
+      error: (error) => {
+        console.error('Error loading customer details:', error);
+        this.errorMessage = 'Failed to load customer details';
+      }
+    });
   }
 
   closeEditModal() {
@@ -476,14 +319,25 @@ export class CustomersComponent implements OnInit {
   }
 
   updateCustomer() {
-    if (this.selectedCustomer) {
-      const index = this.customers.findIndex(c => c.id === this.selectedCustomer!.id);
-      if (index !== -1) {
-        this.customers[index] = this.selectedCustomer;
-        this.extractCities();
-        this.filterCustomers();
-      }
-      this.closeEditModal();
+    if (this.selectedCustomer && this.selectedCustomer._id) {
+      this.isLoading = true;
+      this.customerService.updateCustomer(this.selectedCustomer._id, this.selectedCustomer).subscribe({
+        next: (response) => {
+          if (response.success) {
+            this.successMessage = 'Customer updated successfully';
+            this.loadCustomers();
+            this.loadCustomerStats();
+            this.closeEditModal();
+            setTimeout(() => this.successMessage = '', 3000);
+          }
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error updating customer:', error);
+          this.errorMessage = error.error?.message || 'Failed to update customer';
+          this.isLoading = false;
+        }
+      });
     }
   }
 
@@ -498,22 +352,51 @@ export class CustomersComponent implements OnInit {
   }
 
   confirmDelete() {
-    if (this.selectedCustomer) {
-      this.customers = this.customers.filter(c => c.id !== this.selectedCustomer!.id);
-      this.extractCities();
-      this.filterCustomers();
-      this.closeDeleteModal();
+    if (this.selectedCustomer && this.selectedCustomer._id) {
+      this.isLoading = true;
+      this.customerService.deleteCustomer(this.selectedCustomer._id).subscribe({
+        next: (response) => {
+          if (response.success) {
+            this.successMessage = 'Customer deleted successfully';
+            this.loadCustomers();
+            this.loadCustomerStats();
+            this.loadCities();
+            this.closeDeleteModal();
+            setTimeout(() => this.successMessage = '', 3000);
+          }
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error deleting customer:', error);
+          this.errorMessage = error.error?.message || 'Failed to delete customer';
+          this.isLoading = false;
+        }
+      });
     }
   }
 
   openBookingHistory(customer: Customer) {
     this.selectedCustomer = customer;
-    this.showBookingHistoryModal = true;
+    if (customer._id) {
+      this.customerService.getCustomerBookings(customer._id).subscribe({
+        next: (response) => {
+          if (response.success) {
+            this.customerBookings = response.data;
+            this.showBookingHistoryModal = true;
+          }
+        },
+        error: (error) => {
+          console.error('Error loading bookings:', error);
+          this.errorMessage = 'Failed to load booking history';
+        }
+      });
+    }
   }
 
   closeBookingHistory() {
     this.showBookingHistoryModal = false;
     this.selectedCustomer = null;
+    this.customerBookings = [];
   }
 
   openExportModal() {
@@ -525,28 +408,87 @@ export class CustomersComponent implements OnInit {
   }
 
   exportData(format: 'pdf' | 'excel' | 'csv') {
-    alert(`Exporting customer data as ${format.toUpperCase()}`);
-    this.closeExportModal();
+    const filters = {
+      status: this.selectedStatus,
+      gender: this.selectedGender,
+      city: this.selectedCity,
+      search: this.searchTerm
+    };
+
+    this.customerService.exportCustomers(format, filters).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `customers.${format}`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.closeExportModal();
+      },
+      error: (error) => {
+        console.error('Error exporting data:', error);
+        this.errorMessage = 'Failed to export data';
+      }
+    });
   }
 
   sendEmail(customer: Customer) {
-    alert(`Sending email to ${customer.email}`);
+    if (customer._id) {
+      // You can open a modal to compose email here
+      const emailData = {
+        subject: 'Special Offer from TravelEase',
+        message: 'Check out our latest offers!'
+      };
+      this.customerService.sendEmail(customer._id, emailData).subscribe({
+        next: (response) => {
+          if (response.success) {
+            this.successMessage = 'Email sent successfully';
+            setTimeout(() => this.successMessage = '', 3000);
+          }
+        },
+        error: (error) => {
+          console.error('Error sending email:', error);
+          this.errorMessage = 'Failed to send email';
+        }
+      });
+    }
   }
 
   sendSMS(customer: Customer) {
-    alert(`Sending SMS to ${customer.phone}`);
-  }
-
-  blockCustomer(customer: Customer) {
-    customer.status = 'blocked';
-    alert(`Customer ${customer.name} has been blocked`);
+    if (customer._id) {
+      const smsData = {
+        message: 'Thank you for choosing TravelEase!'
+      };
+      this.customerService.sendSMS(customer._id, smsData).subscribe({
+        next: (response) => {
+          if (response.success) {
+            this.successMessage = 'SMS sent successfully';
+            setTimeout(() => this.successMessage = '', 3000);
+          }
+        },
+        error: (error) => {
+          console.error('Error sending SMS:', error);
+          this.errorMessage = 'Failed to send SMS';
+        }
+      });
+    }
   }
 
   toggleStatus(customer: Customer) {
-    if (customer.status === 'active') {
-      customer.status = 'inactive';
-    } else if (customer.status === 'inactive') {
-      customer.status = 'active';
+    if (customer._id) {
+      this.customerService.toggleCustomerStatus(customer._id).subscribe({
+        next: (response) => {
+          if (response.success) {
+            customer.status = customer.status === 'active' ? 'inactive' : 'active';
+            this.successMessage = `Customer ${customer.status === 'active' ? 'activated' : 'deactivated'}`;
+            setTimeout(() => this.successMessage = '', 3000);
+          }
+        },
+        error: (error) => {
+          console.error('Error toggling status:', error);
+          this.errorMessage = 'Failed to toggle status';
+        }
+      });
     }
   }
 
@@ -580,22 +522,30 @@ export class CustomersComponent implements OnInit {
   }
 
   getTotalActiveCustomers(): number {
-    return this.customers.filter(c => c.status === 'active').length;
+    return this.customerStats.activeCustomers;
   }
 
   getTotalInactiveCustomers(): number {
-    return this.customers.filter(c => c.status === 'inactive').length;
+    return this.customerStats.inactiveCustomers;
   }
 
   getTotalBlockedCustomers(): number {
-    return this.customers.filter(c => c.status === 'blocked').length;
+    return this.customerStats.blockedCustomers;
   }
 
   getTotalRevenue(): number {
-    return this.customers.reduce((sum, c) => sum + c.totalSpent, 0);
+    return this.customerStats.totalRevenue;
   }
 
   getAverageSpending(): number {
-    return this.customers.length > 0 ? Math.round(this.getTotalRevenue() / this.customers.length) : 0;
+    return this.customerStats.averageSpending;
+  }
+
+  formatDate(date: string): string {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   }
 }

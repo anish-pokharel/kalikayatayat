@@ -1,428 +1,219 @@
 <div class="seat-selection-container">
-  <!-- Back Button -->
-  <div class="back-button-container">
-    <button class="btn-back" (click)="goBack()">
-      ← Back to Buses
-    </button>
+  <!-- Loading State -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading bus details...</p>
   </div>
+
+  <!-- Error & Success Messages -->
+  <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="success-message" *ngIf="successMessage">{{ successMessage }}</div>
+
+  <!-- Back Button -->
+  <div class="back-button-container" *ngIf="!isLoading && busDetails">
+    <button class="btn-back" (click)="goBack()">← Back to Buses</button>
+  </div>
+  <!-- Success Message Overlay -->
+<div class="success-overlay" *ngIf="showBookingSuccess">
+  <div class="success-card">
+    <div class="success-icon">✅</div>
+    <h2>Booking Confirmed!</h2>
+    <p>Your booking ID: <strong>{{ bookingResponse?.bookingId }}</strong></p>
+    <p>Redirecting to booking details...</p>
+    <div class="success-spinner"></div>
+  </div>
+</div>
 
   <!-- Bus Info Header -->
   <div class="bus-info-header" *ngIf="busDetails">
     <div class="container">
       <div class="bus-info-grid">
         <div class="bus-info">
-          <h2>{{ busDetails.operator }}</h2>
-          <p class="bus-name">{{ busDetails.name }}</p>
-          <p class="bus-type">{{ busDetails.type }} | Total Seats: {{ busDetails.totalSeats }}</p>
+          <h2>{{ busDetails.operator || (busDetails.busName.split(' ')[0] || 'Travels') }}</h2>
+          <p class="bus-name">{{ busDetails.busName || 'Bus' }}</p>
+          <p class="bus-type">{{ busDetails.busType || 'Standard' }} | Total: {{ busDetails.totalSeats || 0 }} seats</p>
         </div>
-        
         <div class="route-info">
           <div class="route-point">
-            <span class="time">{{ busDetails.departureTime }}</span>
-            <span class="city">{{ busDetails.origin }}</span>
+            <span class="time">{{ busDetails.departureTime || '08:00' }}</span>
+            <span class="city">{{ busDetails.origin || 'Origin' }}</span>
           </div>
-          <div class="route-duration">
-            <span class="duration">{{ busDetails.duration }}</span>
-          </div>
+          <div class="route-duration">{{ busDetails.duration || '12h' }}</div>
           <div class="route-point">
-            <span class="time">{{ busDetails.arrivalTime }}</span>
-            <span class="city">{{ busDetails.destination }}</span>
+            <span class="time">{{ busDetails.arrivalTime || '20:00' }}</span>
+            <span class="city">{{ busDetails.destination || 'Destination' }}</span>
           </div>
         </div>
-        
         <div class="price-info">
           <span class="label">Starting from</span>
-          <span class="price">₹{{ busDetails.price }}</span>
+          <span class="price">₹{{ busDetails.fare || 0 }}</span>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Main Content -->
-  <div class="container">
+  <div class="container" *ngIf="busDetails">
     <div class="seat-layout-grid">
       <!-- Seat Layout -->
       <div class="seat-layout">
-        <h3>Select Your Seats - {{ showUpperDeck ? 'Upper Deck' : 'Lower Deck' }}</h3>
+        <h3>Select Your Seats</h3>
         
-        <!-- Seat Limit Info and Multi-select Toggle -->
+        <!-- Selection Controls -->
         <div class="selection-controls">
           <div class="seat-limit-info">
             <span class="limit-badge">Max {{ maxSeats }} seats</span>
-            <span class="selected-count" [class.limit-reached]="getRemainingSeatsCount() === 0">
-              Selected: {{ selectedSeats.length }}/{{ maxSeats }}
-              <span class="temp-count" *ngIf="getTempSelectedCount() > 0">
-                +{{ getTempSelectedCount() }} pending
-              </span>
-            </span>
+            <span class="selected-count">Selected: {{ getSelectedSeatsCount() }}/{{ maxSeats }}</span>
           </div>
-          
-          <div class="multi-select-toggle">
-            <button 
-              class="multi-select-btn" 
-              [class.active]="isMultiSelectMode"
-              (click)="toggleMultiSelectMode()"
-            >
-              {{ isMultiSelectMode ? '✓ Multi-Select On' : '☑ Multi-Select Off' }}
-            </button>
-          </div>
-        </div>
-        
-        <!-- Deck Toggle -->
-        <div class="deck-toggle">
-          <button 
-            class="deck-btn" 
-            [class.active]="!showUpperDeck"
-            (click)="showUpperDeck = false"
-          >
-            Lower Deck
+          <button class="multi-select-btn" [class.active]="isMultiSelectMode" (click)="toggleMultiSelectMode()">
+            {{ isMultiSelectMode ? '✓ Multi-Select On' : '☑ Multi-Select' }}
           </button>
-          <button 
-            class="deck-btn" 
-            [class.active]="showUpperDeck"
-            (click)="showUpperDeck = true"
-          >
-            Upper Deck
-          </button>
-        </div>
-        
-        <!-- Legend -->
-        <div class="seat-legend">
-          <div class="legend-item">
-            <div class="seat-box seat-available"></div>
-            <span>Available</span>
-          </div>
-          <div class="legend-item">
-            <div class="seat-box seat-selected"></div>
-            <span>Selected</span>
-          </div>
-          <div class="legend-item">
-            <div class="seat-box seat-temp-selected"></div>
-            <span>Pending</span>
-          </div>
-          <div class="legend-item">
-            <div class="seat-box seat-booked"></div>
-            <span>Booked</span>
-          </div>
-          <div class="legend-item">
-            <div class="seat-box seat-blocked"></div>
-            <span>Blocked</span>
-          </div>
         </div>
 
-        <!-- Realistic Bus Layout -->
+        <!-- Legend -->
+ <!-- Legend -->
+<div class="seat-legend">
+  <div class="legend-item"><span class="seat-box seat-available"></span> Available</div>
+  <div class="legend-item"><span class="seat-box seat-selected"></span> Selected</div>
+  <div class="legend-item"><span class="seat-box seat-temp-selected"></span> Pending</div>
+  <div class="legend-item"><span class="seat-box seat-ladies"></span> Ladies</div>
+  <div class="legend-item"><span class="seat-box seat-occupied"></span> Occupied</div>
+  <div class="legend-item"><span class="seat-box seat-booked"></span> Booked</div>
+</div>
+        <!-- Bus Layout -->
         <div class="bus-layout">
-          <!-- Bus Front -->
-          <div class="bus-front">
-            <div class="windshield">🚌</div>
-            <div class="driver-area">
-              <div class="driver-seat">Driver</div>
-            </div>
-          </div>
+          <!-- Driver Area -->
+          <div class="driver-area">Driver</div>
           
-          <!-- Bus Body -->
-          <div class="bus-body">
-            <!-- Left Windows -->
-            <div class="windows-left">
-              <div class="window" *ngFor="let i of getRowNumbers()"></div>
-            </div>
-            
-            <!-- Seating Area -->
-            <div class="seating-area">
-              <!-- Entrance Door -->
-              <div class="entrance-door">
-                <span>🚪 ENTRANCE</span>
-              </div>
-              
-              <!-- Column Labels -->
-              <div class="column-labels">
-                <div class="column-label">A</div>
-                <div class="column-label">B</div>
-                <div class="column-label aisle-spacer"></div>
-                <div class="column-label">C</div>
-                <div class="column-label">D</div>
-              </div>
-              
-              <!-- Seat Rows -->
-              <div class="seat-rows">
-                <div class="seat-row" *ngFor="let row of getRowNumbers()">
-                  <!-- Column A -->
-                  <div class="seat-wrapper">
-                    <div 
-                      class="seat" 
-                      [ngClass]="[
-                        getSeatStatusClass(getSeatsByColumn('A')[row-1]),
-                        (selectedSeats.length + getTempSelectedCount()) >= maxSeats && 
-                        getSeatsByColumn('A')[row-1]?.status === 'available' && 
-                        !getSeatsByColumn('A')[row-1]?.tempSelected ? 'seat-disabled' : ''
-                      ]"
-                      (click)="toggleSeat(getSeatsByColumn('A')[row-1])"
-                    >
-                      {{ getSeatsByColumn('A')[row-1]?.number }}
-                    </div>
-                  </div>
-                  
-                  <!-- Column B -->
-                  <div class="seat-wrapper">
-                    <div 
-                      class="seat" 
-                      [ngClass]="[
-                        getSeatStatusClass(getSeatsByColumn('B')[row-1]),
-                        (selectedSeats.length + getTempSelectedCount()) >= maxSeats && 
-                        getSeatsByColumn('B')[row-1]?.status === 'available' && 
-                        !getSeatsByColumn('B')[row-1]?.tempSelected ? 'seat-disabled' : ''
-                      ]"
-                      (click)="toggleSeat(getSeatsByColumn('B')[row-1])"
-                    >
-                      {{ getSeatsByColumn('B')[row-1]?.number }}
-                    </div>
-                  </div>
-                  
-                  <!-- Aisle Space -->
-                  <div class="aisle-space">⤋</div>
-                  
-                  <!-- Column C -->
-                  <div class="seat-wrapper">
-                    <div 
-                      class="seat" 
-                      [ngClass]="[
-                        getSeatStatusClass(getSeatsByColumn('C')[row-1]),
-                        (selectedSeats.length + getTempSelectedCount()) >= maxSeats && 
-                        getSeatsByColumn('C')[row-1]?.status === 'available' && 
-                        !getSeatsByColumn('C')[row-1]?.tempSelected ? 'seat-disabled' : ''
-                      ]"
-                      (click)="toggleSeat(getSeatsByColumn('C')[row-1])"
-                    >
-                      {{ getSeatsByColumn('C')[row-1]?.number }}
-                    </div>
-                  </div>
-                  
-                  <!-- Column D -->
-                  <div class="seat-wrapper">
-                    <div 
-                      class="seat" 
-                      [ngClass]="[
-                        getSeatStatusClass(getSeatsByColumn('D')[row-1]),
-                        (selectedSeats.length + getTempSelectedCount()) >= maxSeats && 
-                        getSeatsByColumn('D')[row-1]?.status === 'available' && 
-                        !getSeatsByColumn('D')[row-1]?.tempSelected ? 'seat-disabled' : ''
-                      ]"
-                      (click)="toggleSeat(getSeatsByColumn('D')[row-1])"
-                    >
-                      {{ getSeatsByColumn('D')[row-1]?.number }}
-                    </div>
-                  </div>
+          <!-- Column Labels -->
+          <div class="column-labels">
+            <div class="column-label" *ngFor="let col of ['A', 'B', 'C', 'D']">{{ col }}</div>
+          </div>
+
+          <!-- Seat Rows -->
+          <div class="seat-rows">
+            <div class="seat-row" *ngFor="let row of getRowNumbers()">
+              <div class="seat-wrapper" *ngFor="let seat of getSeatsByRow(row)">
+                <div class="seat" [ngClass]="getSeatStatusClass(seat)" (click)="toggleSeat(seat)">
+                  {{ seat?.number }}
+                  <span class="ladies-icon" *ngIf="seat?.isLadies">👩</span>
                 </div>
               </div>
-              
-              <!-- Emergency Exit -->
-              <div class="emergency-exit">
-                <span>🚪 EMERGENCY EXIT</span>
-              </div>
-            </div>
-            
-            <!-- Right Windows -->
-            <div class="windows-right">
-              <div class="window" *ngFor="let i of getRowNumbers()"></div>
             </div>
           </div>
-          
-          <!-- Bus Rear -->
-          <div class="bus-rear">
-            <div class="rear-lights">⚡</div>
-            <div class="toilet" *ngIf="busDetails?.busType === 'sleeper'">🚽 Toilet</div>
-          </div>
+
+          <!-- Exit -->
+          <div class="exit-area">🚪 Exit</div>
         </div>
 
         <!-- Multi-select Actions -->
         <div class="multi-select-actions" *ngIf="isMultiSelectMode && getTempSelectedCount() > 0">
-          <div class="pending-count">
-            {{ getTempSelectedCount() }} seat(s) pending
-          </div>
+          <span>{{ getTempSelectedCount() }} seat(s) pending</span>
           <div class="action-buttons">
-            <button class="btn-cancel" (click)="cancelMultiSelection()">
-              Cancel
-            </button>
-            <button class="btn-confirm" (click)="confirmMultiSelection()">
-              Enter Passenger Details
-            </button>
+            <button class="btn-cancel" (click)="cancelMultiSelection()">Cancel</button>
+            <button class="btn-confirm" (click)="confirmMultiSelection()">Confirm Seats</button>
           </div>
-        </div>
-
-        <!-- Seat Info -->
-        <div class="seat-info">
-          <p><strong>Available:</strong> {{ getAvailableSeatsCount() }}</p>
-          <p><strong>Booked:</strong> {{ getBookedSeatsCount() }}</p>
-          <p><strong>Selected:</strong> {{ getSelectedSeatsCount() }}</p>
-          <p><strong>Pending:</strong> {{ getTempSelectedCount() }}</p>
         </div>
       </div>
 
       <!-- Booking Summary -->
       <div class="booking-summary">
         <h3>Booking Summary</h3>
-        
+
         <!-- Seat Limit Warning -->
         <div class="seat-limit-warning" *ngIf="showLimitWarning">
-          ⚠️ You can only select up to {{ maxSeats }} seats
+          ⚠️ Max {{ maxSeats }} seats allowed
         </div>
-        
-        <!-- Remaining Seats -->
-        <div class="remaining-seats">
-          <span class="remaining-label">Seats Remaining:</span>
-          <span class="remaining-count" [class.limit-reached]="getRemainingSeatsCount() === 0">
-            {{ getRemainingSeatsCount() }} / {{ maxSeats }}
-          </span>
-        </div>
-        
-        <!-- Selected Seats List -->
-        <div class="selected-seats" *ngIf="selectedSeats.length > 0">
-          <h4>Selected Seats ({{ selectedSeats.length }})</h4>
-          <div class="seats-list">
-            <div class="seat-item" *ngFor="let seat of selectedSeats">
-              <div class="seat-info-left">
-                <span class="seat-number">{{ seat.number }}</span>
-                <span class="seat-price">₹{{ seat.price }}</span>
-              </div>
-              <button class="btn-remove" (click)="removeSelectedSeat(seat)" title="Remove seat">
-                ✕
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Pending Seats -->
-        <div class="pending-seats" *ngIf="tempSelectedSeats.length > 0">
-          <h4>Pending Seats ({{ tempSelectedSeats.length }})</h4>
-          <div class="seats-list">
-            <div class="seat-item pending" *ngFor="let seat of tempSelectedSeats">
-              <span class="seat-number">{{ seat.number }}</span>
-              <span class="seat-price">₹{{ seat.price }}</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="no-seats" *ngIf="selectedSeats.length === 0 && tempSelectedSeats.length === 0">
-          <p>No seats selected yet</p>
-          <p class="small-text">Click on seats to select (max {{ maxSeats }} seats)</p>
-          <p class="small-text">Use Multi-Select to choose multiple seats at once</p>
-        </div>
-        
+
+        <!-- Boarding Point Selection -->
+      <!-- Boarding Point Selection -->
+<div class="boarding-point-section">
+  <h4>Boarding Point</h4>
+  <select [(ngModel)]="selectedBoardingPoint" class="boarding-select">
+    <option *ngFor="let point of boardingPoints" [ngValue]="point">
+      {{ point.name }} - {{ point.time }} ({{ point.address }})
+    </option>
+  </select>
+</div>
+
+        <!-- Selected Seats -->
+     <div class="selected-seats" *ngIf="selectedSeats.length > 0">
+  <h4>Selected Seats ({{ selectedSeats.length }})</h4>
+  <div class="seats-list">
+    <div class="seat-item" *ngFor="let seat of selectedSeats">
+      <span class="seat-number">{{ seat.number }}</span>
+      <span class="seat-price">₹{{ seat.price }}</span>
+      <button class="btn-remove" (click)="removeSelectedSeat(seat)">✕</button>
+    </div>
+  </div>
+</div>
+
+
+        <!-- Price Details -->
         <div class="price-details">
           <div class="price-row">
-            <span>Base Fare ({{ selectedSeats.length }} seats)</span>
-            <span>₹{{ bookingSummary.baseFare }}</span>
+            <span>Base Fare</span>
+            <span>₹{{ bookingSummary.baseFare || 0 }}</span>
           </div>
           <div class="price-row">
-            <span>Tax (18% GST)</span>
+            <span>Tax (18%)</span>
             <span>₹{{ bookingSummary.tax | number:'1.0-0' }}</span>
           </div>
           <div class="price-row total">
-            <span>Total Amount</span>
+            <span>Total</span>
             <span>₹{{ bookingSummary.total | number:'1.0-0' }}</span>
           </div>
         </div>
-        
-        <button 
-          class="btn-proceed" 
-          [disabled]="selectedSeats.length === 0"
-          (click)="proceedToBooking()"
-        >
-          Proceed to Book
+
+        <button class="btn-proceed" [disabled]="!selectedSeats.length" (click)="proceedToBooking()">
+          Continue
         </button>
-        
-        <p class="cancellation-policy">
-          Free cancellation up to 4 hours before departure
-        </p>
       </div>
     </div>
   </div>
 
-  <!-- Multi-Passenger Details Modal -->
-  <div class="modal modal-lg" *ngIf="showPassengerModal && passengers.length > 0">
+  <!-- Passenger Details Modal -->
+  <div class="modal" *ngIf="showPassengerModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Enter Passenger Details ({{ passengers.length }} seats)</h3>
-        <button class="close-btn" (click)="showPassengerModal = false; clearTempSelection()">×</button>
+        <h3>Passenger Details ({{ passengers.length }} seats)</h3>
+        <button class="close-btn" (click)="showPassengerModal = false">×</button>
       </div>
-      
       <div class="modal-body">
-        <div class="passengers-container">
-          <div class="passenger-card" *ngFor="let passenger of passengers; let i = index">
-            <h4>Passenger {{ i + 1 }} - Seat {{ passenger.seatNumber }}</h4>
-            
+        <div class="passenger-card" *ngFor="let passenger of passengers; let i = index">
+          <h4>Seat {{ passenger?.seatNumber }}</h4>
+          <div class="form-group">
+            <label>Name *</label>
+            <input type="text" [(ngModel)]="passenger.name" placeholder="Full name">
+          </div>
+          <div class="form-row">
             <div class="form-group">
-              <label>Full Name *</label>
-              <input 
-                type="text" 
-                [ngModel]="passenger.name"
-                (ngModelChange)="updatePassenger(i, 'name', $event)"
-                placeholder="Enter full name"
-                required
-              >
+              <label>Age *</label>
+              <input type="number" [(ngModel)]="passenger.age" placeholder="Age">
             </div>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label>Age *</label>
-                <input 
-                  type="number" 
-                  [ngModel]="passenger.age"
-                  (ngModelChange)="updatePassenger(i, 'age', $event)"
-                  placeholder="Age"
-                  required
-                >
-              </div>
-              
-              <div class="form-group">
-                <label>Gender *</label>
-                <select 
-                  [ngModel]="passenger.gender"
-                  (ngModelChange)="updatePassenger(i, 'gender', $event)"
-                >
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-            </div>
-            
             <div class="form-group">
-              <label>Phone Number *</label>
-              <input 
-                type="tel" 
-                [ngModel]="passenger.phone"
-                (ngModelChange)="updatePassenger(i, 'phone', $event)"
-                placeholder="10 digit mobile number"
-                pattern="[0-9]{10}"
-                maxlength="10"
-                required
-              >
+              <label>Gender *</label>
+              <select [(ngModel)]="passenger.gender">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
             </div>
-            
-            <div class="form-group">
-              <label>Email (Optional)</label>
-              <input 
-                type="email" 
-                [ngModel]="passenger.email"
-                (ngModelChange)="updatePassenger(i, 'email', $event)"
-                placeholder="Enter email"
-              >
-            </div>
+          </div>
+          <div class="form-group">
+            <label>Phone *</label>
+            <input type="tel" [(ngModel)]="passenger.phone" placeholder="10 digit mobile">
+          </div>
+          <div class="form-group">
+            <label>Email (Optional)</label>
+            <input type="email" [(ngModel)]="passenger.email" placeholder="Email">
           </div>
         </div>
       </div>
-      
       <div class="modal-footer">
-        <button class="btn-secondary" (click)="showPassengerModal = false; clearTempSelection()">
-          Cancel
-        </button>
-        <button 
-          class="btn-primary" 
-          (click)="confirmAllPassengers()"
-          [disabled]="!areAllPassengersValid()"
-        >
-          Confirm All Passengers
+        <button class="btn-secondary" (click)="showPassengerModal = false">Cancel</button>
+        <button class="btn-primary" (click)="confirmAllPassengers()" [disabled]="!areAllPassengersValid()">
+          Confirm & Book
         </button>
       </div>
     </div>

@@ -30,8 +30,8 @@
   <!-- Filters -->
   <div class="filters-section">
     <div class="search-box">
-      <input type="text" placeholder="Search bus number, name or driver..." 
-             [(ngModel)]="searchTerm" (input)="onSearch()" [disabled]="isLoading">
+      <input type="text" placeholder="Search bus number, name or driver..." [(ngModel)]="searchTerm"
+        (input)="onSearch()" [disabled]="isLoading">
     </div>
     <div class="filter-group">
       <select [(ngModel)]="selectedRoute" (change)="onFilterChange()" [disabled]="isLoading">
@@ -93,48 +93,52 @@
           <th>Bus Number</th>
           <th>Bus Name</th>
           <th>Type</th>
+           <th>Operator</th>
           <th>Route</th>
-          <th>Driver</th>
-          <th>Seats</th>
+           <th>Origin</th>
+            <th>destination</th>
+            <th>departureTime</th>
+            <th>arrivalTime</th>
+            <th>destination</th>
           <th>Fare (₹)</th>
+          <th>Seats</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
       </thead>
-      <tbody>
-        <tr *ngFor="let bus of filteredBuses">
-          <td><strong>{{ bus.busNumber }}</strong></td>
-          <td>{{ bus.busName }}</td>
-          <td>{{ bus.busType }}</td>
-          <td>
-            {{ bus.routeName }}<br>
-            <small class="route-detail">{{ bus.origin }} → {{ bus.destination }} ({{ bus.distance }}km)</small>
-          </td>
-          <td>
-            {{ bus.driverName }}<br>
-            <small>{{ bus.driverPhone }}</small>
-          </td>
-          <td>{{ bus.totalSeats }}</td>
-          <td class="fare-amount">₹{{ bus.fare }}</td>
-          <td>
-            <span class="status-badge" [ngClass]="getStatusClass(bus.status)">
-              {{ bus.status }}
-            </span>
-          </td>
-          <td class="actions">
-            <button class="btn-icon" (click)="openDetailsModal(bus)" title="View Details">👁️</button>
-            <button class="btn-icon" (click)="openEditModal(bus)" title="Edit Bus">✏️</button>
-            <button class="btn-icon" (click)="toggleStatus(bus)" 
-                    [title]="bus.status === 'active' ? 'Deactivate' : 'Activate'">
-              {{ bus.status === 'active' ? '🔴' : '🟢' }}
-            </button>
-            <button class="btn-icon" (click)="openDeleteModal(bus)" title="Delete Bus">🗑️</button>
-          </td>
-        </tr>
-        <tr *ngIf="filteredBuses.length === 0">
-          <td colspan="9" class="no-data">No buses found</td>
-        </tr>
-      </tbody>
+<tbody>
+  <tr *ngFor="let bus of filteredBuses">
+    <td>{{ bus.busNumber || 'N/A' }}</td>
+    <td>{{ bus.busName || 'N/A' }}</td>
+    <td>{{ bus.busType || 'N/A' }}</td>
+    <td>{{ bus.operator || 'N/A' }}</td>
+    <td>{{ bus.route || (bus.origin + ' - ' + bus.destination) || 'N/A' }}</td>
+    <td>{{ bus.origin || 'N/A' }}</td>
+    <td>{{ bus.destination || 'N/A' }}</td>
+    <td>{{ bus.departureTime || 'N/A' }}</td>
+    <td>{{ bus.arrivalTime || 'N/A' }}</td>
+    <td>{{ bus.duration || 'N/A' }}</td>
+    <td>₹{{ bus.fare || bus.price || 0 }}</td>
+    <td>{{ bus.availableSeats || 0 }}/{{ bus.totalSeats || 0 }}</td>
+    <td>
+      <span class="status-badge" [ngClass]="getStatusClass(bus.status)">
+        {{ bus.status || 'unknown' }}
+      </span>
+    </td>
+    <td class="actions">
+      <button class="btn-icon" (click)="openDetailsModal(bus)" title="View Details">👁️</button>
+      <button class="btn-icon" (click)="openEditModal(bus)" title="Edit Bus">✏️</button>
+      <button class="btn-icon" (click)="toggleStatus(bus)"
+        [title]="(bus.status === 'active' ? 'Deactivate' : 'Activate')">
+        {{ bus.status === 'active' ? '🔴' : '🟢' }}
+      </button>
+      <button class="btn-icon" (click)="openDeleteModal(bus)" title="Delete Bus">🗑️</button>
+    </td>
+  </tr>
+  <tr *ngIf="filteredBuses.length === 0">
+    <td colspan="14" class="no-data">No buses found</td>
+  </tr>
+</tbody>
     </table>
   </div>
 
@@ -152,13 +156,12 @@
             <div class="form-row">
               <div class="form-group half">
                 <label>Bus Number <span class="required">*</span></label>
-                <input type="text" [(ngModel)]="newBus.busNumber" name="busNumber" 
-                       required placeholder="e.g., BA-1-KHA-1234">
+                <input type="text" [(ngModel)]="newBus.busNumber" name="busNumber" required
+                  placeholder="e.g., BA-1-KHA-1234">
               </div>
               <div class="form-group half">
                 <label>Bus Name <span class="required">*</span></label>
-                <input type="text" [(ngModel)]="newBus.busName" name="busName" 
-                       required placeholder="e.g., Shree Yatri">
+                <input type="text" [(ngModel)]="newBus.busName" name="busName" required placeholder="e.g., Shree Yatri">
               </div>
             </div>
 
@@ -183,8 +186,7 @@
             <div class="form-row">
               <div class="form-group half">
                 <label>Total Seats <span class="required">*</span></label>
-                <input type="number" [(ngModel)]="newBus.totalSeats" name="totalSeats" 
-                       required min="10" max="60">
+                <input type="number" [(ngModel)]="newBus.totalSeats" name="totalSeats" required min="10" max="60">
               </div>
               <div class="form-group half">
                 <label>Seat Layout</label>
@@ -199,7 +201,7 @@
               <div class="amenities-grid">
                 <label *ngFor="let amenity of amenityOptions" class="checkbox-label">
                   <input type="checkbox" [checked]="newBus.amenities.includes(amenity)"
-                         (change)="toggleAmenity(amenity)"> {{ amenity }}
+                    (change)="toggleAmenity(amenity)"> {{ amenity }}
                 </label>
               </div>
             </div>
@@ -228,22 +230,24 @@
             <div class="form-row">
               <div class="form-group half">
                 <label>Fare (₹) <span class="required">*</span></label>
-                <input type="number" [(ngModel)]="newBus.fare" name="fare" required min="1" 
-                       [class.auto-calculated]="currentFareInfo?.source === 'fare_declaration'"
-                       [class.calculated]="currentFareInfo?.source === 'calculated'">
+                <input type="number" [(ngModel)]="newBus.fare" name="fare" required min="1"
+                  [class.auto-calculated]="currentFareInfo?.source === 'fare_declaration'"
+                  [class.calculated]="currentFareInfo?.source === 'calculated'">
                 <div *ngIf="isCalculatingFare" class="calculating">
-                  <span class="spinner-small"></span> Loading fare...
+                  <span class="spinner-small"></span> Loading fare from declaration...
                 </div>
                 <div *ngIf="!isCalculatingFare && currentFareInfo" class="fare-info">
                   <span *ngIf="currentFareInfo.source === 'fare_declaration'" class="auto-calc">
                     ✅ From Fare Declaration: ₹{{ currentFareInfo.fare }}
                     <small *ngIf="currentFareInfo.effectiveFrom">
-                      (Valid: {{ currentFareInfo.effectiveFrom | date:'dd/MM/yyyy' }} - {{ currentFareInfo.effectiveTo | date:'dd/MM/yyyy' }})
+                      (Valid: {{ currentFareInfo.effectiveFrom | date:'dd/MM/yyyy' }} - {{ currentFareInfo.effectiveTo |
+                      date:'dd/MM/yyyy' }})
                     </small>
                   </span>
                   <span *ngIf="currentFareInfo.source === 'calculated'" class="calculated-info">
-                    ⚡ Calculated: ₹{{ currentFareInfo.fare }} ({{ currentFareInfo.distance }}km × ₹{{ currentFareInfo.rate }}/km)
-                    <small>No fare declaration found</small>
+                    ⚠️ No fare declaration found! Calculated: ₹{{ currentFareInfo.fare }}
+                    <small>({{ currentFareInfo.distance }}km × ₹{{ currentFareInfo.rate }}/km)</small>
+                    <br><small class="hint">Please create fare in Fare Declaration</small>
                   </span>
                 </div>
               </div>
@@ -259,7 +263,8 @@
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
-        <button class="btn-primary" (click)="saveBus()" [disabled]="!addForm.form.valid || isLoading || isCalculatingFare">
+        <button class="btn-primary" (click)="saveBus()"
+          [disabled]="!addForm.form.valid || isLoading || isCalculatingFare">
           <span class="spinner-small" *ngIf="isLoading"></span>
           {{ isLoading ? 'Saving...' : 'Save Bus' }}
         </button>
@@ -301,7 +306,8 @@
             <div class="form-row">
               <div class="form-group half">
                 <label>Total Seats</label>
-                <input type="number" [(ngModel)]="selectedBus.totalSeats" name="editTotalSeats" required min="10" max="60">
+                <input type="number" [(ngModel)]="selectedBus.totalSeats" name="editTotalSeats" required min="10"
+                  max="60">
               </div>
               <div class="form-group half">
                 <label>Seat Layout</label>
@@ -336,7 +342,7 @@
               <div class="form-group half">
                 <label>Fare (₹)</label>
                 <input type="number" [value]="selectedBus.fare" class="readonly-field" readonly>
-                <small class="field-hint">Fare is based on route and bus type from fare declarations</small>
+                <small class="field-hint">Fare is from Fare Declaration</small>
               </div>
               <div class="form-group half">
                 <label>Status</label>

@@ -12,16 +12,20 @@ import { OffersComponent } from './components/admin/offers/offers.component';
 import { BusListComponent } from './components/public/bus-list/bus-list.component';
 import { SeatSelectionComponent } from './components/public/seat-selection/seat-selection.component';
 import { CustomersComponent } from './components/admin/customers/customers.component';
-
 import { AuthGuard } from './guards/auth.guard';
 import { BusFleetComponent } from './components/admin/bus-fleet/bus-fleet.component';
 import { AdminGuard } from './guards/admin.guard';
+import { MyBookingsComponent } from './components/public/my-bookings/my-bookings.component';
+import { BookingComponent } from './components/public/booking/booking.component';
+import { AdminBookingComponent } from './components/admin/admin-booking/admin-booking.component';
 export const routes: Routes = [
     { path: '', component: HomeComponent },
     { path: 'login', component: LoginComponent },
     { path: 'register', component: RegisterComponent },
     { path: 'buses', component: BusListComponent },
     { path: 'seat-selection/:id', component: SeatSelectionComponent },
+    { path: 'my-bookings', component: MyBookingsComponent, canActivate: [AuthGuard] },
+    { path: 'booking/:id', component: BookingComponent, canActivate: [AuthGuard] },
     { 
         path: 'admin', 
         component: AdminDashboardComponent,
@@ -29,6 +33,7 @@ export const routes: Routes = [
         children: [
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
             { path: 'dashboard', component: AdminDashboardComponent },
+             { path: 'bookingdetails', component: AdminBookingComponent },
             { path: 'companies', component: CompaniesComponent },
             { path: 'customers', component: CustomersComponent },
             { path: 'route-plan', component: RoutePlanComponent },

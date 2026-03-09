@@ -1,1 +1,210 @@
 <p>my-bookings works!</p>
+<div class="my-bookings-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>My Bookings</h1>
+      <p class="booking-count">{{ filteredBookings.length }} booking(s) found</p>
+    </div>
+    <button class="btn-primary" routerLink="/buses">
+      <span class="icon">🔍</span> Search New Buses
+    </button>
+  </div>
+
+  <!-- Messages -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+    <button class="close-btn" (click)="successMessage = ''">×</button>
+  </div>
+  <div *ngIf="errorMessage" class="alert alert-error">
+    {{ errorMessage }}
+    <button class="close-btn" (click)="errorMessage = ''">×</button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading your bookings...</p>
+  </div>
+
+  <div *ngIf="!isLoading">
+    <!-- Statistics Cards -->
+    <div class="stats-cards" *ngIf="bookings.length > 0">
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-info">
+          <span class="stat-label">Total Bookings</span>
+          <span class="stat-value">{{ totalBookings }}</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-info">
+          <span class="stat-label">Total Spent</span>
+          <span class="stat-value">₹{{ totalSpent }}</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+          <span class="stat-label">Active</span>
+          <span class="stat-value">{{ activeBookings }}</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">❌</div>
+        <div class="stat-info">
+          <span class="stat-label">Cancelled</span>
+          <span class="stat-value">{{ cancelledBookings }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-section" *ngIf="bookings.length > 0">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          placeholder="Search by booking ID, bus, route, or passenger..." 
+          [(ngModel)]="searchTerm"
+          (input)="onSearch()"
+        >
+      </div>
+      
+      <div class="filter-group">
+        <select [(ngModel)]="selectedStatus" (change)="onFilterChange()">
+          <option value="all">All Status</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="completed">Completed</option>
+          <option value="pending">Pending</option>
+        </select>
+
+        <select [(ngModel)]="selectedMonth" (change)="onFilterChange()">
+          <option *ngFor="let month of months" [value]="month.value">
+            {{ month.label }}
+          </option>
+        </select>
+
+        <button class="btn-clear" (click)="clearFilters()" *ngIf="searchTerm || selectedStatus !== 'all' || selectedMonth !== 'all'">
+          Clear Filters
+        </button>
+      </div>
+    </div>
+
+    <!-- No Bookings State -->
+    <div class="no-bookings" *ngIf="bookings.length === 0">
+      <div class="no-bookings-icon">🎫</div>
+      <h2>No Bookings Yet</h2>
+      <p>You haven't made any bookings. Start your journey with us!</p>
+      <button class="btn-primary" routerLink="/buses">Search Buses</button>
+    </div>
+
+    <!-- No Results State -->
+    <div class="no-results" *ngIf="bookings.length > 0 && filteredBookings.length === 0">
+      <div class="no-results-icon">🔍</div>
+      <h3>No matching bookings found</h3>
+      <p>Try adjusting your filters or search term</p>
+      <button class="btn-secondary" (click)="clearFilters()">Clear Filters</button>
+    </div>
+
+    <!-- Bookings List -->
+    <div class="bookings-list" *ngIf="filteredBookings.length > 0">
+      <div class="booking-card" *ngFor="let booking of getPaginatedBookings()">
+        <!-- Booking Header -->
+        <div class="booking-header" [ngClass]="booking.status">
+          <div class="header-left">
+            <span class="status-icon">{{ getStatusIcon(booking.status) }}</span>
+            <div>
+              <span class="booking-id">{{ booking.bookingId }}</span>
+              <span class="booking-date">Booked on {{ booking.bookingDate | date:'mediumDate' }}</span>
+            </div>
+          </div>
+          <span class="status-badge" [ngClass]="getStatusClass(booking.status)">
+            {{ booking.status | uppercase }}
+          </span>
+        </div>
+
+        <!-- Booking Body -->
+        <div class="booking-body">
+          <!-- Bus and Route Info -->
+          <div class="route-info">
+            <div class="bus-info">
+              <h3>{{ booking.busDetails.busName }}</h3>
+              <p>{{ booking.busDetails.busType }} | {{ booking.busDetails.operator }}</p>
+            </div>
+
+            <div class="journey-info">
+              <div class="journey-point">
+                <span class="time">{{ formatTime(booking.routeDetails.departureTime) }}</span>
+                <span class="city">{{ booking.routeDetails.origin }}</span>
+              </div>
+              <div class="journey-arrow">→</div>
+              <div class="journey-point">
+                <span class="time">{{ formatTime(booking.routeDetails.arrivalTime) }}</span>
+                <span class="city">{{ booking.routeDetails.destination }}</span>
+              </div>
+              <div class="journey-duration">
+                <span class="duration-label">Duration</span>
+                <span class="duration-value">{{ booking.routeDetails.duration }}</span>
+              </div>
+            </div>
+
+            <div class="journey-date">
+              <span class="date-label">Journey Date</span>
+              <span class="date-value">{{ formatDate(booking.journeyDate) }}</span>
+            </div>
+          </div>
+
+          <!-- Passengers Summary -->
+          <div class="passengers-summary">
+            <span class="passengers-label">Passengers</span>
+            <div class="passenger-chips">
+              <span class="passenger-chip" *ngFor="let seat of booking.seats.slice(0, 3)">
+                {{ seat.seatNumber }} - {{ seat.passengerName.split(' ')[0] }}
+              </span>
+              <span class="more-passengers" *ngIf="booking.seats.length > 3">
+                +{{ booking.seats.length - 3 }} more
+              </span>
+            </div>
+          </div>
+
+          <!-- Price Summary -->
+          <div class="price-summary">
+            <div class="price-item">
+              <span class="price-label">Total Amount</span>
+              <span class="price-value">₹{{ booking.totalAmount + booking.taxAmount }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Booking Footer -->
+        <div class="booking-footer">
+          <button class="btn-view" (click)="viewBooking(booking._id)">
+            View Details
+          </button>
+          <button 
+            class="btn-cancel" 
+            *ngIf="canCancel(booking)"
+            (click)="cancelBooking(booking)"
+            [disabled]="cancelInProgress === booking._id">
+            <span *ngIf="cancelInProgress !== booking._id">Cancel Booking</span>
+            <span *ngIf="cancelInProgress === booking._id" class="spinner-small"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" *ngIf="totalPages > 1">
+        <button class="page-btn" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
+          ← Prev
+        </button>
+        <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+        <button class="page-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
+          Next →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
