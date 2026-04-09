@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { BusService, Bus, SearchCriteria, ApiResponse, SearchResponse } from '../../../services/bus.service';
 
 @Component({
@@ -17,8 +17,7 @@ export class BusListComponent implements OnInit {
   popularRoutes: string[] = [];
   operators: string[] = [];
   
-  date: Date = new Date();
-  passengers: number = 1;
+  showFilters: boolean = false;
   
   searchCriteria: SearchCriteria = {
     from: '',
@@ -49,12 +48,10 @@ export class BusListComponent implements OnInit {
   searchMessage: string = '';
 
   constructor(
-    private busService: BusService,
-    private router: Router
-  ) {
-    this.date = new Date(this.searchCriteria.date);
-    this.passengers = this.searchCriteria.passengers;
-  }
+    public busService: BusService,
+    private router: Router,
+    private route: ActivatedRoute
+  ) {}
 
   ngOnInit() {
     this.loadPopularRoutes();
@@ -65,12 +62,15 @@ export class BusListComponent implements OnInit {
     const to = urlParams.get('to');
     const from = urlParams.get('from');
     const date = urlParams.get('date');
+    const passengers = urlParams.get('passengers');
     
     if (from) this.searchCriteria.from = from;
     if (to) this.searchCriteria.to = to;
     if (date) this.searchCriteria.date = date;
+    if (passengers) this.searchCriteria.passengers = parseInt(passengers);
     
-    if (from || to) {
+    // Auto-search if we have both locations
+    if (this.searchCriteria.from && this.searchCriteria.to) {
       this.searchBuses();
     }
   }
@@ -84,6 +84,8 @@ export class BusListComponent implements OnInit {
       },
       error: (error: any) => {
         console.error('Error loading popular routes:', error);
+        // Fallback popular routes
+        this.popularRoutes = ['Mumbai-Pune', 'Delhi-Jaipur', 'Bangalore-Chennai'];
       }
     });
   }
@@ -113,10 +115,6 @@ export class BusListComponent implements OnInit {
     this.searchMessage = '';
     this.showSearchResults = true;
 
-    // Update component properties
-    this.date = new Date(this.searchCriteria.date);
-    this.passengers = this.searchCriteria.passengers;
-
     this.busService.searchBuses(this.searchCriteria).subscribe({
       next: (response: SearchResponse) => {
         if (response.success) {
@@ -124,9 +122,9 @@ export class BusListComponent implements OnInit {
           this.filteredBuses = [...this.buses];
           
           if (this.buses.length === 0) {
-            this.searchMessage = `No buses found from ${response.from} to ${response.to}`;
+            this.searchMessage = `No buses found from ${this.searchCriteria.from} to ${this.searchCriteria.to} on ${this.searchCriteria.date}`;
           } else {
-            this.searchMessage = `Found ${response.count} buses from ${response.from} to ${response.to}`;
+            this.searchMessage = `Found ${response.count} buses from ${this.searchCriteria.from} to ${this.searchCriteria.to}`;
           }
           
           this.applyFilters();
@@ -170,7 +168,7 @@ export class BusListComponent implements OnInit {
       
       // Filter by operator
       if (this.filters.operator !== 'all') {
-        const busOperator = bus.operator || (bus.busName ? bus.busName.split(' ')[0] : '');
+        const busOperator = bus.operator || '';
         if (busOperator !== this.filters.operator) return false;
       }
       
@@ -241,9 +239,47 @@ export class BusListComponent implements OnInit {
 
   selectBus(bus: Bus): void {
     if (bus._id) {
-      this.router.navigate(['/seat-selection', bus._id], {
-        queryParams: { passengers: this.searchCriteria.passengers }
+      // Get the search criteria from the component
+      const fromLocation = this.searchCriteria.from;
+      const toLocation = this.searchCriteria.to;
+      const journeyDate = this.searchCriteria.date;
+      const numberOfPassengers = this.searchCriteria.passengers;
+      
+      console.log('Navigating to seat selection with:', {
+        busId: bus._id,
+        from: fromLocation,
+        to: toLocation,
+        date: journeyDate,
+        passengers: numberOfPassengers,
+        fare: this.getPrice(bus),
+        busNumber: bus.busNumber,
+        busType: bus.busType,
+        departureTime: bus.departureTime,
+        arrivalTime: bus.arrivalTime
       });
+      
+      // Navigate to seat selection with all required query parameters
+      this.router.navigate(['/seat-selection', bus._id], {
+        queryParams: { 
+          from: fromLocation,
+          to: toLocation,
+          date: journeyDate,
+          passengers: numberOfPassengers,
+          fare: this.getPrice(bus),
+          busNumber: bus.busNumber,
+          busType: bus.busType,
+          busName: bus.busName || bus.operator,
+          departureTime: bus.departureTime,
+          arrivalTime: bus.arrivalTime,
+          duration: bus.duration,
+          totalSeats: bus.totalSeats,
+          availableSeats: bus.availableSeats
+        }
+      });
+    } else {
+      console.error('Bus ID is missing');
+      this.errorMessage = 'Invalid bus selection. Please try again.';
+      setTimeout(() => this.errorMessage = '', 3000);
     }
   }
 
@@ -267,7 +303,12 @@ export class BusListComponent implements OnInit {
       'Snacks': '🍪',
       'Blanket': '🧣',
       'Water Bottle': '💧',
-      'Movie': '🎬'
+      'Movie': '🎬',
+      'GPS': '📍',
+      'Reading Light': '💡',
+      'Emergency Exit': '🚪',
+      'First Aid': '🏥',
+      'Fire Extinguisher': '🧯'
     };
     return icons[amenity] || '✓';
   }
@@ -277,12 +318,13 @@ export class BusListComponent implements OnInit {
   }
 
   getOperatorName(bus: Bus): string {
-    return bus.operator || (bus.busName ? bus.busName.split(' ')[0] : 'Travels');
+    return bus.operator || bus.busName || 'Unknown Operator';
   }
 
   getStatusClass(status: string | undefined): string {
     switch(status?.toLowerCase()) {
       case 'active': return 'status-active';
+      case 'inactive': return 'status-inactive';
       case 'full': return 'status-full';
       case 'cancelled': return 'status-cancelled';
       default: return 'status-scheduled';

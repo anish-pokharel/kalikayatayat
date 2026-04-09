@@ -1,69 +1,3 @@
-// import { Component, OnInit } from '@angular/core';
-// import { CommonModule } from '@angular/common';
-// import { FormsModule } from '@angular/forms';
-// import { RouterModule, ActivatedRoute, Router } from '@angular/router';
-// import { BookingService, Booking } from '../../../services/booking.service';
-
-// @Component({
-//   selector: 'app-booking',
-//   standalone: true,
-//   imports: [CommonModule, FormsModule, RouterModule], 
-//   templateUrl: './booking.component.html',
-//   styleUrl: './booking.component.css'
-// })
-// export class BookingComponent implements OnInit {
-//   bookingId: string = '';
-//   booking: Booking | null = null;
-//   isLoading: boolean = true;
-//   errorMessage: string = '';
-
-//   constructor(
-//     private route: ActivatedRoute,
-//     private router: Router,
-//     private bookingService: BookingService
-//   ) {}
-
-//   ngOnInit() {
-//     this.route.params.subscribe(params => {
-//       this.bookingId = params['id'];
-//       this.loadBooking();
-//     });
-//   }
-
-//   loadBooking() {
-//     this.isLoading = true;
-//     this.bookingService.getBookingById(this.bookingId).subscribe({
-//       next: (response: any) => {
-//         if (response.success) {
-//           this.booking = response.data;
-//         }
-//         this.isLoading = false;
-//       },
-//       error: (error) => {
-//         console.error('Error loading booking:', error);
-//         this.errorMessage = 'Failed to load booking details';
-//         this.isLoading = false;
-//       }
-//     });
-//   }
-
-//   downloadTicket() {
-//     // Implement ticket download functionality
-//     alert('Ticket download feature coming soon!');
-//   }
-
-//   printTicket() {
-//     window.print();
-//   }
-
-//   goToMyBookings() {
-//     this.router.navigate(['/my-bookings']);
-//   }
-
-//   goToHome() {
-//     this.router.navigate(['/']);
-//   }
-// }
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -106,12 +40,14 @@ export class BookingComponent implements OnInit {
       next: (response: any) => {
         if (response.success) {
           this.booking = response.data;
+        } else {
+          this.errorMessage = response.message || 'Failed to load booking details';
         }
         this.isLoading = false;
       },
       error: (error) => {
         console.error('Error loading booking:', error);
-        this.errorMessage = 'Failed to load booking details';
+        this.errorMessage = 'Failed to load booking details. Please try again.';
         this.isLoading = false;
       }
     });
@@ -123,30 +59,24 @@ export class BookingComponent implements OnInit {
     this.downloadInProgress = true;
     
     try {
-      // Create PDF document
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
+      const primaryColor = [52, 152, 219];
+      const secondaryColor = [46, 204, 113];
       
-      // Colors
-      const primaryColor = [52, 152, 219]; // #3498db
-      const secondaryColor = [46, 204, 113]; // #2ecc71
-      
-      // Header with gradient effect
+      // Header
       doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
       doc.rect(0, 0, pageWidth, 40, 'F');
       
-      // Title
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(24);
       doc.setFont('helvetica', 'bold');
       doc.text('E-Ticket', pageWidth / 2, 25, { align: 'center' });
       
-      // Booking ID
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.text(`Booking ID: ${this.booking.bookingId}`, pageWidth / 2, 35, { align: 'center' });
       
-      // Reset text color
       doc.setTextColor(0, 0, 0);
       
       // Journey Details
@@ -187,14 +117,13 @@ export class BookingComponent implements OnInit {
       const tableRows: any[][] = [];
       
       this.booking.seats.forEach(seat => {
-        const row = [
+        tableRows.push([
           seat.seatNumber,
           seat.passengerName,
           seat.passengerAge,
           seat.passengerGender,
           seat.passengerPhone
-        ];
-        tableRows.push(row);
+        ]);
       });
       
       (doc as any).autoTable({
@@ -219,18 +148,16 @@ export class BookingComponent implements OnInit {
       
       const paymentY = finalY + 10;
       doc.text(`Base Fare: ₹${this.booking.totalAmount}`, 20, paymentY);
-      doc.text(`GST (18%): ₹${this.booking.taxAmount}`, 20, paymentY + 7);
+      doc.text(`GST (5%): ₹${this.booking.taxAmount}`, 20, paymentY + 7);
       
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
       doc.text(`Total Paid: ₹${this.booking.totalAmount + this.booking.taxAmount}`, 20, paymentY + 17);
       
-      // Reset color
       doc.setTextColor(0, 0, 0);
       
-      // Footer with instructions
+      // Footer
       const footerY = paymentY + 35;
-      
       doc.setFillColor(245, 245, 245);
       doc.rect(20, footerY, pageWidth - 40, 30, 'F');
       
@@ -242,7 +169,6 @@ export class BookingComponent implements OnInit {
       doc.text('• Carry a valid ID proof for all passengers', 25, footerY + 21);
       doc.text('• This is a paperless e-ticket. Show this on your mobile device', 25, footerY + 28);
       
-      // Save PDF
       doc.save(`Ticket_${this.booking.bookingId}.pdf`);
       
     } catch (error) {
@@ -256,7 +182,6 @@ export class BookingComponent implements OnInit {
   printTicket() {
     if (!this.booking) return;
     
-    // Create a printable version
     const printContent = document.createElement('div');
     printContent.innerHTML = `
       <html>
@@ -322,13 +247,7 @@ export class BookingComponent implements OnInit {
             <h2>Passenger Details</h2>
             <table>
               <thead>
-                <tr>
-                  <th>Seat</th>
-                  <th>Name</th>
-                  <th>Age</th>
-                  <th>Gender</th>
-                  <th>Phone</th>
-                </tr>
+                <tr><th>Seat</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th></tr>
               </thead>
               <tbody>
                 ${this.booking.seats.map(seat => `
@@ -346,21 +265,10 @@ export class BookingComponent implements OnInit {
           
           <div class="section">
             <h2>Payment Details</h2>
-            <div class="payment-row">
-              <span>Base Fare:</span>
-              <span>₹${this.booking.totalAmount}</span>
-            </div>
-            <div class="payment-row">
-              <span>GST (18%):</span>
-              <span>₹${this.booking.taxAmount}</span>
-            </div>
-            <div class="payment-row total">
-              <span>Total Paid:</span>
-              <span>₹${this.booking.totalAmount + this.booking.taxAmount}</span>
-            </div>
-            <div style="text-align: right; margin-top: 15px;">
-              <span class="status-paid">PAID</span>
-            </div>
+            <div class="payment-row"><span>Base Fare:</span><span>₹${this.booking.totalAmount}</span></div>
+            <div class="payment-row"><span>GST (5%):</span><span>₹${this.booking.taxAmount}</span></div>
+            <div class="payment-row total"><span>Total Paid:</span><span>₹${this.booking.totalAmount + this.booking.taxAmount}</span></div>
+            <div style="text-align: right; margin-top: 15px;"><span class="status-paid">PAID</span></div>
           </div>
           
           <div class="footer">
@@ -376,13 +284,7 @@ export class BookingComponent implements OnInit {
       printWindow.document.write(printContent.innerHTML);
       printWindow.document.close();
       printWindow.focus();
-      
-      // Wait for content to load then print
-      printWindow.onload = () => {
-        printWindow.print();
-        // Keep the window open after printing (optional)
-        // printWindow.close();
-      };
+      printWindow.onload = () => printWindow.print();
     } else {
       alert('Please allow pop-ups to print the ticket');
     }
@@ -394,22 +296,5 @@ export class BookingComponent implements OnInit {
 
   goToHome() {
     this.router.navigate(['/']);
-  }
-
-  // Format date for display
-  formatDate(date: any): string {
-    if (!date) return '';
-    return new Date(date).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  }
-
-  // Calculate total with tax
-  getTotalWithTax(): number {
-    if (!this.booking) return 0;
-    return this.booking.totalAmount + this.booking.taxAmount;
   }
 }

@@ -1,221 +1,354 @@
-<div class="seat-selection-container">
-  <!-- Loading State -->
-  <div class="loading-overlay" *ngIf="isLoading">
-    <div class="spinner"></div>
-    <p>Loading bus details...</p>
+<div class="seat-container">
+  <!-- Header Section -->
+  <div class="booking-header">
+    <button class="back-btn" (click)="goBack()">← Back</button>
+    <div class="bus-title">
+      <h1>{{ getOperatorName() }}</h1>
+      <p>{{ journeyDetails.from }} → {{ journeyDetails.to }} | {{ journeyDetails.date }}</p>
+    </div>
   </div>
 
-  <!-- Error & Success Messages -->
-  <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
-  <div class="success-message" *ngIf="successMessage">{{ successMessage }}</div>
-
-  <!-- Back Button -->
-  <div class="back-button-container" *ngIf="!isLoading && busDetails">
-    <button class="btn-back" (click)="goBack()">← Back to Buses</button>
-  </div>
-  <!-- Success Message Overlay -->
-<div class="success-overlay" *ngIf="showBookingSuccess">
-  <div class="success-card">
-    <div class="success-icon">✅</div>
-    <h2>Booking Confirmed!</h2>
-    <p>Your booking ID: <strong>{{ bookingResponse?.bookingId }}</strong></p>
-    <p>Redirecting to booking details...</p>
-    <div class="success-spinner"></div>
-  </div>
-</div>
-
-  <!-- Bus Info Header -->
-  <div class="bus-info-header" *ngIf="busDetails">
-    <div class="container">
-      <div class="bus-info-grid">
-        <div class="bus-info">
-          <h2>{{ busDetails.operator || (busDetails.busName.split(' ')[0] || 'Travels') }}</h2>
-          <p class="bus-name">{{ busDetails.busName || 'Bus' }}</p>
-          <p class="bus-type">{{ busDetails.busType || 'Standard' }} | Total: {{ busDetails.totalSeats || 0 }} seats</p>
-        </div>
-        <div class="route-info">
-          <div class="route-point">
-            <span class="time">{{ busDetails.departureTime || '08:00' }}</span>
-            <span class="city">{{ busDetails.origin || 'Origin' }}</span>
-          </div>
-          <div class="route-duration">{{ busDetails.duration || '12h' }}</div>
-          <div class="route-point">
-            <span class="time">{{ busDetails.arrivalTime || '20:00' }}</span>
-            <span class="city">{{ busDetails.destination || 'Destination' }}</span>
-          </div>
-        </div>
-        <div class="price-info">
-          <span class="label">Starting from</span>
-          <span class="price">₹{{ busDetails.fare || 0 }}</span>
-        </div>
+  <!-- Bus Info Card -->
+  <div class="bus-info-card" *ngIf="busDetails">
+    <div class="bus-info-header">
+      <h2>{{ getBusName() }}</h2>
+      <span class="bus-number">{{ getBusNumber() }}</span>
+    </div>
+    <div class="bus-info-details">
+      <div class="info-row">
+        <span class="info-label">Operator:</span>
+        <span class="info-value">{{ getOperatorName() }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Departure:</span>
+        <span class="info-value">{{ getDepartureTime() }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Arrival:</span>
+        <span class="info-value">{{ getArrivalTime() }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Journey Date:</span>
+        <span class="info-value">{{ journeyDetails.date }}</span>
       </div>
     </div>
   </div>
 
-  <!-- Main Content -->
-  <div class="container" *ngIf="busDetails">
-    <div class="seat-layout-grid">
-      <!-- Seat Layout -->
-      <div class="seat-layout">
-        <h3>Select Your Seats</h3>
-        
-        <!-- Selection Controls -->
-        <div class="selection-controls">
-          <div class="seat-limit-info">
-            <span class="limit-badge">Max {{ maxSeats }} seats</span>
-            <span class="selected-count">Selected: {{ getSelectedSeatsCount() }}/{{ maxSeats }}</span>
-          </div>
-          <button class="multi-select-btn" [class.active]="isMultiSelectMode" (click)="toggleMultiSelectMode()">
-            {{ isMultiSelectMode ? '✓ Multi-Select On' : '☑ Multi-Select' }}
-          </button>
+  <!-- Main 2-Column Layout -->
+  <div class="main-layout">
+    <!-- LEFT COLUMN: SEAT MAP -->
+    <div class="seat-map-section">
+      <div class="seat-map-header">
+        <h3>Select Seats (Max {{ maxSeats }})</h3>
+        <button 
+          class="multi-select-toggle" 
+          [class.active]="isMultiSelectMode"
+          (click)="toggleMultiSelectMode()">
+          {{ isMultiSelectMode ? 'Exit Multi-Select' : 'Multi-Select Mode' }}
+        </button>
+      </div>
+
+      <!-- Test Button -->
+      <button (click)="testMarkBookedSeats()" style="margin: 10px; padding: 8px 16px; background: orange; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        🧪 Test Mark Booked Seats
+      </button>
+
+      <!-- Bus Layout -->
+      <div class="bus-layout-card">
+        <div class="driver-area">
+          <div class="driver-seat">🚌 Driver</div>
         </div>
 
-        <!-- Legend -->
- <!-- Legend -->
-<div class="seat-legend">
-  <div class="legend-item"><span class="seat-box seat-available"></span> Available</div>
-  <div class="legend-item"><span class="seat-box seat-selected"></span> Selected</div>
-  <div class="legend-item"><span class="seat-box seat-temp-selected"></span> Pending</div>
-  <div class="legend-item"><span class="seat-box seat-ladies"></span> Ladies</div>
-  <div class="legend-item"><span class="seat-box seat-occupied"></span> Occupied</div>
-  <div class="legend-item"><span class="seat-box seat-booked"></span> Booked</div>
-</div>
-        <!-- Bus Layout -->
-        <div class="bus-layout">
-          <!-- Driver Area -->
-          <div class="driver-area">Driver</div>
-          
-          <!-- Column Labels -->
-          <div class="column-labels">
-            <div class="column-label" *ngFor="let col of ['A', 'B', 'C', 'D']">{{ col }}</div>
-          </div>
-
-          <!-- Seat Rows -->
-          <div class="seat-rows">
-            <div class="seat-row" *ngFor="let row of getRowNumbers()">
-              <div class="seat-wrapper" *ngFor="let seat of getSeatsByRow(row)">
-                <div class="seat" [ngClass]="getSeatStatusClass(seat)" (click)="toggleSeat(seat)">
-                  {{ seat?.number }}
-                  <span class="ladies-icon" *ngIf="seat?.isLadies">👩</span>
-                </div>
+        <!-- Seat Grid -->
+        <div class="seat-grid">
+          <div *ngFor="let row of getRowNumbers()" class="seat-row">
+            <div class="row-label">{{ getRowLetter(row) }}</div>
+            <div class="seats-wrapper">
+              <!-- NEW SEAT TEMPLATE - REPLACED HERE -->
+              <div 
+                *ngFor="let seat of getSeatsByRow(row)" 
+                class="seat"
+                [ngClass]="{
+                  'seat-available': seat.status === 'available',
+                  'seat-selected': seat.status === 'selected',
+                  'seat-occupied': seat.status === 'booked' || seat.status === 'occupied',
+                  'seat-ladies': seat.isLadies && seat.status === 'available',
+                  'seat-temp': seat.tempSelected,
+                  'seat-driver': seat.seatType === 'driver'
+                }"
+                (click)="toggleSeat(seat)"
+                [title]="getSeatTooltip(seat)">
+                <span class="seat-number">{{ seat.number }}</span>
+                <span class="seat-status-icon" *ngIf="seat.status === 'booked'">🔴</span>
+                <span class="seat-price" *ngIf="seat.status !== 'booked' && seat.status !== 'occupied' && seat.seatType !== 'driver'">
+                  ₹{{ seat.price }}
+                </span>
               </div>
             </div>
           </div>
-
-          <!-- Exit -->
-          <div class="exit-area">🚪 Exit</div>
         </div>
 
-        <!-- Multi-select Actions -->
-        <div class="multi-select-actions" *ngIf="isMultiSelectMode && getTempSelectedCount() > 0">
-          <span>{{ getTempSelectedCount() }} seat(s) pending</span>
-          <div class="action-buttons">
-            <button class="btn-cancel" (click)="cancelMultiSelection()">Cancel</button>
-            <button class="btn-confirm" (click)="confirmMultiSelection()">Confirm Seats</button>
+        <!-- Legend -->
+        <div class="seat-legend">
+          <div class="legend-item"><span class="legend-box available"></span> Available</div>
+          <div class="legend-item"><span class="legend-box selected"></span> Selected</div>
+          <div class="legend-item"><span class="legend-box occupied"></span> Booked</div>
+          <div class="legend-item"><span class="legend-box ladies"></span> Ladies Only</div>
+          <div class="legend-item"><span class="legend-box temp"></span> Temp Selected</div>
+        </div>
+
+        <!-- Multi-Select Confirmation Bar -->
+        <div class="multi-select-bar" *ngIf="isMultiSelectMode && tempSelectedSeats.length > 0">
+          <span>{{ tempSelectedSeats.length }} seat(s) selected temporarily</span>
+          <div>
+            <button class="btn-cancel-sm" (click)="cancelMultiSelection()">Cancel</button>
+            <button class="btn-confirm-sm" (click)="confirmMultiSelection()">Confirm Selection</button>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Booking Summary -->
-      <div class="booking-summary">
+    <!-- RIGHT COLUMN: BOOKING SUMMARY -->
+    <div class="summary-section">
+      <div class="summary-card">
         <h3>Booking Summary</h3>
 
-        <!-- Seat Limit Warning -->
-        <div class="seat-limit-warning" *ngIf="showLimitWarning">
-          ⚠️ Max {{ maxSeats }} seats allowed
+        <!-- User Info -->
+        <div class="user-info-bar" *ngIf="currentUser">
+          <div class="user-avatar">
+            {{ (currentUser.firstName?.charAt(0) || 'U') + (currentUser.lastName?.charAt(0) || '') }}
+          </div>
+          <div class="user-details">
+            <div class="user-name">{{ currentUser.firstName }} {{ currentUser.lastName }}</div>
+            <div class="user-email">{{ currentUser.email }}</div>
+          </div>
         </div>
 
-        <!-- Boarding Point Selection -->
-      <!-- Boarding Point Selection -->
-<div class="boarding-point-section">
-  <h4>Boarding Point</h4>
-  <select [(ngModel)]="selectedBoardingPoint" class="boarding-select">
-    <option *ngFor="let point of boardingPoints" [ngValue]="point">
-      {{ point.name }} - {{ point.time }} ({{ point.address }})
-    </option>
-  </select>
-</div>
+        <!-- Selected Seats List -->
+        <div class="selected-seats-list">
+          <h4>Selected Seats ({{ selectedSeats.length }})</h4>
+          <div *ngIf="selectedSeats.length === 0" class="empty-message">No seats selected</div>
+          <div *ngFor="let seat of selectedSeats" class="selected-seat-item">
+            <span><strong>{{ seat.number }}</strong> - ₹{{ seat.price }}</span>
+            <button class="remove-seat" (click)="removeSelectedSeat(seat)">✕</button>
+          </div>
+        </div>
 
-        <!-- Selected Seats -->
-     <div class="selected-seats" *ngIf="selectedSeats.length > 0">
-  <h4>Selected Seats ({{ selectedSeats.length }})</h4>
-  <div class="seats-list">
-    <div class="seat-item" *ngFor="let seat of selectedSeats">
-      <span class="seat-number">{{ seat.number }}</span>
-      <span class="seat-price">₹{{ seat.price }}</span>
-      <button class="btn-remove" (click)="removeSelectedSeat(seat)">✕</button>
+        <!-- Boarding Point Dropdown -->
+        <div class="boarding-section">
+          <label>Boarding Point *</label>
+          <select class="form-control" [(ngModel)]="selectedBoardingPoint" (change)="calculateTotal()">
+            <option [ngValue]="null">Select Boarding Point</option>
+            <option *ngFor="let bp of boardingPoints" [ngValue]="bp">
+              {{ bp.name }} - {{ bp.time }} {{ bp.fare > 0 ? '(₹' + bp.fare + ' extra)' : '' }}
+            </option>
+          </select>
+          <div *ngIf="selectedBoardingPoint" class="boarding-details">
+            <small>📍 {{ selectedBoardingPoint.address }}</small>
+          </div>
+        </div>
+
+        <!-- Fare Breakdown -->
+        <div class="fare-details">
+          <div class="fare-row">
+            <span>Base Fare (Seats)</span>
+            <span>₹{{ bookingSummary.baseFare }}</span>
+          </div>
+          <div class="fare-row" *ngIf="hasBoardingFare()">
+            <span>Boarding Fee</span>
+            <span>₹{{ getBoardingFare() }}</span>
+          </div>
+          <div class="fare-row">
+            <span>GST (5%)</span>
+            <span>₹{{ bookingSummary.gst }}</span>
+          </div>
+          <div class="fare-row total">
+            <span>Total Amount</span>
+            <span>₹{{ bookingSummary.total }}</span>
+          </div>
+        </div>
+
+        <!-- Proceed Button -->
+        <button 
+          type="button"
+          class="proceed-btn" 
+          [disabled]="selectedSeats.length === 0 || !selectedBoardingPoint || isBooking"
+          (click)="proceedToBooking()">
+          {{ isBooking ? 'Processing...' : 'Proceed to Passenger Details' }}
+        </button>
+
+        <!-- Warning and Error Messages -->
+        <div *ngIf="showLimitWarning" class="warning-message">
+          ⚠️ You can select maximum {{ maxSeats }} seats only.
+        </div>
+        <div *ngIf="errorMessage" class="error-message">
+          ❌ {{ errorMessage }}
+        </div>
+      </div>
     </div>
   </div>
-</div>
 
-
-        <!-- Price Details -->
-        <div class="price-details">
-          <div class="price-row">
-            <span>Base Fare</span>
-            <span>₹{{ bookingSummary.baseFare || 0 }}</span>
+  <!-- PASSENGER DETAILS MODAL -->
+  <div class="modal-overlay" *ngIf="showPassengerModal" (click)="showPassengerModal = false">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Passenger Details</h3>
+        <button class="close-modal" (click)="showPassengerModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <form #passengerForm="ngForm">
+          <div *ngFor="let passenger of passengers; let i = index" class="passenger-card">
+            <h4>Passenger for Seat {{ passenger.seatNumber }}</h4>
+            
+            <div class="auto-fill-note" *ngIf="currentUser">
+              <span class="info-icon">ℹ️</span>
+              <span>Details auto-filled from your profile</span>
+            </div>
+            
+            <div class="form-group">
+              <label>Full Name *</label>
+              <input 
+                type="text" 
+                [(ngModel)]="passenger.name" 
+                [name]="'name'+i" 
+                required
+                class="auto-filled"
+                [class.auto-filled]="passenger.name === (currentUser?.firstName + ' ' + currentUser?.lastName).trim()">
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label>Age *</label>
+                <input 
+                  type="number" 
+                  [(ngModel)]="passenger.age" 
+                  [name]="'age'+i" 
+                  required 
+                  min="1" 
+                  max="120"
+                  placeholder="Enter age">
+              </div>
+              <div class="form-group">
+                <label>Gender *</label>
+                <select [(ngModel)]="passenger.gender" [name]="'gender'+i">
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>Phone Number *</label>
+              <input 
+                type="tel" 
+                [(ngModel)]="passenger.phone" 
+                [name]="'phone'+i" 
+                required 
+                pattern="[0-9]{10}"
+                class="auto-filled"
+                [class.auto-filled]="passenger.phone === currentUser?.phone">
+            </div>
+            
+            <div class="form-group">
+              <label>Email (Optional)</label>
+              <input 
+                type="email" 
+                [(ngModel)]="passenger.email" 
+                [name]="'email'+i"
+                class="auto-filled"
+                [class.auto-filled]="passenger.email === currentUser?.email">
+            </div>
           </div>
-          <div class="price-row">
-            <span>Tax (18%)</span>
-            <span>₹{{ bookingSummary.tax | number:'1.0-0' }}</span>
-          </div>
-          <div class="price-row total">
-            <span>Total</span>
-            <span>₹{{ bookingSummary.total | number:'1.0-0' }}</span>
-          </div>
-        </div>
-
-        <button class="btn-proceed" [disabled]="!selectedSeats.length" (click)="proceedToBooking()">
-          Continue
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="showPassengerModal = false">Cancel</button>
+        <button class="btn-confirm" (click)="confirmAllPassengers()" [disabled]="!areAllPassengersValid() || isBooking">
+          {{ isBooking ? 'Processing...' : 'Confirm & Continue' }}
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Passenger Details Modal -->
-  <div class="modal" *ngIf="showPassengerModal">
-    <div class="modal-content">
+  <!-- PAYMENT MODAL -->
+  <div class="modal-overlay" *ngIf="showPaymentModal" (click)="closePaymentModal()">
+    <div class="modal-container payment-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3>Passenger Details ({{ passengers.length }} seats)</h3>
-        <button class="close-btn" (click)="showPassengerModal = false">×</button>
+        <h3>Select Payment Method</h3>
+        <button class="close-modal" (click)="closePaymentModal()">✕</button>
       </div>
       <div class="modal-body">
-        <div class="passenger-card" *ngFor="let passenger of passengers; let i = index">
-          <h4>Seat {{ passenger?.seatNumber }}</h4>
-          <div class="form-group">
-            <label>Name *</label>
-            <input type="text" [(ngModel)]="passenger.name" placeholder="Full name">
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Age *</label>
-              <input type="number" [(ngModel)]="passenger.age" placeholder="Age">
+        <div class="payment-amount">
+          <h4>Total Amount to Pay</h4>
+          <div class="amount-display">रू {{ bookingSummary.total }}</div>
+        </div>
+
+        <div class="payment-methods">
+          <div 
+            *ngFor="let method of availablePaymentMethods" 
+            class="payment-method"
+            [class.selected]="selectedPaymentMethod === method.value"
+            (click)="selectedPaymentMethod = method.value">
+            <div class="method-icon">{{ method.icon }}</div>
+            <div class="method-details">
+              <div class="method-name">{{ method.label }}</div>
             </div>
-            <div class="form-group">
-              <label>Gender *</label>
-              <select [(ngModel)]="passenger.gender">
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
+            <div class="method-radio">
+              <div class="radio-circle" [class.selected]="selectedPaymentMethod === method.value"></div>
             </div>
           </div>
-          <div class="form-group">
-            <label>Phone *</label>
-            <input type="tel" [(ngModel)]="passenger.phone" placeholder="10 digit mobile">
+        </div>
+
+        <div *ngIf="paymentError" class="payment-error">
+          ❌ {{ paymentError }}
+        </div>
+
+        <div class="payment-info" *ngIf="selectedPaymentMethod === 'khalti'">
+          <div class="info-box">
+            <span class="info-icon">ℹ️</span>
+            <span>You will be redirected to Khalti payment gateway</span>
           </div>
-          <div class="form-group">
-            <label>Email (Optional)</label>
-            <input type="email" [(ngModel)]="passenger.email" placeholder="Email">
+        </div>
+
+        <div class="payment-info" *ngIf="selectedPaymentMethod === 'esewa'">
+          <div class="info-box">
+            <span class="info-icon">ℹ️</span>
+            <span>You will be redirected to eSewa payment gateway</span>
+          </div>
+        </div>
+
+        <div class="payment-info" *ngIf="selectedPaymentMethod === 'cash'">
+          <div class="info-box warning">
+            <span class="info-icon">⚠️</span>
+            <span>Pay at the counter before boarding. Your booking will be confirmed upon payment.</span>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" (click)="showPassengerModal = false">Cancel</button>
-        <button class="btn-primary" (click)="confirmAllPassengers()" [disabled]="!areAllPassengersValid()">
-          Confirm & Book
+        <button class="btn-cancel" (click)="closePaymentModal()" [disabled]="isProcessingPayment">Cancel</button>
+        <button class="btn-confirm" (click)="processPayment()" [disabled]="isProcessingPayment">
+          <span *ngIf="!isProcessingPayment">Pay रू {{ bookingSummary.total }}</span>
+          <span *ngIf="isProcessingPayment" class="spinner-small"></span>
+          <span *ngIf="isProcessingPayment"> Processing...</span>
         </button>
       </div>
     </div>
+  </div>
+
+  <!-- SUCCESS MODAL -->
+  <div class="modal-overlay" *ngIf="showBookingSuccess">
+    <div class="success-modal">
+      <div class="success-icon">✅</div>
+      <h3>Booking Successful!</h3>
+      <p>{{ successMessage }}</p>
+      <p class="small-text">Redirecting to my bookings...</p>
+    </div>
+  </div>
+
+  <!-- LOADING OVERLAY -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading seat layout...</p>
   </div>
 </div>

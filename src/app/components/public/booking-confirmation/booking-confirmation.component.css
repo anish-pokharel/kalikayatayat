@@ -1,0 +1,288 @@
+/* booking-confirmation.component.css */
+.confirmation-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+}
+
+.ticket-card {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.ticket-header {
+  background: linear-gradient(135deg, #4caf50, #45a049);
+  color: white;
+  text-align: center;
+  padding: 30px;
+}
+
+.success-icon {
+  font-size: 50px;
+  margin-bottom: 10px;
+}
+
+.ticket-header h1 {
+  margin: 0 0 10px;
+  font-size: 28px;
+}
+
+.ticket-body {
+  padding: 30px;
+}
+
+.booking-info {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 25px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-weight: 600;
+  color: #666;
+}
+
+.value {
+  color: #333;
+}
+
+.status.completed {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.journey-details h3,
+.bus-details h3,
+.passenger-details h3,
+.fare-details h3,
+.boarding-info h3 {
+  color: #333;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #4caf50;
+}
+
+.route-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  margin-bottom: 25px;
+}
+
+.origin, .destination {
+  text-align: center;
+  flex: 1;
+}
+
+.city {
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+}
+
+.time {
+  font-size: 18px;
+  color: #666;
+  margin-top: 5px;
+}
+
+.date {
+  font-size: 12px;
+  color: #999;
+  margin-top: 5px;
+}
+
+.arrow {
+  font-size: 24px;
+  color: #4caf50;
+  padding: 0 20px;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.passenger-table {
+  overflow-x: auto;
+  margin-bottom: 25px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #666;
+}
+
+.fare-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.fare-row.total {
+  font-weight: bold;
+  font-size: 18px;
+  border-top: 2px solid #e0e0e0;
+  margin-top: 10px;
+  padding-top: 15px;
+}
+
+.boarding-info p {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 0;
+}
+
+.ticket-footer {
+  background: #f8f9fa;
+  padding: 20px 30px;
+  text-align: center;
+}
+
+.qr-code {
+  margin-bottom: 20px;
+}
+
+.qr-placeholder {
+  font-size: 60px;
+  margin-bottom: 10px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-download, .btn-print, .btn-bookings, .btn-primary {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.btn-download {
+  background: #4caf50;
+  color: white;
+}
+
+.btn-print {
+  background: #2196f3;
+  color: white;
+}
+
+.btn-bookings, .btn-primary {
+  background: #ff9800;
+  color: white;
+}
+
+.btn-download:hover, .btn-print:hover, .btn-bookings:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+.loading-container, .error-container {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #4caf50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media print {
+  .action-buttons, .btn-download, .btn-print, .btn-bookings {
+    display: none;
+  }
+  
+  .confirmation-container {
+    margin: 0;
+    padding: 0;
+  }
+  
+  .ticket-card {
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .ticket-body {
+    padding: 20px;
+  }
+  
+  .route-info {
+    flex-direction: column;
+  }
+  
+  .arrow {
+    transform: rotate(90deg);
+    padding: 10px 0;
+  }
+  
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  th, td {
+    padding: 8px;
+    font-size: 12px;
+  }
+}

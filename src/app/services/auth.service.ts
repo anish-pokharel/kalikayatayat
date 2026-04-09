@@ -10,12 +10,12 @@ import { map, catchError, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export interface User {
-   id: string;
+  id: string;
   email: string;
   firstName: string;
   lastName: string;
-  phone?: string;  // Add phone
-  gender?: string; // Add gender
+  phone?: string;
+  gender?: string;
   role: 'customer' | 'admin';
   isVerified: boolean;
 }

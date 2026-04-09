@@ -1,0 +1,672 @@
+<div class="route-management-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Route Management</h1>
+      <p class="header-subtitle">Manage all bus routes and stops</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-primary" (click)="openAddModal()">
+        <span class="icon">➕</span> Add New Route
+      </button>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+    <button class="close-btn" (click)="successMessage = ''">×</button>
+  </div>
+  <div *ngIf="errorMessage" class="alert alert-error">
+    {{ errorMessage }}
+    <button class="close-btn" (click)="errorMessage = ''">×</button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-card">
+    <div class="filters-header">
+      <h3>Filter Routes</h3>
+      <button class="btn-reset" (click)="resetFilters()">
+        <span class="icon">↺</span> Reset
+      </button>
+    </div>
+    
+    <div class="filters-grid">
+      <div class="filter-group">
+        <label>Search</label>
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input 
+            type="text" 
+            placeholder="Search by name, code, origin, destination..." 
+            [(ngModel)]="searchTerm"
+            (input)="onSearch()"
+          >
+        </div>
+      </div>
+      
+      <div class="filter-group">
+        <label>Status</label>
+        <select [(ngModel)]="selectedStatus" (change)="onFilterChange()">
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading routes...</p>
+  </div>
+
+  <!-- Routes Table -->
+<!-- Routes Table (existing code) -->
+<div class="table-container" *ngIf="!isLoading">
+  <table class="routes-table">
+    <thead>
+      <tr>
+        <th>Route Code</th>
+        <th>Route Name</th>
+        <th>Origin</th>
+        <th>Destination</th>
+        <th>Distance</th>
+        <th>Duration</th>
+        <th>Stops</th>
+        <th>Buses</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let route of filteredRoutes">
+        <td><strong>{{ route.routeCode }}</strong></td>
+        <td>{{ route.routeName }}</td>
+        <td>{{ route.origin }}</td>
+        <td>{{ route.destination }}</td>
+        <td>{{ route.distance }} km</td>
+        <td>{{ route.duration }}</td>
+        <td>
+          <span class="stops-count">{{ route.totalStops || 0 }}</span>
+        </td>
+        <td>
+          <button class="btn-view-buses" (click)="viewRouteBuses(route)" title="View Buses">
+            <span class="bus-icon">🚌</span>
+            <span class="bus-count">{{ route.busesAssigned || 0 }}</span>
+          </button>
+        </td>
+        <td>
+          <span class="status-badge" [ngClass]="getStatusClass(route.status)">
+            {{ route.status }}
+          </span>
+        </td>
+        <td class="actions">
+          <button class="btn-icon" (click)="openStopsModal(route)" title="Manage Stops">🗺️</button>
+          <button class="btn-icon" (click)="viewRouteBuses(route)" title="View Buses">🚌</button>
+          <button class="btn-icon" (click)="openEditModal(route)" title="Edit">✏️</button>
+          <button class="btn-icon" (click)="openDeleteModal(route)" title="Delete">🗑️</button>
+        </td>
+      </tr>
+      <tr *ngIf="filteredRoutes.length === 0">
+        <td colspan="10" class="no-data">
+          <div class="no-data-content">
+            <span class="no-data-icon">🗺️</span>
+            <p>No routes found</p>
+            <button class="btn-primary btn-small" (click)="resetFilters()">Clear Filters</button>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Buses for Route Modal -->
+<div class="modal modal-xl" *ngIf="showBusesModal && selectedRouteForBuses">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Buses on Route: {{ selectedRouteForBuses.routeName }}</h2>
+      <button class="close-btn" (click)="closeBusesModal()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <!-- Route Summary -->
+      <div class="route-summary">
+        <div class="summary-item">
+          <span class="label">Route:</span>
+          <span class="value">{{ selectedRouteForBuses.routeCode }} - {{ selectedRouteForBuses.routeName }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Origin → Destination:</span>
+          <span class="value">{{ selectedRouteForBuses.origin }} → {{ selectedRouteForBuses.destination }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Distance:</span>
+          <span class="value">{{ selectedRouteForBuses.distance }} km</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Duration:</span>
+          <span class="value">{{ selectedRouteForBuses.duration }}</span>
+        </div>
+      </div>
+
+      <!-- Buses Table -->
+      <div class="buses-table-container" *ngIf="!isLoadingBuses">
+        <h3>Buses Operating on this Route ({{ routeBuses.length }})</h3>
+        
+        <table class="buses-table">
+          <thead>
+            <tr>
+              <th>Bus Number</th>
+              <th>Bus Name</th>
+              <th>Type</th>
+              <th>Driver</th>
+              <th>Seats</th>
+              <th>Fare (₹)</th>
+              <th>Departure</th>
+              <th>Arrival</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let bus of routeBuses">
+              <td><strong>{{ bus.busNumber }}</strong></td>
+              <td>{{ bus.busName }}</td>
+              <td>
+                <span class="bus-type-badge">{{ bus.busType }}</span>
+              </td>
+              <td>
+                <div>{{ bus.driverName }}</div>
+                <small>{{ bus.driverPhone }}</small>
+              </td>
+              <td class="text-center">{{ bus.totalSeats }}</td>
+              <td class="fare">₹{{ bus.fare }}</td>
+              <td>
+                <div>{{ bus.departureTime }}</div>
+                <small>{{ bus.departureDate | date:'dd/MM/yy' }}</small>
+              </td>
+              <td>
+                <div>{{ bus.arrivalTime }}</div>
+                <small>{{ bus.arrivalDate | date:'dd/MM/yy' }}</small>
+              </td>
+              <td>
+                <span class="status-badge" [ngClass]="getBusStatusClass(bus.status)">
+                  {{ bus.status }}
+                </span>
+              </td>
+              <td class="actions">
+                <button class="btn-icon" (click)="viewBusDetails(bus)" title="View Details">👁️</button>
+                <button class="btn-icon" (click)="editBus(bus)" title="Edit">✏️</button>
+              </td>
+            </tr>
+            <tr *ngIf="routeBuses.length === 0">
+              <td colspan="10" class="no-data">
+                <div class="no-data-content">
+                  <span class="no-data-icon">🚌</span>
+                  <p>No buses assigned to this route yet</p>
+                  <button class="btn-primary btn-small" routerLink="/admin/bus-fleet">Add Bus</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-container" *ngIf="isLoadingBuses">
+        <div class="spinner"></div>
+        <p>Loading buses...</p>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeBusesModal()">Close</button>
+      <button class="btn-primary" routerLink="/admin/bus-fleet" [queryParams]="{routeId: selectedRouteForBuses._id}">
+        Add New Bus
+      </button>
+    </div>
+  </div>
+</div>
+
+  <!-- Add Route Modal -->
+  <div class="modal" *ngIf="showAddModal">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h2>Add New Route</h2>
+        <button class="close-btn" (click)="closeAddModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <form>
+          <div class="form-section">
+            <h4>Route Information</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Route Name *</label>
+                <input type="text" [(ngModel)]="newRoute.routeName" name="routeName" required>
+              </div>
+              <div class="form-group">
+                <label>Route Code *</label>
+                <input type="text" [(ngModel)]="newRoute.routeCode" name="routeCode" required 
+                       placeholder="e.g., DEL-MUM-001">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Origin *</label>
+                <input type="text" [(ngModel)]="newRoute.origin" name="origin" required>
+              </div>
+              <div class="form-group">
+                <label>Destination *</label>
+                <input type="text" [(ngModel)]="newRoute.destination" name="destination" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Distance (km) *</label>
+                <input type="number" [(ngModel)]="newRoute.distance" name="distance" required min="1">
+              </div>
+              <div class="form-group">
+                <label>Duration *</label>
+                <input type="text" [(ngModel)]="newRoute.duration" name="duration" required 
+                       placeholder="e.g., 12h 30m">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Status</label>
+              <select [(ngModel)]="newRoute.status" name="status">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Note</h4>
+            <p class="note-text">You can add stops after creating the route. Click on the 🗺️ icon to manage stops.</p>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
+        <button class="btn-primary" (click)="saveRoute()" [disabled]="isLoading">
+          {{ isLoading ? 'Saving...' : 'Save Route' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Route Modal -->
+  <div class="modal" *ngIf="showEditModal && selectedRoute">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h2>Edit Route</h2>
+        <button class="close-btn" (click)="closeEditModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <form>
+          <div class="form-section">
+            <h4>Route Information</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Route Name *</label>
+                <input type="text" [(ngModel)]="selectedRoute.routeName" name="editRouteName" required>
+              </div>
+              <div class="form-group">
+                <label>Route Code *</label>
+                <input type="text" [(ngModel)]="selectedRoute.routeCode" name="editRouteCode" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Origin *</label>
+                <input type="text" [(ngModel)]="selectedRoute.origin" name="editOrigin" required>
+              </div>
+              <div class="form-group">
+                <label>Destination *</label>
+                <input type="text" [(ngModel)]="selectedRoute.destination" name="editDestination" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Distance (km) *</label>
+                <input type="number" [(ngModel)]="selectedRoute.distance" name="editDistance" required min="1">
+              </div>
+              <div class="form-group">
+                <label>Duration *</label>
+                <input type="text" [(ngModel)]="selectedRoute.duration" name="editDuration" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Status</label>
+              <select [(ngModel)]="selectedRoute.status" name="editStatus">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeEditModal()">Cancel</button>
+        <button class="btn-primary" (click)="updateRoute()" [disabled]="isLoading">
+          {{ isLoading ? 'Updating...' : 'Update Route' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Route Modal -->
+  <div class="modal modal-sm" *ngIf="showDeleteModal && selectedRoute">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Confirm Delete</h2>
+        <button class="close-btn" (click)="closeDeleteModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <p>Are you sure you want to delete route <strong>"{{ selectedRoute.routeName }}"</strong>?</p>
+        <p class="warning-text">This action cannot be undone.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeDeleteModal()">Cancel</button>
+        <button class="btn-danger" (click)="confirmDelete()" [disabled]="isLoading">
+          {{ isLoading ? 'Deleting...' : 'Delete' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stops Management Modal -->
+  <div class="modal modal-lg" *ngIf="showStopsModal && selectedRoute">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Manage Stops - {{ selectedRoute.routeName }}</h2>
+        <button class="close-btn" (click)="closeStopsModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <!-- Route Summary -->
+        <div class="route-summary">
+          <div class="summary-item">
+            <span class="label">Origin:</span>
+            <span class="value">{{ selectedRoute.origin }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Destination:</span>
+            <span class="value">{{ selectedRoute.destination }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Distance:</span>
+            <span class="value">{{ selectedRoute.distance }} km</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Duration:</span>
+            <span class="value">{{ selectedRoute.duration }}</span>
+          </div>
+        </div>
+
+        <!-- Stops Header -->
+        <div class="stops-header">
+          <h4>Route Stops</h4>
+          <button class="btn-primary btn-small" (click)="openAddStopModal()">
+            <span class="icon">➕</span> Add Stop
+          </button>
+        </div>
+
+        <!-- Stops Timeline -->
+        <div class="stops-timeline" *ngIf="routeStops.length > 0">
+          <div class="timeline-start">
+            <div class="timeline-dot start"></div>
+            <div class="timeline-content">
+              <strong>{{ selectedRoute.origin }}</strong>
+              <span class="stop-type">Origin</span>
+            </div>
+          </div>
+
+          <div class="timeline-stop" *ngFor="let stop of routeStops; let i = index">
+            <div class="timeline-line"></div>
+            <div class="timeline-dot" [ngClass]="stop.type"></div>
+            <div class="timeline-content">
+              <div class="stop-header">
+                <div>
+                  <strong>{{ stop.name }}</strong>
+                  <span class="stop-type-badge" [ngClass]="stop.type">{{ stop.type }}</span>
+                  <span class="stop-order">#{{ i + 1 }}</span>
+                </div>
+                <div class="stop-actions">
+                  <button class="btn-icon-small" (click)="moveStopUp(i)" title="Move Up" [disabled]="i === 0">↑</button>
+                  <button class="btn-icon-small" (click)="moveStopDown(i)" title="Move Down" [disabled]="i === routeStops.length - 1">↓</button>
+                  <button class="btn-icon-small" (click)="openEditStopModal(stop, i)" title="Edit">✏️</button>
+                  <button class="btn-icon-small" (click)="removeStop(i)" title="Remove">🗑️</button>
+                </div>
+              </div>
+              <div class="stop-details">
+                <div class="stop-time">
+                  <span class="time-badge">Arr: {{ stop.arrivalTime }}</span>
+                  <span class="time-badge">Dep: {{ stop.departureTime }}</span>
+                  <span class="time-badge">Dur: {{ stop.duration }} min</span>
+                </div>
+                <div class="stop-location">
+                  <span>{{ stop.address }}, {{ stop.city }}</span>
+                  <span *ngIf="stop.landmark" class="landmark">({{ stop.landmark }})</span>
+                </div>
+                <div class="stop-contact" *ngIf="stop.contact">
+                  <span>📞 {{ stop.contact }}</span>
+                </div>
+                <div class="stop-fare" *ngIf="stop.fare > 0">
+                  <span class="fare-badge">Fare: ₹{{ stop.fare }}</span>
+                </div>
+                <div class="stop-amenities" *ngIf="stop.amenities?.length">
+                  <span class="amenity-tag" *ngFor="let amenity of stop.amenities">{{ amenity }}</span>
+                </div>
+                <div class="stop-meal" *ngIf="stop.isMealStop">
+                  <span class="meal-badge">🍽️ {{ stop.mealType }} stop</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-end">
+            <div class="timeline-line"></div>
+            <div class="timeline-dot end"></div>
+            <div class="timeline-content">
+              <strong>{{ selectedRoute.destination }}</strong>
+              <span class="stop-type">Destination</span>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="routeStops.length === 0" class="no-stops">
+          <p>No stops added yet. Click "Add Stop" to add stops for this route.</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeStopsModal()">Cancel</button>
+        <button class="btn-primary" (click)="saveStops()" [disabled]="isLoading">
+          {{ isLoading ? 'Saving...' : 'Save Stops' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Stop Modal -->
+<div class="modal modal-lg" *ngIf="showAddStopModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>{{ editingStopIndex >= 0 ? 'Edit' : 'Add' }} Stop</h2>
+      <button class="close-btn" (click)="closeAddStopModal()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <form>
+        <div class="form-section">
+          <h4>Basic Information</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Stop Name *</label>
+              <input type="text" [(ngModel)]="currentStop.name" name="stopName" required 
+                     placeholder="e.g., Lamjung Bus Park">
+            </div>
+            <div class="form-group">
+              <label>Stop Type</label>
+              <select [(ngModel)]="currentStop.type" name="stopType" (change)="onStopTypeChange()">
+                <option value="boarding">Boarding Point</option>
+                <option value="meal">Meal Stop</option>
+                <option value="rest">Rest Stop</option>
+                <option value="pickup">Pickup Point</option>
+                <option value="dropping">Dropping Point</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Arrival Time *</label>
+              <input type="time" [(ngModel)]="currentStop.arrivalTime" name="arrivalTime" required>
+            </div>
+            <div class="form-group">
+              <label>Departure Time *</label>
+              <input type="time" [(ngModel)]="currentStop.departureTime" name="departureTime" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Duration (minutes)</label>
+            <input type="number" [(ngModel)]="currentStop.duration" name="duration" min="5">
+            <small class="field-hint">Auto-calculated if left empty</small>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Location Details</h4>
+          <div class="form-group">
+            <label>Address *</label>
+            <input type="text" [(ngModel)]="currentStop.address" name="address" required
+                   placeholder="Full address">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>City *</label>
+              <input type="text" [(ngModel)]="currentStop.city" name="city" required
+                     placeholder="City name">
+            </div>
+            <div class="form-group">
+              <label>Landmark</label>
+              <input type="text" [(ngModel)]="currentStop.landmark" name="landmark"
+                     placeholder="Nearby landmark">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Contact & Fare</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Contact Number</label>
+              <input type="tel" [(ngModel)]="currentStop.contact" name="contact" 
+                     placeholder="10 digit number" pattern="[0-9]{10}">
+              <small class="field-hint">For boarding point contact</small>
+            </div>
+            <div class="form-group">
+              <label>Fare (₹)</label>
+              <input type="number" [(ngModel)]="currentStop.fare" name="fare" min="0"
+                     placeholder="Additional fare if any">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Amenities</h4>
+          <div class="amenities-grid">
+            <label class="checkbox-label" *ngFor="let amenity of amenityOptions">
+              <input type="checkbox" 
+                     [checked]="currentStop.amenities?.includes(amenity)"
+                     (change)="toggleAmenity(amenity)">
+              {{ amenity }}
+            </label>
+          </div>
+        </div>
+
+        <!-- Meal Stop Section - Only visible for meal stops -->
+        <div class="form-section" *ngIf="currentStop.type === 'meal'">
+          <h4>Meal Details</h4>
+          <div class="form-group">
+            <label>Meal Type</label>
+            <select [(ngModel)]="currentStop.mealType" name="mealType" required>
+              <option value="">Select meal type</option>
+              <option *ngFor="let type of mealTypes" [value]="type">{{ type | titlecase }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="currentStop.isMealStop" name="isMealStop" checked disabled>
+              This is a meal stop
+            </label>
+            <small class="field-hint">Meal stops include rest time for passengers to eat</small>
+          </div>
+        </div>
+
+        <!-- For non-meal stops, show the meal stop checkbox -->
+        <div class="form-section" *ngIf="currentStop.type !== 'meal'">
+          <h4>Meal Stop</h4>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="currentStop.isMealStop" name="isMealStopNonMeal" (change)="onMealStopChange()">
+              This is a meal stop
+            </label>
+          </div>
+
+          <div class="form-group" *ngIf="currentStop.isMealStop">
+            <label>Meal Type</label>
+            <select [(ngModel)]="currentStop.mealType" name="mealTypeNonMeal" required>
+              <option value="">Select meal type</option>
+              <option *ngFor="let type of mealTypes" [value]="type">{{ type | titlecase }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Additional Information</h4>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea [(ngModel)]="currentStop.description" name="description" 
+                      rows="3" placeholder="Any additional details about this stop"></textarea>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="form-section" *ngIf="currentStop.name && currentStop.type">
+          <h4>Stop Summary</h4>
+          <div class="summary-box">
+            <p><strong>Type:</strong> {{ getStopTypeLabel(currentStop.type) }}</p>
+            <p><strong>Name:</strong> {{ currentStop.name }}</p>
+            <p><strong>Location:</strong> {{ currentStop.address }}, {{ currentStop.city }}</p>
+            <p><strong>Timing:</strong> Arrival: {{ currentStop.arrivalTime || 'N/A' }} | Departure: {{ currentStop.departureTime || 'N/A' }}</p>
+            <p *ngIf="currentStop.type === 'meal'"><strong>Meal:</strong> {{ currentStop.mealType | titlecase }}</p>
+            <p *ngIf="currentStop.fare > 0"><strong>Fare:</strong> ₹{{ currentStop.fare }}</p>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeAddStopModal()">Cancel</button>
+      <button class="btn-primary" (click)="saveStop()">Save Stop</button>
+    </div>
+  </div>
+</div>

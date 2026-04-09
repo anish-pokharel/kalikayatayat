@@ -48,6 +48,10 @@ export class BusFleetComponent implements OnInit, OnDestroy {
     seatLayout: '2x2',
     amenities: [],
     fare: 0,
+    departureTime: '08:00',
+    arrivalTime: '20:00',
+    departureDate: new Date().toISOString().split('T')[0],
+    arrivalDate: new Date().toISOString().split('T')[0],
     status: 'active'
   };
 
@@ -64,13 +68,14 @@ export class BusFleetComponent implements OnInit, OnDestroy {
 
   amenityOptions: string[] = [
     'AC', 'WiFi', 'Charging Point', 'Water Bottle', 
-    'Blanket', 'Snacks', 'Movie', 'GPS'
+    'Blanket', 'Snacks', 'Movie', 'GPS', 'Reading Light'
   ];
 
   statusOptions: string[] = ['active', 'inactive', 'maintenance'];
 
   private searchSubject = new Subject<string>();
   private subscriptions: Subscription = new Subscription();
+today: any;
 
   constructor(private busService: BusService) {}
 
@@ -92,10 +97,10 @@ export class BusFleetComponent implements OnInit, OnDestroy {
   }
 
   loadRoutes(): void {
-    const sub = this.busService.getRoutes().subscribe({
+    const sub = this.busService.getActiveRoutes().subscribe({
       next: (response: ApiResponse<Route[]>) => {
         if (response.success && response.data) {
-          this.routes = response.data.filter(route => route.status === 'active');
+          this.routes = response.data;
         }
       },
       error: (error: any) => {
@@ -110,12 +115,14 @@ export class BusFleetComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.errorMessage = '';
     
-    const sub = this.busService.getBuses(
-      this.selectedRoute,
-      this.selectedBusType,
-      this.selectedStatus,
-      this.searchTerm
-    ).subscribe({
+    const filters: any = {};
+    
+    if (this.selectedRoute !== 'all') filters.routeId = this.selectedRoute;
+    if (this.selectedBusType !== 'all') filters.busType = this.selectedBusType;
+    if (this.selectedStatus !== 'all') filters.status = this.selectedStatus;
+    if (this.searchTerm) filters.search = this.searchTerm;
+    
+    const sub = this.busService.getBuses(filters).subscribe({
       next: (response: ApiResponse<Bus[]>) => {
         if (response.success && response.data) {
           this.buses = response.data;
@@ -197,6 +204,10 @@ export class BusFleetComponent implements OnInit, OnDestroy {
       seatLayout: '2x2',
       amenities: [],
       fare: 0,
+      departureTime: '08:00',
+      arrivalTime: '20:00',
+      departureDate: new Date().toISOString().split('T')[0],
+      arrivalDate: new Date().toISOString().split('T')[0],
       status: 'active'
     };
     this.currentFareInfo = null;
@@ -330,49 +341,36 @@ export class BusFleetComponent implements OnInit, OnDestroy {
     }
   }
 
-  // toggleStatus(bus: Bus): void {
-  //   if (bus._id) {
-  //     this.isLoading = true;
-  //     const sub = this.busService.toggleBusStatus(bus._id).subscribe({
-  //       next: (response: any) => {
-  //         if (response.success) {
-  //           bus.status = bus.status === 'active' ? 'inactive' : 'active';
-  //           this.successMessage = `Bus ${bus.status === 'active' ? 'activated' : 'deactivated'}!`;
-  //           setTimeout(() => this.successMessage = '', 3000);
-  //         }
-  //         this.isLoading = false;
-  //       },
-  //       error: (error: any) => {
-  //         console.error('Error toggling status:', error);
-  //         this.errorMessage = error.error?.message || 'Failed to toggle status';
-  //         this.isLoading = false;
-  //       }
-  //     });
-  //     this.subscriptions.add(sub);
-  //   }
-  // }
+  toggleStatus(bus: Bus): void {
+    if (bus._id) {
+      this.isLoading = true;
+      const sub = this.busService.toggleBusStatus(bus._id).subscribe({
+        next: (response: any) => {
+          if (response.success) {
+            bus.status = bus.status === 'active' ? 'inactive' : 'active';
+            this.successMessage = `Bus ${bus.status === 'active' ? 'activated' : 'deactivated'}!`;
+            setTimeout(() => this.successMessage = '', 3000);
+          }
+          this.isLoading = false;
+        },
+        error: (error: any) => {
+          console.error('Error toggling status:', error);
+          this.errorMessage = error.error?.message || 'Failed to toggle status';
+          this.isLoading = false;
+        }
+      });
+      this.subscriptions.add(sub);
+    }
+  }
 
- getStatusClass(status: string | undefined): string {
-  if (!status) return 'status-unknown';
-  
-  const statusMap: {[key: string]: string} = {
-    'active': 'status-active',
-    'inactive': 'status-inactive',
-    'maintenance': 'status-maintenance',
-    'cancelled': 'status-cancelled',
-    'scheduled': 'status-scheduled'
-  };
-  
-  return statusMap[status.toLowerCase()] || 'status-unknown';
-}
-
-// Also update toggleStatus to handle undefined
-toggleStatus(bus: any): void {
-  if (!bus) return;
-  // Your existing toggle logic
-  console.log('Toggling status for bus:', bus);
-}
-
+  getStatusClass(status: string): string {
+    switch(status) {
+      case 'active': return 'status-active';
+      case 'inactive': return 'status-inactive';
+      case 'maintenance': return 'status-maintenance';
+      default: return '';
+    }
+  }
 
   getRouteName(routeId: string): string {
     const route = this.routes.find(r => r._id === routeId);
@@ -426,6 +424,18 @@ toggleStatus(bus: any): void {
     }
     if (!bus.fare || bus.fare <= 0) {
       this.errorMessage = 'Fare must be greater than 0';
+      return false;
+    }
+    if (!bus.departureTime || !bus.arrivalTime) {
+      this.errorMessage = 'Departure and arrival times are required';
+      return false;
+    }
+    if (!bus.departureDate || !bus.arrivalDate) {
+      this.errorMessage = 'Departure and arrival dates are required';
+      return false;
+    }
+    if (new Date(bus.departureDate) >= new Date(bus.arrivalDate)) {
+      this.errorMessage = 'Arrival date must be after departure date';
       return false;
     }
     return true;
