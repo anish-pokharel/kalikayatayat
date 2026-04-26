@@ -206,7 +206,7 @@
           
           <td class="passenger-info">
             <div *ngFor="let passenger of (booking.seats || booking.passengerDetails).slice(0, 2)" class="passenger">
-              <span class="passenger-name">{{ getPassengerDisplayName(passenger) }}</span>
+              <span class="passenger-name">{{ getPassengerName(passenger) }}</span>
               <span class="passenger-seat">{{ passenger.seatNumber }}</span>
               <span class="passenger-phone">{{ getPassengerPhone(passenger) }}</span>
             </div>
@@ -412,7 +412,7 @@
               <tbody>
                 <tr *ngFor="let passenger of (selectedBooking.seats || selectedBooking.passengerDetails)">
                   <td><span class="seat-badge">{{ passenger.seatNumber }}</span></td>
-                  <td>{{ getPassengerDisplayName(passenger) }}</td>
+                  <td>{{ getPassengerName(passenger) }}</td>
                   <td>{{ getPassengerAge(passenger) }}</td>
                   <td>{{ getPassengerGender(passenger) }}</td>
                   <td>{{ getPassengerPhone(passenger) }}</td>

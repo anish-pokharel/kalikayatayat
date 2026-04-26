@@ -27,6 +27,7 @@
 //   userId: any;
 //   busId: any;
 //   busDetails: {
+//     _id?: string;
 //     busNumber: string;
 //     busName: string;
 //     busType: string;
@@ -48,18 +49,36 @@
 //     passengerPhone: string;
 //     passengerEmail?: string;
 //   }>;
+//   passengerDetails?: Array<{
+//     name: string;
+//     age: number;
+//     gender: string;
+//     seatNumber: string;
+//     phone: string;
+//     email: string;
+//   }>;
 //   totalAmount: number;
 //   taxAmount: number;
 //   bookingDate: string;
 //   journeyDate: string;
+//   travelDate?: string;
 //   status: 'confirmed' | 'cancelled' | 'completed' | 'pending';
+//   bookingStatus?: 'confirmed' | 'cancelled' | 'completed' | 'pending';
 //   paymentStatus: 'paid' | 'pending' | 'refunded';
-//   paymentMethod: string;  // ADD THIS LINE
+//   paymentMethod: string;
 //   cancellationDetails?: {
 //     cancelledAt: string;
 //     refundAmount: number;
 //     reason: string;
 //   };
+//   userDetails?: {
+//     firstName: string;
+//     lastName: string;
+//     email: string;
+//     phone: string;
+//   };
+//   createdAt?: string;
+//   updatedAt?: string;
 // }
 
 // export interface ApiResponse<T> {
@@ -69,13 +88,59 @@
 //   count?: number;
 // }
 
+// export interface BookingStats {
+//   totalBookings: number;
+//   totalRevenue: number;
+//   confirmedBookings: number;
+//   cancelledBookings: number;
+//   pendingBookings: number;
+//   completedBookings: number;
+//   averageBookingValue: number;
+//   todayBookings: number;
+//   weeklyBookings: number;
+//   monthlyBookings: number;
+// }
+
+// export interface SeatBookingInfo {
+//   seatNumber: string;
+//   passengerName: string;
+//   passengerPhone: string;
+//   passengerEmail?: string;
+//   passengerAge?: number;
+//   passengerGender?: string;
+//   bookingId: string;
+//   userId: any;
+//   bookingStatus: string;
+//   paymentStatus: string;
+//   journeyDate: string;
+// }
+
+// export interface BusSeatMap {
+//   bus: any;
+//   journeyDate: string;
+//   seats: Array<{
+//     seatNumber: string;
+//     status: 'available' | 'booked';
+//     passenger?: SeatBookingInfo | null;
+//     seatType?: string;
+//     price?: number;
+//   }>;
+//   totalSeats: number;
+//   bookedSeats: number;
+//   availableSeats: number;
+// }
+
 // @Injectable({
 //   providedIn: 'root'
 // })
 // export class BookingService {
+//   getBusSeatMap(selectedBus: string, selectedJourneyDate: string) {
+//     throw new Error('Method not implemented.');
+//   }
 //   private http = inject(HttpClient);
 //   private apiUrl = `${environment.apiUrl}`;
-// createBooking(bookingData: any): Observable<ApiResponse<any>> {
+
+//   createBooking(bookingData: any): Observable<ApiResponse<any>> {
 //     return this.http.post<ApiResponse<any>>(`${this.apiUrl}/bookings`, bookingData);
 //   }
 
@@ -112,31 +177,78 @@
 //     return this.http.get<ApiResponse<Booking[]>>(url);
 //   }
 
-//   // ADD THIS MISSING METHOD
+//   // Get booking statistics
 //   getBookingStatistics(period: string): Observable<ApiResponse<any>> {
 //     return this.http.get<ApiResponse<any>>(`${this.apiUrl}/admin/statistics?period=${period}`);
 //   }
-//    getBookedSeats(busId: string, travelDate: string): Observable<any> {
-//     return this.http.get(`${this.apiUrl}/bookings/seats/available/${busId}/${travelDate}`);
-//   }
+  
+//   // Get booked seats
+//   // getBookedSeats(busId: string, travelDate: string): Observable<any> {
+//   //   return this.http.get(`${this.apiUrl}/bookings/seats/available/${busId}/${travelDate}`);
+//   // }
 
+//   // Update booking status
 //   updateBookingStatus(id: string, status: string): Observable<ApiResponse<any>> {
 //     return this.http.patch<ApiResponse<any>>(`${this.apiUrl}/admin/bookings/${id}/status`, { status });
 //   }
 
+//   // Get bus bookings
 //   getBusBookings(busId: string, date?: string): Observable<ApiResponse<any>> {
 //     let url = `${this.apiUrl}/admin/bookings/bus/${busId}`;
 //     if (date) url += `?date=${date}`;
 //     return this.http.get<ApiResponse<any>>(url);
 //   }
-//   // Add to your booking.service.ts
-// getBusSeats(busId: string, journeyDate: string): Observable<any> {
-//   return this.http.get(`${this.apiUrl}/bookings/admin/bus-seats/${busId}/${journeyDate}`);
+  
+//   // Get bus seat map with booking details
+//   getBusSeats(busId: string, journeyDate: string): Observable<ApiResponse<BusSeatMap>> {
+//     return this.http.get<ApiResponse<BusSeatMap>>(`${this.apiUrl}/bookings/admin/bus-seats/${busId}/${journeyDate}`);
+//   }
+
+//   // Get bookings by bus and date
+//   getBookingsByBusAndDate(busId: string, date: string): Observable<ApiResponse<Booking[]>> {
+//     return this.http.get<ApiResponse<Booking[]>>(`${this.apiUrl}/admin/bookings/bus/${busId}?date=${date}`);
+//   }
+
+//   // Get passenger details by booking
+//   getPassengerDetails(bookingId: string): Observable<ApiResponse<any>> {
+//     return this.http.get<ApiResponse<any>>(`${this.apiUrl}/admin/bookings/${bookingId}/passengers`);
+//   }
+
+//   // Export bookings to CSV/Excel
+//   exportBookings(filters?: any): Observable<Blob> {
+//     let url = `${this.apiUrl}/admin/bookings/export`;
+//     const params: string[] = [];
+    
+//     if (filters) {
+//       Object.keys(filters).forEach(key => {
+//         if (filters[key]) params.push(`${key}=${encodeURIComponent(filters[key])}`);
+//       });
+//     }
+    
+//     if (params.length > 0) url += '?' + params.join('&');
+    
+//     return this.http.get(url, { responseType: 'blob' });
+//   }
+
+// // Add this method to your BookingService class
+// getPublicBookedSeats(busId: string, travelDate: string): Observable<any> {
+//   return this.http.get(`${this.apiUrl}/bookings/public/seats/available/${busId}/${travelDate}`);
 // }
+// // In booking.service.ts - Make sure this method exists
+// // getBookedSeats(busId: string, travelDate: string): Observable<any> {
+// //   console.log(`📡 BookingService: Fetching booked seats for bus ${busId} on date ${travelDate}`);
+// //   return this.http.get(`${this.apiUrl}/bookings/seats/available/${busId}/${travelDate}`);
+// // }
+
+// // In booking.service.ts
+// getBookedSeats(busId: string, travelDate: string): Observable<any> {
+//     console.log(`📡 BookingService.getBookedSeats called with busId: ${busId}, travelDate: ${travelDate}`);
+//     const url = `${this.apiUrl}/bookings/seats/available/${busId}/${travelDate}`;
+//     console.log(`📡 API URL: ${url}`);
+//     return this.http.get(url);
 // }
 
-
-
+// }
 
 
 import { Injectable, inject } from '@angular/core';
@@ -229,40 +341,13 @@ export interface ApiResponse<T> {
   count?: number;
 }
 
-export interface BookingStats {
-  totalBookings: number;
-  totalRevenue: number;
-  confirmedBookings: number;
-  cancelledBookings: number;
-  pendingBookings: number;
-  completedBookings: number;
-  averageBookingValue: number;
-  todayBookings: number;
-  weeklyBookings: number;
-  monthlyBookings: number;
-}
-
-export interface SeatBookingInfo {
-  seatNumber: string;
-  passengerName: string;
-  passengerPhone: string;
-  passengerEmail?: string;
-  passengerAge?: number;
-  passengerGender?: string;
-  bookingId: string;
-  userId: any;
-  bookingStatus: string;
-  paymentStatus: string;
-  journeyDate: string;
-}
-
 export interface BusSeatMap {
   bus: any;
   journeyDate: string;
   seats: Array<{
     seatNumber: string;
     status: 'available' | 'booked';
-    passenger?: SeatBookingInfo | null;
+    passenger?: any;
     seatType?: string;
     price?: number;
   }>;
@@ -275,9 +360,6 @@ export interface BusSeatMap {
   providedIn: 'root'
 })
 export class BookingService {
-  getBusSeatMap(selectedBus: string, selectedJourneyDate: string) {
-    throw new Error('Method not implemented.');
-  }
   private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}`;
 
@@ -297,15 +379,15 @@ export class BookingService {
     return this.http.patch<ApiResponse<any>>(`${this.apiUrl}/bookings/${id}/cancel`, { reason });
   }
 
-  // Admin booking endpoints
+  // Admin booking endpoints - FIXED PATH
   getAllBookings(filters?: any): Observable<ApiResponse<Booking[]>> {
-    let url = `${this.apiUrl}/admin/bookings`;
+    let url = `${this.apiUrl}/bookings/admin/all`;  // Changed from admin/bookings to bookings/admin/all
     const params: string[] = [];
 
     if (filters) {
-      if (filters.status) params.push(`status=${filters.status}`);
-      if (filters.busId) params.push(`busId=${filters.busId}`);
-      if (filters.paymentStatus) params.push(`paymentStatus=${filters.paymentStatus}`);
+      if (filters.status && filters.status !== 'all') params.push(`status=${filters.status}`);
+      if (filters.busId && filters.busId !== 'all') params.push(`busId=${filters.busId}`);
+      if (filters.paymentStatus && filters.paymentStatus !== 'all') params.push(`paymentStatus=${filters.paymentStatus}`);
       if (filters.fromDate) params.push(`fromDate=${filters.fromDate}`);
       if (filters.toDate) params.push(`toDate=${filters.toDate}`);
       if (filters.search) params.push(`search=${encodeURIComponent(filters.search)}`);
@@ -314,50 +396,53 @@ export class BookingService {
     }
 
     if (params.length > 0) url += '?' + params.join('&');
-
+    
+    console.log('Fetching bookings from:', url);
     return this.http.get<ApiResponse<Booking[]>>(url);
   }
 
   // Get booking statistics
   getBookingStatistics(period: string): Observable<ApiResponse<any>> {
-    return this.http.get<ApiResponse<any>>(`${this.apiUrl}/admin/statistics?period=${period}`);
+    return this.http.get<ApiResponse<any>>(`${this.apiUrl}/bookings/admin/statistics?period=${period}`);
   }
   
-  // Get booked seats
-  // getBookedSeats(busId: string, travelDate: string): Observable<any> {
-  //   return this.http.get(`${this.apiUrl}/bookings/seats/available/${busId}/${travelDate}`);
-  // }
-
-  // Update booking status
-  updateBookingStatus(id: string, status: string): Observable<ApiResponse<any>> {
-    return this.http.patch<ApiResponse<any>>(`${this.apiUrl}/admin/bookings/${id}/status`, { status });
+  // Get booked seats for public
+  getBookedSeats(busId: string, travelDate: string): Observable<any> {
+    console.log(`📡 BookingService.getBookedSeats called with busId: ${busId}, travelDate: ${travelDate}`);
+    const url = `${this.apiUrl}/bookings/seats/available/${busId}/${travelDate}`;
+    return this.http.get(url);
   }
 
-  // Get bus bookings
+  // Update booking status - FIXED PATH
+  updateBookingStatus(id: string, status: string): Observable<ApiResponse<any>> {
+    return this.http.patch<ApiResponse<any>>(`${this.apiUrl}/bookings/admin/${id}/status`, { status });
+  }
+
+  // Get bus bookings - FIXED PATH
   getBusBookings(busId: string, date?: string): Observable<ApiResponse<any>> {
-    let url = `${this.apiUrl}/admin/bookings/bus/${busId}`;
+    let url = `${this.apiUrl}/bookings/admin/bus/${busId}`;
     if (date) url += `?date=${date}`;
     return this.http.get<ApiResponse<any>>(url);
   }
   
-  // Get bus seat map with booking details
+  // Get bus seat map with booking details - FIXED PATH
   getBusSeats(busId: string, journeyDate: string): Observable<ApiResponse<BusSeatMap>> {
     return this.http.get<ApiResponse<BusSeatMap>>(`${this.apiUrl}/bookings/admin/bus-seats/${busId}/${journeyDate}`);
   }
 
   // Get bookings by bus and date
   getBookingsByBusAndDate(busId: string, date: string): Observable<ApiResponse<Booking[]>> {
-    return this.http.get<ApiResponse<Booking[]>>(`${this.apiUrl}/admin/bookings/bus/${busId}?date=${date}`);
+    return this.http.get<ApiResponse<Booking[]>>(`${this.apiUrl}/bookings/admin/bus/${busId}?date=${date}`);
   }
 
   // Get passenger details by booking
   getPassengerDetails(bookingId: string): Observable<ApiResponse<any>> {
-    return this.http.get<ApiResponse<any>>(`${this.apiUrl}/admin/bookings/${bookingId}/passengers`);
+    return this.http.get<ApiResponse<any>>(`${this.apiUrl}/bookings/admin/${bookingId}/passengers`);
   }
 
   // Export bookings to CSV/Excel
   exportBookings(filters?: any): Observable<Blob> {
-    let url = `${this.apiUrl}/admin/bookings/export`;
+    let url = `${this.apiUrl}/bookings/admin/export`;
     const params: string[] = [];
     
     if (filters) {
@@ -371,22 +456,8 @@ export class BookingService {
     return this.http.get(url, { responseType: 'blob' });
   }
 
-// Add this method to your BookingService class
-getPublicBookedSeats(busId: string, travelDate: string): Observable<any> {
-  return this.http.get(`${this.apiUrl}/bookings/public/seats/available/${busId}/${travelDate}`);
-}
-// In booking.service.ts - Make sure this method exists
-// getBookedSeats(busId: string, travelDate: string): Observable<any> {
-//   console.log(`📡 BookingService: Fetching booked seats for bus ${busId} on date ${travelDate}`);
-//   return this.http.get(`${this.apiUrl}/bookings/seats/available/${busId}/${travelDate}`);
-// }
-
-// In booking.service.ts
-getBookedSeats(busId: string, travelDate: string): Observable<any> {
-    console.log(`📡 BookingService.getBookedSeats called with busId: ${busId}, travelDate: ${travelDate}`);
-    const url = `${this.apiUrl}/bookings/seats/available/${busId}/${travelDate}`;
-    console.log(`📡 API URL: ${url}`);
-    return this.http.get(url);
-}
-
+  // Public endpoint for available seats
+  getPublicBookedSeats(busId: string, travelDate: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/bookings/seats/available/${busId}/${travelDate}`);
+  }
 }

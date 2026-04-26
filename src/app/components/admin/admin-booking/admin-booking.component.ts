@@ -1,9 +1,12 @@
-// import { Component, OnInit } from '@angular/core';
+
+// import { Component, OnInit, OnDestroy } from '@angular/core';
 // import { CommonModule } from '@angular/common';
 // import { FormsModule } from '@angular/forms';
 // import { RouterModule } from '@angular/router';
-// import { BookingService, Booking } from '../../../services/booking.service';
+// import { BookingService, Booking, BusSeatMap } from '../../../services/booking.service';
 // import { BusService, Bus } from '../../../services/bus.service';
+// import { Subscription } from 'rxjs';
+
 
 // @Component({
 //   selector: 'app-admin-booking',
@@ -12,16 +15,19 @@
 //   templateUrl: './admin-booking.component.html',
 //   styleUrls: ['./admin-booking.component.css']
 // })
-// export class AdminBookingComponent implements OnInit {
+// export class AdminBookingComponent implements OnInit, OnDestroy {
+//   // Data
 //   bookings: Booking[] = [];
 //   filteredBookings: Booking[] = [];
 //   buses: Bus[] = [];
+//   selectedBusSeatMap: BusSeatMap | null = null;
   
 //   // Filters
 //   searchTerm: string = '';
 //   selectedStatus: string = 'all';
 //   selectedBus: string = 'all';
 //   selectedPaymentStatus: string = 'all';
+//   selectedJourneyDate: string = '';
 //   dateRange = {
 //     from: '',
 //     to: ''
@@ -41,13 +47,10 @@
 //     monthlyBookings: 0
 //   };
   
-//   // Chart data
-//   bookingTrend: any[] = [];
-//   revenueChart: any[] = [];
-  
 //   // UI States
 //   isLoading: boolean = false;
 //   isStatsLoading: boolean = false;
+//   isSeatMapLoading: boolean = false;
 //   errorMessage: string = '';
 //   successMessage: string = '';
   
@@ -55,6 +58,7 @@
 //   selectedBooking: Booking | null = null;
 //   showDetailsModal: boolean = false;
 //   showUpdateStatusModal: boolean = false;
+//   showSeatMapModal: boolean = false;
 //   newStatus: string = '';
 //   statusUpdateReason: string = '';
   
@@ -91,6 +95,8 @@
 //     { value: 'refunded', label: 'Refunded', color: '#e74c3c' }
 //   ];
 
+//   private subscriptions: Subscription = new Subscription();
+
 //   constructor(
 //     private bookingService: BookingService,
 //     private busService: BusService
@@ -101,17 +107,24 @@
 //     this.loadBookings();
 //     this.loadStatistics();
 //     this.setDateRange();
+//     this.selectedJourneyDate = new Date().toISOString().split('T')[0];
+//   }
+
+//   ngOnDestroy() {
+//     this.subscriptions.unsubscribe();
 //   }
 
 //   loadBuses(): void {
-//     this.busService.getBuses().subscribe({
-//       next: (response: any) => {
-//         if (response.success) {
-//           this.buses = response.data;
-//         }
-//       },
-//       error: (error: any) => console.error('Error loading buses:', error)
-//     });
+//     this.subscriptions.add(
+//       this.busService.getBuses().subscribe({
+//         next: (response: any) => {
+//           if (response.success) {
+//             this.buses = response.data;
+//           }
+//         },
+//         error: (error: any) => console.error('Error loading buses:', error)
+//       })
+//     );
 //   }
 
 //   loadBookings(): void {
@@ -129,42 +142,77 @@
 //     if (this.dateRange.to) filters.toDate = this.dateRange.to;
 //     if (this.searchTerm) filters.search = this.searchTerm;
 
-//     this.bookingService.getAllBookings(filters).subscribe({
-//       next: (response: any) => {
-//         if (response.success) {
-//           this.bookings = response.data || [];
-//           this.filteredBookings = response.data || [];
-//           this.totalItems = response.count || response.data?.length || 0;
-//           this.statistics = response.statistics || this.statistics;
-//           this.calculatePagination();
+//     this.subscriptions.add(
+//       this.bookingService.getAllBookings(filters).subscribe({
+//         next: (response: any) => {
+//           if (response.success) {
+//             this.bookings = response.data || [];
+//             this.filteredBookings = this.bookings;
+//             this.totalItems = response.count || response.data?.length || 0;
+//             this.calculatePagination();
+//           }
+//           this.isLoading = false;
+//         },
+//         error: (error: any) => {
+//           console.error('Error loading bookings:', error);
+//           this.errorMessage = 'Failed to load bookings';
+//           this.isLoading = false;
+//           setTimeout(() => this.errorMessage = '', 3000);
 //         }
-//         this.isLoading = false;
-//       },
-//       error: (error: any) => {
-//         console.error('Error loading bookings:', error);
-//         this.errorMessage = 'Failed to load bookings';
-//         this.isLoading = false;
-//       }
-//     });
+//       })
+//     );
 //   }
 
 //   loadStatistics(): void {
 //     this.isStatsLoading = true;
-//     this.bookingService.getBookingStatistics(this.selectedDateRange).subscribe({
+//     this.subscriptions.add(
+//       this.bookingService.getBookingStatistics(this.selectedDateRange).subscribe({
+//         next: (response: any) => {
+//           if (response.success) {
+//             this.statistics = response.data || this.statistics;
+//           }
+//           this.isStatsLoading = false;
+//         },
+//         error: (error: any) => {
+//           console.error('Error loading statistics:', error);
+//           this.isStatsLoading = false;
+//         }
+//       })
+//     );
+//   }
+// loadBusSeatMap(): void {
+//   if (!this.selectedBus || this.selectedBus === 'all') {
+//     this.errorMessage = 'Please select a bus first';
+//     setTimeout(() => this.errorMessage = '', 3000);
+//     return;
+//   }
+
+//   if (!this.selectedJourneyDate) {
+//     this.errorMessage = 'Please select a journey date';
+//     setTimeout(() => this.errorMessage = '', 3000);
+//     return;
+//   }
+
+//   this.isSeatMapLoading = true;
+//   this.subscriptions.add(
+//     // Change this line from getBusSeatMap to getBusSeats
+//     this.bookingService.getBusSeats(this.selectedBus, this.selectedJourneyDate).subscribe({
 //       next: (response: any) => {
 //         if (response.success) {
-//           this.statistics = response.data?.statistics || this.statistics;
-//           this.bookingTrend = response.data?.trend || [];
-//           this.revenueChart = response.data?.revenue || [];
+//           this.selectedBusSeatMap = response.data;
+//           this.showSeatMapModal = true;
 //         }
-//         this.isStatsLoading = false;
+//         this.isSeatMapLoading = false;
 //       },
 //       error: (error: any) => {
-//         console.error('Error loading statistics:', error);
-//         this.isStatsLoading = false;
+//         console.error('Error loading seat map:', error);
+//         this.errorMessage = error.error?.message || 'Failed to load seat map';
+//         this.isSeatMapLoading = false;
+//         setTimeout(() => this.errorMessage = '', 3000);
 //       }
-//     });
-//   }
+//     })
+//   );
+// }
 
 //   setDateRange(): void {
 //     const today = new Date();
@@ -210,7 +258,6 @@
 //     }
 //   }
 
-//   // RENAMED to avoid duplicate with the other formatDate
 //   formatDateToString(date: Date): string {
 //     return date.toISOString().split('T')[0];
 //   }
@@ -282,7 +329,7 @@
 
 //   openUpdateStatusModal(booking: Booking): void {
 //     this.selectedBooking = booking;
-//     this.newStatus = booking.status;
+//     this.newStatus = booking.status || booking.bookingStatus || 'pending';
 //     this.statusUpdateReason = '';
 //     this.showUpdateStatusModal = true;
 //   }
@@ -294,107 +341,297 @@
 //     this.statusUpdateReason = '';
 //   }
 
+//   closeSeatMapModal(): void {
+//     this.showSeatMapModal = false;
+//     this.selectedBusSeatMap = null;
+//   }
+
 //   updateBookingStatus(): void {
 //     if (!this.selectedBooking || !this.newStatus) return;
 
-//     this.bookingService.updateBookingStatus(this.selectedBooking._id, this.newStatus).subscribe({
-//       next: (response: any) => {
-//         if (response.success) {
-//           this.successMessage = `Booking status updated to ${this.newStatus}`;
-//           this.loadBookings();
-//           this.loadStatistics();
-//           this.closeUpdateStatusModal();
-//           setTimeout(() => this.successMessage = '', 3000);
+//     this.subscriptions.add(
+//       this.bookingService.updateBookingStatus(this.selectedBooking._id, this.newStatus).subscribe({
+//         next: (response: any) => {
+//           if (response.success) {
+//             this.successMessage = `Booking status updated to ${this.newStatus}`;
+//             this.loadBookings();
+//             this.loadStatistics();
+//             this.closeUpdateStatusModal();
+//             setTimeout(() => this.successMessage = '', 3000);
+//           }
+//         },
+//         error: (error: any) => {
+//           console.error('Error updating status:', error);
+//           this.errorMessage = error.error?.message || 'Failed to update status';
+//           setTimeout(() => this.errorMessage = '', 3000);
 //         }
-//       },
-//       error: (error: any) => {
-//         console.error('Error updating status:', error);
-//         this.errorMessage = error.error?.message || 'Failed to update status';
-//       }
-//     });
+//       })
+//     );
 //   }
 
-//   getStatusClass(status: string): string {
-//     switch(status) {
-//       case 'confirmed': return 'status-confirmed';
-//       case 'cancelled': return 'status-cancelled';
-//       case 'completed': return 'status-completed';
-//       case 'pending': return 'status-pending';
-//       default: return '';
-//     }
+//   // getStatusClass(status: string): string {
+//   //   switch(status?.toLowerCase()) {
+//   //     case 'confirmed': return 'status-confirmed';
+//   //     case 'cancelled': return 'status-cancelled';
+//   //     case 'completed': return 'status-completed';
+//   //     case 'pending': return 'status-pending';
+//   //     default: return '';
+//   //   }
+//   // }
+
+//   // getPaymentStatusClass(status: string): string {
+//   //   switch(status?.toLowerCase()) {
+//   //     case 'paid': return 'payment-paid';
+//   //     case 'pending': return 'payment-pending';
+//   //     case 'refunded': return 'payment-refunded';
+//   //     default: return '';
+//   //   }
+//   // }
+
+//   // getStatusIcon(status: string): string {
+//   //   switch(status?.toLowerCase()) {
+//   //     case 'confirmed': return '✅';
+//   //     case 'cancelled': return '❌';
+//   //     case 'completed': return '🎫';
+//   //     case 'pending': return '⏳';
+//   //     default: return '📅';
+//   //   }
+//   // }
+
+//   // formatCurrency(amount: number): string {
+//   //   return '₹' + amount?.toLocaleString('en-IN') || '₹0';
+//   // }
+
+//   // formatDisplayDate(date: string): string {
+//   //   if (!date) return 'N/A';
+//   //   return new Date(date).toLocaleDateString('en-US', {
+//   //     year: 'numeric',
+//   //     month: 'short',
+//   //     day: 'numeric',
+//   //     hour: '2-digit',
+//   //     minute: '2-digit'
+//   //   });
+//   // }
+
+//   // formatJourneyDate(date: string): string {
+//   //   if (!date) return 'N/A';
+//   //   return new Date(date).toLocaleDateString('en-US', {
+//   //     weekday: 'short',
+//   //     year: 'numeric',
+//   //     month: 'short',
+//   //     day: 'numeric'
+//   //   });
+//   // }
+
+//   // getTotalPassengers(booking: Booking): number {
+//   //   return booking.seats?.length || booking.passengerDetails?.length || 0;
+//   // }
+
+//   // getTotalAmount(booking: Booking): number {
+//   //   return (booking.totalAmount || 0) + (booking.taxAmount || 0);
+//   // }
+
+//   // getBusName(busId: string): string {
+//   //   const bus = this.buses.find(b => b._id === busId);
+//   //   return bus ? `${bus.busName} (${bus.busNumber})` : 'Unknown Bus';
+//   // }
+
+//   getSeatStatusClass(status: string): string {
+//     return status === 'booked' ? 'seat-booked' : 'seat-available';
 //   }
 
-//   getPaymentStatusClass(status: string): string {
-//     switch(status) {
-//       case 'paid': return 'payment-paid';
-//       case 'pending': return 'payment-pending';
-//       case 'refunded': return 'payment-refunded';
-//       default: return '';
-//     }
-//   }
-
-//   getStatusIcon(status: string): string {
-//     switch(status) {
-//       case 'confirmed': return '✅';
-//       case 'cancelled': return '❌';
-//       case 'completed': return '🎫';
-//       case 'pending': return '⏳';
-//       default: return '📅';
-//     }
-//   }
-
-//   formatCurrency(amount: number): string {
-//     return '₹' + amount.toLocaleString('en-IN');
-//   }
-
-//   // RENAMED to avoid duplicate - this is for displaying dates
-//   formatDisplayDate(date: string): string {
-//     return new Date(date).toLocaleDateString('en-US', {
-//       year: 'numeric',
-//       month: 'short',
-//       day: 'numeric',
-//       hour: '2-digit',
-//       minute: '2-digit'
-//     });
-//   }
-
-//   formatJourneyDate(date: string): string {
-//     return new Date(date).toLocaleDateString('en-US', {
-//       weekday: 'short',
-//       year: 'numeric',
-//       month: 'short',
-//       day: 'numeric'
-//     });
-//   }
-
-//   getTotalPassengers(booking: Booking): number {
-//     return booking.seats.length;
-//   }
-
-//   getTotalAmount(booking: Booking): number {
-//     return booking.totalAmount + booking.taxAmount;
-//   }
-
-//   getBusName(busId: string): string {
-//     const bus = this.buses.find(b => b._id === busId);
-//     return bus ? `${bus.busName} (${bus.busNumber})` : 'Unknown Bus';
+//   getSeatStatusIcon(status: string): string {
+//     return status === 'booked' ? '🔴' : '🟢';
 //   }
 
 //   exportToExcel(): void {
-//     alert('Export to Excel functionality coming soon!');
+//     this.subscriptions.add(
+//       this.bookingService.exportBookings({
+//         status: this.selectedStatus !== 'all' ? this.selectedStatus : null,
+//         busId: this.selectedBus !== 'all' ? this.selectedBus : null,
+//         paymentStatus: this.selectedPaymentStatus !== 'all' ? this.selectedPaymentStatus : null,
+//         fromDate: this.dateRange.from,
+//         toDate: this.dateRange.to,
+//         search: this.searchTerm
+//       }).subscribe({
+//         next: (blob: Blob) => {
+//           const url = window.URL.createObjectURL(blob);
+//           const a = document.createElement('a');
+//           a.href = url;
+//           a.download = `bookings_${new Date().toISOString()}.xlsx`;
+//           a.click();
+//           window.URL.revokeObjectURL(url);
+//           this.successMessage = 'Export completed successfully';
+//           setTimeout(() => this.successMessage = '', 3000);
+//         },
+//         error: (error: any) => {
+//           console.error('Error exporting:', error);
+//           this.errorMessage = 'Failed to export data';
+//           setTimeout(() => this.errorMessage = '', 3000);
+//         }
+//       })
+//     );
 //   }
 
 //   exportToPDF(): void {
-//     alert('Export to PDF functionality coming soon!');
+//     window.print();
 //   }
 
 //   printReport(): void {
 //     window.print();
 //   }
+
+
+
+
+
+
+
+
+
+
+// // admin-booking.component.ts - Fix the method signatures
+
+// // Make sure all these methods accept Booking type, not string
+// getSeatNumbers(booking: Booking): string {
+//   const seats = booking.seats || booking.passengerDetails || [];
+//   return seats.map(s => s.seatNumber).join(', ');
+// }
+
+// getPassengerDisplayName(passenger: any): string {
+//   return passenger.passengerName || passenger.name || 'N/A';
+// }
+
+// getPassengerPhone(passenger: any): string {
+//   return passenger.passengerPhone || passenger.phone || 'N/A';
+// }
+
+// getPassengerAge(passenger: any): number | string {
+//   return passenger.passengerAge || passenger.age || 'N/A';
+// }
+
+// getPassengerGender(passenger: any): string {
+//   return passenger.passengerGender || passenger.gender || 'N/A';
+// }
+
+// getPassengerEmail(passenger: any): string {
+//   return passenger.passengerEmail || passenger.email || 'N/A';
+// }
+
+// getTotalPassengers(booking: Booking): number {
+//   return (booking.seats || booking.passengerDetails || []).length;
+// }
+
+// getTotalAmount(booking: Booking): number {
+//   return (booking.totalAmount || 0) + (booking.taxAmount || 0);
+// }
+
+// getBookingStatus(booking: Booking): string {
+//   return booking.status || booking.bookingStatus || 'pending';
+// }
+
+// // Fixed: These methods should accept Booking type
+// getBusName(booking: Booking): string {
+//   return booking.busDetails?.busName || 'N/A';
+// }
+
+// getBusNumber(booking: Booking): string {
+//   return booking.busDetails?.busNumber || 'N/A';
+// }
+
+// getBusType(booking: Booking): string {
+//   return booking.busDetails?.busType || 'N/A';
+// }
+
+// getBusOperator(booking: Booking): string {
+//   return booking.busDetails?.operator || 'N/A';
+// }
+
+// getRouteOrigin(booking: Booking): string {
+//   return booking.routeDetails?.origin || 'N/A';
+// }
+
+// getRouteDestination(booking: Booking): string {
+//   return booking.routeDetails?.destination || 'N/A';
+// }
+
+// getDepartureTime(booking: Booking): string {
+//   return booking.routeDetails?.departureTime || 'N/A';
+// }
+
+// getArrivalTime(booking: Booking): string {
+//   return booking.routeDetails?.arrivalTime || 'N/A';
+// }
+
+// getJourneyDuration(booking: Booking): string {
+//   return booking.routeDetails?.duration || 'N/A';
+// }
+
+// getJourneyDate(booking: Booking): string {
+//   return this.formatJourneyDate(booking.journeyDate || booking.travelDate || '');
+// }
+
+// getBookingDate(booking: Booking): string {
+//   return this.formatDisplayDate(booking.bookingDate);
+// }
+
+// // Status and payment helpers
+// getStatusClass(status: string): string {
+//   switch(status?.toLowerCase()) {
+//     case 'confirmed': return 'status-confirmed';
+//     case 'cancelled': return 'status-cancelled';
+//     case 'completed': return 'status-completed';
+//     case 'pending': return 'status-pending';
+//     default: return '';
+//   }
+// }
+
+// getPaymentStatusClass(status: string): string {
+//   switch(status?.toLowerCase()) {
+//     case 'paid': return 'payment-paid';
+//     case 'pending': return 'payment-pending';
+//     case 'refunded': return 'payment-refunded';
+//     default: return '';
+//   }
+// }
+
+// getStatusIcon(status: string): string {
+//   switch(status?.toLowerCase()) {
+//     case 'confirmed': return '✅';
+//     case 'cancelled': return '❌';
+//     case 'completed': return '🎫';
+//     case 'pending': return '⏳';
+//     default: return '📅';
+//   }
+// }
+
+// formatCurrency(amount: number): string {
+//   return '₹' + (amount?.toLocaleString('en-IN') || '0');
+// }
+
+// formatDisplayDate(date: string): string {
+//   if (!date) return 'N/A';
+//   return new Date(date).toLocaleDateString('en-US', {
+//     year: 'numeric',
+//     month: 'short',
+//     day: 'numeric',
+//     hour: '2-digit',
+//     minute: '2-digit'
+//   });
+// }
+
+// formatJourneyDate(date: string): string {
+//   if (!date) return 'N/A';
+//   return new Date(date).toLocaleDateString('en-US', {
+//     weekday: 'short',
+//     year: 'numeric',
+//     month: 'short',
+//     day: 'numeric'
+//   });
+// }
 // }
 
 
-// admin-booking.component.ts (Enhanced version)
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -402,7 +639,6 @@ import { RouterModule } from '@angular/router';
 import { BookingService, Booking, BusSeatMap } from '../../../services/booking.service';
 import { BusService, Bus } from '../../../services/bus.service';
 import { Subscription } from 'rxjs';
-
 
 @Component({
   selector: 'app-admin-booking',
@@ -412,6 +648,9 @@ import { Subscription } from 'rxjs';
   styleUrls: ['./admin-booking.component.css']
 })
 export class AdminBookingComponent implements OnInit, OnDestroy {
+exportToPDF() {
+throw new Error('Method not implemented.');
+}
   // Data
   bookings: Booking[] = [];
   filteredBookings: Booking[] = [];
@@ -546,12 +785,14 @@ export class AdminBookingComponent implements OnInit, OnDestroy {
             this.filteredBookings = this.bookings;
             this.totalItems = response.count || response.data?.length || 0;
             this.calculatePagination();
+          } else {
+            this.errorMessage = response.message || 'Failed to load bookings';
           }
           this.isLoading = false;
         },
         error: (error: any) => {
           console.error('Error loading bookings:', error);
-          this.errorMessage = 'Failed to load bookings';
+          this.errorMessage = error.error?.message || 'Failed to load bookings';
           this.isLoading = false;
           setTimeout(() => this.errorMessage = '', 3000);
         }
@@ -576,39 +817,39 @@ export class AdminBookingComponent implements OnInit, OnDestroy {
       })
     );
   }
-loadBusSeatMap(): void {
-  if (!this.selectedBus || this.selectedBus === 'all') {
-    this.errorMessage = 'Please select a bus first';
-    setTimeout(() => this.errorMessage = '', 3000);
-    return;
-  }
 
-  if (!this.selectedJourneyDate) {
-    this.errorMessage = 'Please select a journey date';
-    setTimeout(() => this.errorMessage = '', 3000);
-    return;
-  }
+  loadBusSeatMap(): void {
+    if (!this.selectedBus || this.selectedBus === 'all') {
+      this.errorMessage = 'Please select a bus first';
+      setTimeout(() => this.errorMessage = '', 3000);
+      return;
+    }
 
-  this.isSeatMapLoading = true;
-  this.subscriptions.add(
-    // Change this line from getBusSeatMap to getBusSeats
-    this.bookingService.getBusSeats(this.selectedBus, this.selectedJourneyDate).subscribe({
-      next: (response: any) => {
-        if (response.success) {
-          this.selectedBusSeatMap = response.data;
-          this.showSeatMapModal = true;
+    if (!this.selectedJourneyDate) {
+      this.errorMessage = 'Please select a journey date';
+      setTimeout(() => this.errorMessage = '', 3000);
+      return;
+    }
+
+    this.isSeatMapLoading = true;
+    this.subscriptions.add(
+      this.bookingService.getBusSeats(this.selectedBus, this.selectedJourneyDate).subscribe({
+        next: (response: any) => {
+          if (response.success) {
+            this.selectedBusSeatMap = response.data;
+            this.showSeatMapModal = true;
+          }
+          this.isSeatMapLoading = false;
+        },
+        error: (error: any) => {
+          console.error('Error loading seat map:', error);
+          this.errorMessage = error.error?.message || 'Failed to load seat map';
+          this.isSeatMapLoading = false;
+          setTimeout(() => this.errorMessage = '', 3000);
         }
-        this.isSeatMapLoading = false;
-      },
-      error: (error: any) => {
-        console.error('Error loading seat map:', error);
-        this.errorMessage = error.error?.message || 'Failed to load seat map';
-        this.isSeatMapLoading = false;
-        setTimeout(() => this.errorMessage = '', 3000);
-      }
-    })
-  );
-}
+      })
+    );
+  }
 
   setDateRange(): void {
     const today = new Date();
@@ -652,6 +893,8 @@ loadBusSeatMap(): void {
         // Keep user selected dates
         break;
     }
+    
+    this.loadBookings();
   }
 
   formatDateToString(date: Date): string {
@@ -670,7 +913,6 @@ loadBusSeatMap(): void {
 
   onDateRangeChange(): void {
     this.setDateRange();
-    this.loadBookings();
     this.loadStatistics();
   }
 
@@ -754,6 +996,8 @@ loadBusSeatMap(): void {
             this.loadStatistics();
             this.closeUpdateStatusModal();
             setTimeout(() => this.successMessage = '', 3000);
+          } else {
+            this.errorMessage = response.message || 'Failed to update status';
           }
         },
         error: (error: any) => {
@@ -765,79 +1009,253 @@ loadBusSeatMap(): void {
     );
   }
 
-  // getStatusClass(status: string): string {
-  //   switch(status?.toLowerCase()) {
-  //     case 'confirmed': return 'status-confirmed';
-  //     case 'cancelled': return 'status-cancelled';
-  //     case 'completed': return 'status-completed';
-  //     case 'pending': return 'status-pending';
-  //     default: return '';
-  //   }
-  // }
+  // ============= HELPER METHODS FOR TEMPLATE =============
+  
+  getBusName(booking: Booking): string {
+    if (booking.busDetails?.busName) return booking.busDetails.busName;
+    if (booking.busId && typeof booking.busId === 'object' && 'busName' in booking.busId) {
+      return (booking.busId as any).busName;
+    }
+    if (typeof booking.busId === 'string') {
+      const bus = this.buses.find(b => b._id === booking.busId);
+      return bus ? bus.busName : 'N/A';
+    }
+    return 'N/A';
+  }
 
-  // getPaymentStatusClass(status: string): string {
-  //   switch(status?.toLowerCase()) {
-  //     case 'paid': return 'payment-paid';
-  //     case 'pending': return 'payment-pending';
-  //     case 'refunded': return 'payment-refunded';
-  //     default: return '';
-  //   }
-  // }
+  getBusNumber(booking: Booking): string {
+    if (booking.busDetails?.busNumber) return booking.busDetails.busNumber;
+    if (booking.busId && typeof booking.busId === 'object' && 'busNumber' in booking.busId) {
+      return (booking.busId as any).busNumber;
+    }
+    return 'N/A';
+  }
 
-  // getStatusIcon(status: string): string {
-  //   switch(status?.toLowerCase()) {
-  //     case 'confirmed': return '✅';
-  //     case 'cancelled': return '❌';
-  //     case 'completed': return '🎫';
-  //     case 'pending': return '⏳';
-  //     default: return '📅';
-  //   }
-  // }
+  getBusType(booking: Booking): string {
+    if (booking.busDetails?.busType) return booking.busDetails.busType;
+    if (booking.busId && typeof booking.busId === 'object' && 'busType' in booking.busId) {
+      return (booking.busId as any).busType;
+    }
+    if (typeof booking.busId === 'string') {
+      const bus = this.buses.find(b => b._id === booking.busId);
+      return bus ? bus.busType : 'N/A';
+    }
+    return 'N/A';
+  }
 
-  // formatCurrency(amount: number): string {
-  //   return '₹' + amount?.toLocaleString('en-IN') || '₹0';
-  // }
+  getBusOperator(booking: Booking): string {
+    if (booking.busDetails?.operator) return booking.busDetails.operator;
+    if (booking.busId && typeof booking.busId === 'object' && 'operator' in booking.busId) {
+      return (booking.busId as any).operator;
+    }
+    if (typeof booking.busId === 'string') {
+      const bus = this.buses.find(b => b._id === booking.busId);
+      return bus ? bus.operator || 'N/A' : 'N/A';
+    }
+    return 'N/A';
+  }
 
-  // formatDisplayDate(date: string): string {
-  //   if (!date) return 'N/A';
-  //   return new Date(date).toLocaleDateString('en-US', {
-  //     year: 'numeric',
-  //     month: 'short',
-  //     day: 'numeric',
-  //     hour: '2-digit',
-  //     minute: '2-digit'
-  //   });
-  // }
+  getRouteOrigin(booking: Booking): string {
+    return booking.routeDetails?.origin || 'N/A';
+  }
 
-  // formatJourneyDate(date: string): string {
-  //   if (!date) return 'N/A';
-  //   return new Date(date).toLocaleDateString('en-US', {
-  //     weekday: 'short',
-  //     year: 'numeric',
-  //     month: 'short',
-  //     day: 'numeric'
-  //   });
-  // }
+  getRouteDestination(booking: Booking): string {
+    return booking.routeDetails?.destination || 'N/A';
+  }
 
-  // getTotalPassengers(booking: Booking): number {
-  //   return booking.seats?.length || booking.passengerDetails?.length || 0;
-  // }
+  getDepartureTime(booking: Booking): string {
+    return booking.routeDetails?.departureTime || 'N/A';
+  }
 
-  // getTotalAmount(booking: Booking): number {
-  //   return (booking.totalAmount || 0) + (booking.taxAmount || 0);
-  // }
+  getArrivalTime(booking: Booking): string {
+    return booking.routeDetails?.arrivalTime || 'N/A';
+  }
 
-  // getBusName(busId: string): string {
-  //   const bus = this.buses.find(b => b._id === busId);
-  //   return bus ? `${bus.busName} (${bus.busNumber})` : 'Unknown Bus';
-  // }
+  getJourneyDuration(booking: Booking): string {
+    return booking.routeDetails?.duration || 'N/A';
+  }
+
+  getJourneyDate(booking: Booking): string {
+    return this.formatJourneyDate(booking.journeyDate || booking.travelDate || '');
+  }
+
+  getBookingDate(booking: Booking): string {
+    return this.formatDisplayDate(booking.bookingDate);
+  }
+
+  getSeatNumbers(booking: Booking): string {
+    const seats = booking.seats || [];
+    return seats.map(s => s.seatNumber).join(', ');
+  }
+
+  getTotalPassengers(booking: Booking): number {
+    return (booking.seats || []).length;
+  }
+
+  getTotalAmount(booking: Booking): number {
+    return (booking.totalAmount || 0) + (booking.taxAmount || 0);
+  }
+
+  getBookingStatus(booking: Booking): string {
+    return booking.status || booking.bookingStatus || 'pending';
+  }
+
+  getPaymentMethod(booking: Booking): string {
+    return booking.paymentMethod || 'N/A';
+  }
+
+  getPaymentStatus(booking: Booking): string {
+    return booking.paymentStatus || 'pending';
+  }
+
+  getBookingReference(booking: Booking): string {
+    return booking.bookingId || booking._id || 'N/A';
+  }
+
+  getPassengerName(passenger: any): string {
+    return passenger.passengerName || passenger.name || 'N/A';
+  }
+
+  getPassengerAge(passenger: any): number | string {
+    return passenger.passengerAge || passenger.age || 'N/A';
+  }
+
+  getPassengerGender(passenger: any): string {
+    return passenger.passengerGender || passenger.gender || 'N/A';
+  }
+
+  getPassengerPhone(passenger: any): string {
+    return passenger.passengerPhone || passenger.phone || 'N/A';
+  }
+
+  getPassengerEmail(passenger: any): string {
+    return passenger.passengerEmail || passenger.email || 'N/A';
+  }
+
+  getPassengerSeatNumber(passenger: any): string {
+    return passenger.seatNumber || 'N/A';
+  }
+
+  getPassengersList(booking: Booking): any[] {
+    return booking.seats || booking.passengerDetails || [];
+  }
+
+  getStatusClass(status: string): string {
+    switch(status?.toLowerCase()) {
+      case 'confirmed': return 'status-confirmed';
+      case 'cancelled': return 'status-cancelled';
+      case 'completed': return 'status-completed';
+      case 'pending': return 'status-pending';
+      default: return '';
+    }
+  }
+
+  getPaymentStatusClass(status: string): string {
+    switch(status?.toLowerCase()) {
+      case 'paid': return 'payment-paid';
+      case 'pending': return 'payment-pending';
+      case 'refunded': return 'payment-refunded';
+      default: return '';
+    }
+  }
+
+  getStatusIcon(status: string): string {
+    switch(status?.toLowerCase()) {
+      case 'confirmed': return '✅';
+      case 'cancelled': return '❌';
+      case 'completed': return '🎫';
+      case 'pending': return '⏳';
+      default: return '📅';
+    }
+  }
+
+  getStatusColor(status: string): string {
+    switch(status?.toLowerCase()) {
+      case 'confirmed': return '#27ae60';
+      case 'cancelled': return '#e74c3c';
+      case 'completed': return '#3498db';
+      case 'pending': return '#f39c12';
+      default: return '#95a5a6';
+    }
+  }
+
+  getPaymentStatusColor(status: string): string {
+    switch(status?.toLowerCase()) {
+      case 'paid': return '#27ae60';
+      case 'pending': return '#f39c12';
+      case 'refunded': return '#e74c3c';
+      default: return '#95a5a6';
+    }
+  }
+
+  formatCurrency(amount: number): string {
+    return '₹' + (amount?.toLocaleString('en-IN') || '0');
+  }
+
+  formatDisplayDate(date: string): string {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  formatJourneyDate(date: string): string {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }
+
+  formatDateShort(dateString: string): string {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+
+  formatTime(timeString: string): string {
+    if (!timeString) return 'N/A';
+    return timeString;
+  }
+
+  getTotalFare(booking: Booking): number {
+    return (booking.totalAmount || 0) + (booking.taxAmount || 0);
+  }
+
+  getSeatsList(booking: Booking): string {
+    const seats = booking.seats || [];
+    return seats.map(s => s.seatNumber).join(', ');
+  }
+
+  getBookingStatusText(booking: Booking): string {
+    const status = booking.status || booking.bookingStatus || 'pending';
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+
+  isBookingCancellable(booking: Booking): boolean {
+    const status = booking.status || booking.bookingStatus || 'pending';
+    const journeyDate = new Date(booking.journeyDate || booking.travelDate || '');
+    const now = new Date();
+    const hoursDiff = (journeyDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return status !== 'cancelled' && status !== 'completed' && hoursDiff > 2;
+  }
+
+  canUpdateStatus(booking: Booking): boolean {
+    const status = booking.status || booking.bookingStatus || 'pending';
+    return status !== 'cancelled' && status !== 'completed';
+  }
 
   getSeatStatusClass(status: string): string {
     return status === 'booked' ? 'seat-booked' : 'seat-available';
-  }
-
-  getSeatStatusIcon(status: string): string {
-    return status === 'booked' ? '🔴' : '🟢';
   }
 
   exportToExcel(): void {
@@ -869,160 +1287,7 @@ loadBusSeatMap(): void {
     );
   }
 
-  exportToPDF(): void {
-    window.print();
-  }
-
   printReport(): void {
     window.print();
   }
-
-
-
-
-
-
-
-
-
-
-// admin-booking.component.ts - Fix the method signatures
-
-// Make sure all these methods accept Booking type, not string
-getSeatNumbers(booking: Booking): string {
-  const seats = booking.seats || booking.passengerDetails || [];
-  return seats.map(s => s.seatNumber).join(', ');
-}
-
-getPassengerDisplayName(passenger: any): string {
-  return passenger.passengerName || passenger.name || 'N/A';
-}
-
-getPassengerPhone(passenger: any): string {
-  return passenger.passengerPhone || passenger.phone || 'N/A';
-}
-
-getPassengerAge(passenger: any): number | string {
-  return passenger.passengerAge || passenger.age || 'N/A';
-}
-
-getPassengerGender(passenger: any): string {
-  return passenger.passengerGender || passenger.gender || 'N/A';
-}
-
-getPassengerEmail(passenger: any): string {
-  return passenger.passengerEmail || passenger.email || 'N/A';
-}
-
-getTotalPassengers(booking: Booking): number {
-  return (booking.seats || booking.passengerDetails || []).length;
-}
-
-getTotalAmount(booking: Booking): number {
-  return (booking.totalAmount || 0) + (booking.taxAmount || 0);
-}
-
-getBookingStatus(booking: Booking): string {
-  return booking.status || booking.bookingStatus || 'pending';
-}
-
-// Fixed: These methods should accept Booking type
-getBusName(booking: Booking): string {
-  return booking.busDetails?.busName || 'N/A';
-}
-
-getBusNumber(booking: Booking): string {
-  return booking.busDetails?.busNumber || 'N/A';
-}
-
-getBusType(booking: Booking): string {
-  return booking.busDetails?.busType || 'N/A';
-}
-
-getBusOperator(booking: Booking): string {
-  return booking.busDetails?.operator || 'N/A';
-}
-
-getRouteOrigin(booking: Booking): string {
-  return booking.routeDetails?.origin || 'N/A';
-}
-
-getRouteDestination(booking: Booking): string {
-  return booking.routeDetails?.destination || 'N/A';
-}
-
-getDepartureTime(booking: Booking): string {
-  return booking.routeDetails?.departureTime || 'N/A';
-}
-
-getArrivalTime(booking: Booking): string {
-  return booking.routeDetails?.arrivalTime || 'N/A';
-}
-
-getJourneyDuration(booking: Booking): string {
-  return booking.routeDetails?.duration || 'N/A';
-}
-
-getJourneyDate(booking: Booking): string {
-  return this.formatJourneyDate(booking.journeyDate || booking.travelDate || '');
-}
-
-getBookingDate(booking: Booking): string {
-  return this.formatDisplayDate(booking.bookingDate);
-}
-
-// Status and payment helpers
-getStatusClass(status: string): string {
-  switch(status?.toLowerCase()) {
-    case 'confirmed': return 'status-confirmed';
-    case 'cancelled': return 'status-cancelled';
-    case 'completed': return 'status-completed';
-    case 'pending': return 'status-pending';
-    default: return '';
-  }
-}
-
-getPaymentStatusClass(status: string): string {
-  switch(status?.toLowerCase()) {
-    case 'paid': return 'payment-paid';
-    case 'pending': return 'payment-pending';
-    case 'refunded': return 'payment-refunded';
-    default: return '';
-  }
-}
-
-getStatusIcon(status: string): string {
-  switch(status?.toLowerCase()) {
-    case 'confirmed': return '✅';
-    case 'cancelled': return '❌';
-    case 'completed': return '🎫';
-    case 'pending': return '⏳';
-    default: return '📅';
-  }
-}
-
-formatCurrency(amount: number): string {
-  return '₹' + (amount?.toLocaleString('en-IN') || '0');
-}
-
-formatDisplayDate(date: string): string {
-  if (!date) return 'N/A';
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-
-formatJourneyDate(date: string): string {
-  if (!date) return 'N/A';
-  return new Date(date).toLocaleDateString('en-US', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
-}
 }
