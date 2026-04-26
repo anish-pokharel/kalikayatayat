@@ -8,7 +8,9 @@
 export const environment = {
   production: false,
   // Remove the extra 'b' - it should be 'kalbackend' not 'kalbbackend'
-  apiUrl: 'https://kalbackend-pnop.vercel.app/',  // ✅ Fixed URL
+  apiUrl: 'https://kalbackend-pnop.vercel.app/api',  // Note: 'kalbackend' not 'kalbbackend'
+  // apiUrl: 'http://localhost:3000/api',
+
   khalti: {
     publicKey: 'live_public_key_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
     secretKey: 'live_secret_key_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
