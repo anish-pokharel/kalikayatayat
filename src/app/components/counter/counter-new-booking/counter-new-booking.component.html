@@ -1,0 +1,322 @@
+<div class="new-booking-container">
+  <!-- Header -->
+  <div class="booking-header">
+    <button class="back-btn" (click)="goBack()">
+      ← Back
+    </button>
+    <h1>Create New Booking</h1>
+    <div class="step-indicator">
+      <div class="step" [class.active]="step >= 1" [class.completed]="step > 1">
+        <span class="step-number">1</span>
+        <span class="step-label">Search Bus</span>
+      </div>
+      <div class="step-line" [class.active]="step > 1"></div>
+      <div class="step" [class.active]="step >= 2" [class.completed]="step > 2">
+        <span class="step-number">2</span>
+        <span class="step-label">Select Seats</span>
+      </div>
+      <div class="step-line" [class.active]="step > 2"></div>
+      <div class="step" [class.active]="step >= 3" [class.completed]="step > 3">
+        <span class="step-number">3</span>
+        <span class="step-label">Passenger Details</span>
+      </div>
+      <div class="step-line" [class.active]="step > 3"></div>
+      <div class="step" [class.active]="step >= 4">
+        <span class="step-number">4</span>
+        <span class="step-label">Payment</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Processing...</p>
+  </div>
+
+  <!-- Step 1: Search Buses -->
+  <div class="step-content" *ngIf="step === 1">
+    <div class="search-card">
+      <h2>Search Available Buses</h2>
+      <div class="search-form">
+        <div class="form-group">
+          <label>From (Source)</label>
+          <input 
+            type="text" 
+            [(ngModel)]="searchData.source" 
+            placeholder="Enter source city e.g., Kathmandu"
+            class="form-control"
+          >
+        </div>
+        <div class="form-group">
+          <label>To (Destination)</label>
+          <input 
+            type="text" 
+            [(ngModel)]="searchData.destination" 
+            placeholder="Enter destination e.g., Pokhara"
+            class="form-control"
+          >
+        </div>
+        <div class="form-group">
+          <label>Travel Date</label>
+          <input 
+            type="date" 
+            [(ngModel)]="searchData.travelDate" 
+            [min]="minDate"
+            class="form-control"
+          >
+        </div>
+        <button class="search-btn" (click)="searchBuses()" [disabled]="isLoading">
+          🔍 Search Buses
+        </button>
+      </div>
+    </div>
+
+    <!-- Available Buses List -->
+    <div class="buses-list" *ngIf="availableBuses.length > 0">
+      <h2>Available Buses ({{ availableBuses.length }})</h2>
+      <div class="bus-card" *ngFor="let bus of availableBuses" (click)="selectBus(bus)">
+        <div class="bus-header">
+          <div class="bus-info">
+            <h3>{{ bus.bus.busName }}</h3>
+            <span class="bus-number">{{ bus.bus.busNumber }}</span>
+            <span class="bus-type">{{ bus.bus.busType }}</span>
+          </div>
+          <div class="bus-price">{{ formatCurrency(bus.route.price) }}</div>
+        </div>
+        <div class="bus-route">
+          <div class="route">
+            <span class="city">📍 {{ bus.route.source }}</span>
+            <span class="arrow">→</span>
+            <span class="city">📍 {{ bus.route.destination }}</span>
+          </div>
+          <div class="time-info">
+            <span>⏰ Departure: {{ bus.route.departureTime }}</span>
+            <span>⏰ Arrival: {{ bus.route.arrivalTime }}</span>
+            <span>⏱️ Duration: {{ bus.route.duration }}</span>
+          </div>
+        </div>
+        <div class="bus-footer">
+          <div class="seats-available">
+            🪑 Available Seats: {{ bus.availableSeats }}/{{ bus.bus.totalSeats }}
+          </div>
+          <button class="select-btn">Select Bus →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="no-results" *ngIf="availableBuses.length === 0 && !isLoading">
+      <p>No buses found. Please try different search criteria.</p>
+    </div>
+  </div>
+
+  <!-- Step 2: Select Seats -->
+  <div class="step-content" *ngIf="step === 2 && selectedBus">
+    <div class="seat-selection-container">
+      <div class="bus-summary">
+        <h2>{{ selectedBus.bus.busName }} - {{ selectedBus.bus.busNumber }}</h2>
+        <p>{{ selectedBus.route.source }} → {{ selectedBus.route.destination }}</p>
+        <p>📅 Travel Date: {{ searchData.travelDate | date:'fullDate' }}</p>
+        <p>⏰ Departure: {{ selectedBus.route.departureTime }} | Arrival: {{ selectedBus.route.arrivalTime }}</p>
+      </div>
+
+      <!-- Seat Legend -->
+      <div class="seat-legend">
+        <div class="legend-item">
+          <div class="seat-box available"></div>
+          <span>Available Seat</span>
+        </div>
+        <div class="legend-item">
+          <div class="seat-box selected"></div>
+          <span>Selected Seat</span>
+        </div>
+        <div class="legend-item">
+          <div class="seat-box booked"></div>
+          <span>Booked Seat</span>
+        </div>
+        <div class="legend-item">
+          <div class="seat-box window"></div>
+          <span>Window Seat</span>
+        </div>
+        <div class="legend-item">
+          <div class="seat-box aisle"></div>
+          <span>Aisle Seat</span>
+        </div>
+      </div>
+
+      <!-- Seat Layout -->
+      <div class="seat-layout">
+        <div class="bus-front">🚌 FRONT OF BUS 🚌</div>
+        <div class="seats-grid">
+          <div class="seat-row" *ngFor="let row of seatRows; let i = index">
+            <div class="row-label">{{ getRowLabel(i) }}</div>
+            <div class="seats">
+              <div class="seat" *ngFor="let seat of row"
+                   [class.available]="seat.isAvailable && !isSeatSelected(seat.seatNumber)"
+                   [class.selected]="isSeatSelected(seat.seatNumber)"
+                   [class.booked]="!seat.isAvailable"
+                   [class.window]="seat.seatType === 'window'"
+                   [class.aisle]="seat.seatType === 'aisle'"
+                   (click)="toggleSeat(seat)">
+                <span class="seat-number">{{ seat.seatNumber }}</span>
+                <span class="seat-price" *ngIf="seat.isAvailable">{{ formatCurrency(seat.price) }}</span>
+                <span class="booked-label" *ngIf="!seat.isAvailable">BOOKED</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bus-back">🚌 BACK OF BUS 🚌</div>
+      </div>
+
+      <!-- Selection Summary -->
+      <div class="selection-summary">
+        <div class="selected-seats-info">
+          <h3>Selected Seats: {{ selectedSeats.length }}</h3>
+          <div class="selected-seats-list">
+            <span *ngFor="let seat of selectedSeats" class="selected-seat">
+              {{ seat.seatNumber }} - {{ formatCurrency(seat.price) }}
+            </span>
+          </div>
+        </div>
+        <div class="total-amount">
+          <h3>Total Amount: {{ formatCurrency(totalAmount) }}</h3>
+        </div>
+        <button class="proceed-btn" (click)="proceedToPassengerDetails()" [disabled]="selectedSeats.length === 0">
+          Proceed to Passenger Details →
+        </button>
+      </div>
+    </div>
+  </div>
+
+<!-- Step 3: Passenger Details -->
+<div class="step-content" *ngIf="step === 3">
+  <div class="passenger-details-container">
+    <h2>Passenger Details</h2>
+    <p class="subtitle">Please provide details for {{ selectedSeats.length }} passenger(s)</p>
+
+    <!-- Passenger Names - Simple List -->
+    <div class="passenger-names-section">
+      <div class="passenger-name-item" *ngFor="let passenger of passengers; let i = index">
+        <div class="name-field">
+          <label>Passenger {{ i + 1 }} Name (Seat {{ passenger.seatNumber }}) *</label>
+          <input 
+            type="text" 
+            [(ngModel)]="passenger.name" 
+            placeholder="Enter passenger name"
+            class="form-control-simple"
+            required
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact Information - Single Section -->
+    <div class="contact-info-simple">
+      <h3>Contact Information</h3>
+      <div class="contact-grid">
+        <div class="form-field">
+          <label>Contact Number *</label>
+          <input 
+            type="tel" 
+            [(ngModel)]="customerPhone" 
+            placeholder="Phone number for booking"
+            class="form-control-simple"
+            required
+          >
+        </div>
+        <div class="form-field">
+          <label>Email (Optional)</label>
+          <input 
+            type="email" 
+            [(ngModel)]="customerEmail" 
+            placeholder="Email for confirmation"
+            class="form-control-simple"
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="nav-buttons-simple">
+      <button class="back-btn-sm" (click)="goBack()">← Back to Seats</button>
+      <button class="proceed-btn-sm" (click)="addPassengerDetails()">Proceed to Payment →</button>
+    </div>
+  </div>
+</div>
+
+  <!-- Step 4: Payment -->
+  <div class="step-content" *ngIf="step === 4">
+    <div class="payment-container">
+      <div class="booking-summary">
+        <h2>Booking Summary</h2>
+        <div class="summary-details">
+          <div class="summary-row">
+            <span>Bus:</span>
+            <strong>{{ selectedBus?.bus?.busName }} ({{ selectedBus?.bus?.busNumber }})</strong>
+          </div>
+          <div class="summary-row">
+            <span>Route:</span>
+            <strong>{{ selectedBus?.route?.source }} → {{ selectedBus?.route?.destination }}</strong>
+          </div>
+          <div class="summary-row">
+            <span>Travel Date:</span>
+            <strong>{{ searchData.travelDate | date:'fullDate' }}</strong>
+          </div>
+          <div class="summary-row">
+            <span>Departure Time:</span>
+            <strong>{{ selectedBus?.route?.departureTime }}</strong>
+          </div>
+          <div class="summary-row">
+            <span>Seats:</span>
+            <strong>{{ getSelectedSeatsString() }}</strong>
+          </div>
+          <div class="summary-row">
+            <span>Passengers:</span>
+            <strong>{{ passengers.length }}</strong>
+          </div>
+          <div class="summary-row total">
+            <span>Total Amount:</span>
+            <strong>{{ formatCurrency(totalAmount) }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="payment-methods">
+        <h3>Select Payment Method</h3>
+        <div class="payment-options">
+          <label class="payment-option">
+            <input type="radio" name="paymentMethod" value="cash" [(ngModel)]="paymentMethod">
+            <span class="option-content">
+              <span class="option-icon">💰</span>
+              <span class="option-text">Cash Payment</span>
+              <span class="option-desc">Pay at counter</span>
+            </span>
+          </label>
+          <label class="payment-option">
+            <input type="radio" name="paymentMethod" value="khalti" [(ngModel)]="paymentMethod">
+            <span class="option-content">
+              <span class="option-icon">💳</span>
+              <span class="option-text">Khalti</span>
+              <span class="option-desc">Digital wallet</span>
+            </span>
+          </label>
+          <label class="payment-option">
+            <input type="radio" name="paymentMethod" value="esewa" [(ngModel)]="paymentMethod">
+            <span class="option-content">
+              <span class="option-icon">🏦</span>
+              <span class="option-text">eSewa</span>
+              <span class="option-desc">Digital wallet</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="navigation-buttons">
+        <button class="back-btn" (click)="goBack()">← Back</button>
+        <button class="confirm-btn" (click)="processPayment()" [disabled]="isLoading">
+          {{ isLoading ? 'Processing...' : 'Confirm & Pay' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

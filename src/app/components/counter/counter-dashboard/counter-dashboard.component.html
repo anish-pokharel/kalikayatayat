@@ -1,0 +1,280 @@
+<div class="counter-dashboard">
+  <!-- Loading Spinner -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading dashboard...</p>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-icon">🎫</span>
+        <span class="logo-text">Bus Ticket System</span>
+      </div>
+      <div class="user-info-sidebar">
+        <div class="user-avatar">
+          {{ user?.firstName?.charAt(0) }}{{ user?.lastName?.charAt(0) }}
+        </div>
+        <div class="user-details">
+          <p class="user-name">{{ user?.firstName }} {{ user?.lastName }}</p>
+          <p class="user-role">Counter Staff</p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" (click)="$event.preventDefault()">
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" (click)="$event.preventDefault(); createNewBooking()">
+        <span class="nav-icon">🎫</span>
+        <span>New Booking</span>
+      </a>
+      <a href="#" class="nav-item" (click)="$event.preventDefault()">
+        <span class="nav-icon">📅</span>
+        <span>Manage Bookings</span>
+      </a>
+      <a href="#" class="nav-item" (click)="$event.preventDefault()">
+        <span class="nav-icon">👥</span>
+        <span>Customers</span>
+      </a>
+      <a href="#" class="nav-item" (click)="$event.preventDefault()">
+        <span class="nav-icon">🚌</span>
+        <span>Bus Schedule</span>
+      </a>
+      <a href="#" class="nav-item" (click)="$event.preventDefault(); generateReport()">
+        <span class="nav-icon">📈</span>
+        <span>Reports</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="logout-btn" (click)="logout()">
+        <span class="nav-icon">🚪</span>
+        <span>Logout</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Header -->
+    <header class="main-header">
+      <div class="header-title">
+        <h1>Counter Dashboard</h1>
+        <p>Welcome back, {{ user?.firstName }}! Here's what's happening today.</p>
+      </div>
+      <div class="header-actions">
+        <div class="date-time">
+          <span class="date">{{ currentDate | date:'fullDate' }}</span>
+          <span class="time">{{ currentDate | date:'shortTime' }}</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue">
+          <span>🎫</span>
+        </div>
+        <div class="stat-info">
+          <h3>Today's Bookings</h3>
+          <p class="stat-number">{{ todayBookings }}</p>
+          <span class="stat-trend positive">+12% from yesterday</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <span>💰</span>
+        </div>
+        <div class="stat-info">
+          <h3>Today's Revenue</h3>
+          <p class="stat-number">{{ formatCurrency(todayRevenue) }}</p>
+          <span class="stat-trend positive">+8% from yesterday</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon orange">
+          <span>🚌</span>
+        </div>
+        <div class="stat-info">
+          <h3>Available Buses</h3>
+          <p class="stat-number">{{ availableBuses }}</p>
+          <span class="stat-trend">Ready for departure</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon purple">
+          <span>👥</span>
+        </div>
+        <div class="stat-info">
+          <h3>Total Customers</h3>
+          <p class="stat-number">{{ totalCustomers }}</p>
+          <span class="stat-trend positive">+23 this week</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon red">
+          <span>⏳</span>
+        </div>
+        <div class="stat-info">
+          <h3>Pending Bookings</h3>
+          <p class="stat-number">{{ pendingBookings }}</p>
+          <span class="stat-trend warning">Requires attention</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <button class="action-btn primary" (click)="createNewBooking()">
+        <span>➕</span> Create New Booking
+      </button>
+      <button class="action-btn secondary" (click)="generateReport()">
+        <span>📊</span> Generate Report
+      </button>
+    </div>
+
+    <!-- Search Customer Section -->
+    <div class="search-section">
+      <div class="section-header">
+        <h2>🔍 Quick Customer Search</h2>
+        <p>Search for customer by name or email</p>
+      </div>
+      <div class="search-box">
+        <input 
+          type="text" 
+          [(ngModel)]="searchQuery" 
+          (input)="searchCustomer()"
+          placeholder="Enter customer name or email..."
+          class="search-input"
+        >
+        <button class="search-btn" (click)="searchCustomer()">Search</button>
+      </div>
+      <div class="search-results" *ngIf="searchResults.length > 0">
+        <div class="result-item" *ngFor="let customer of searchResults" (click)="viewCustomer(customer.id)">
+          <div class="result-info">
+            <strong>{{ customer.name }}</strong>
+            <span>{{ customer.email }}</span>
+            <span>{{ customer.phone }}</span>
+          </div>
+          <div class="result-stats">
+            <span class="booking-count">{{ customer.totalBookings }} bookings</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="two-columns">
+      <!-- Recent Bookings -->
+      <div class="column">
+        <div class="section-header">
+          <h2>📋 Recent Bookings</h2>
+          <a href="#" class="view-all" (click)="$event.preventDefault()">View All →</a>
+        </div>
+        <div class="bookings-list">
+          <div class="booking-item" *ngFor="let booking of recentBookings">
+            <div class="booking-header">
+              <div class="booking-id">
+                <strong>{{ booking.bookingNumber }}</strong>
+                <span class="customer-name">{{ booking.customerName }}</span>
+              </div>
+              <div class="booking-status">
+                <span class="status-badge" [class]="getStatusClass(booking.status)">
+                  {{ booking.status | uppercase }}
+                </span>
+                <span class="payment-badge" [class]="getPaymentStatusClass(booking.paymentStatus)">
+                  {{ booking.paymentStatus | uppercase }}
+                </span>
+              </div>
+            </div>
+            <div class="booking-details">
+              <div class="detail-item">
+                <span class="detail-icon">🚌</span>
+                <span>{{ booking.busName }} ({{ booking.busNumber }})</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-icon">📍</span>
+                <span>{{ booking.source }} → {{ booking.destination }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-icon">⏰</span>
+                <span>{{ booking.departureTime }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-icon">💺</span>
+                <span>{{ booking.seats }} seats</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-icon">💰</span>
+                <span>{{ formatCurrency(booking.totalAmount) }}</span>
+              </div>
+            </div>
+            <div class="booking-actions">
+              <button class="btn-view" (click)="viewBooking(booking.id)">View Details</button>
+              <button class="btn-edit" (click)="editBooking(booking.id)">Edit</button>
+              <button class="btn-cancel" (click)="cancelBooking(booking.id)" *ngIf="booking.status === 'pending'">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upcoming Buses -->
+      <div class="column">
+        <div class="section-header">
+          <h2>🚌 Upcoming Buses</h2>
+          <a href="#" class="view-all" (click)="$event.preventDefault()">View Schedule →</a>
+        </div>
+        <div class="buses-list">
+          <div class="bus-item" *ngFor="let bus of upcomingBuses">
+            <div class="bus-header">
+              <div class="bus-info">
+                <strong>{{ bus.busName }}</strong>
+                <span class="bus-number">{{ bus.busNumber }}</span>
+              </div>
+              <div class="bus-fare">{{ formatCurrency(bus.fare) }}</div>
+            </div>
+            <div class="bus-route">
+              <div class="route">
+                <span class="city">{{ bus.source }}</span>
+                <span class="arrow">→</span>
+                <span class="city">{{ bus.destination }}</span>
+              </div>
+              <div class="departure-time">
+                <span>Departure: {{ bus.departureTime }}</span>
+              </div>
+            </div>
+            <div class="bus-seats">
+              <div class="seat-availability">
+                <div class="seat-bar">
+                  <div class="seat-fill" [style.width.%]="((bus.totalSeats - bus.availableSeats) / bus.totalSeats) * 100"></div>
+                </div>
+                <div class="seat-stats">
+                  <span>{{ bus.availableSeats }} / {{ bus.totalSeats }} seats available</span>
+                  <span class="booked-seats">{{ bus.totalSeats - bus.availableSeats }} booked</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn-view-schedule" (click)="viewBusSchedule(bus.id)">View Schedule</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+      <div class="banner-content">
+        <h3>💡 Pro Tip</h3>
+        <p>You can quickly create new bookings using the "Create New Booking" button. Make sure to verify customer details before confirming the booking.</p>
+      </div>
+    </div>
+  </main>
+</div>

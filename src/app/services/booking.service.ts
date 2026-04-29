@@ -295,6 +295,7 @@ export interface Booking {
     distance: number;
   };
   seats: Array<{
+name: string;
     seatNumber: string;
     passengerName: string;
     passengerAge: number;
@@ -332,6 +333,58 @@ export interface Booking {
   };
   createdAt?: string;
   updatedAt?: string;
+}
+
+
+
+
+// // In booking.service.ts
+// // booking.service.ts
+export interface Booking1 {
+  _id: string;
+  bookingId: string;
+  bookingStatus: string;
+  status?: string; // Alias for bookingStatus
+  paymentStatus: string;
+  paymentMethod: string;
+  totalAmount: number;
+  taxAmount: number;
+  contactNumber?: string;
+  email?: string;
+  bookingDate: string;
+  journeyDate?: string;
+  travelDate?: string;
+  boardingPoint?: string;
+  busId: any;
+  routeId: any;
+  seats: any[];
+  passengerDetails?: any[];
+  busName?: string;
+  busNumber?: string;
+  busType?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  userId?: any;
+  cancellationReason?: string;
+  cancelledAt?: string;
+  refundAmount?: number;
+  
+  // For transformed data from API
+  busDetails?: {
+    busName: string;
+    busNumber: string;
+    busType: string;
+    operator: string;
+  };
+  
+  routeDetails?: {
+    origin: string;
+    destination: string;
+    departureTime: string;
+    arrivalTime: string;
+    duration: string;
+    distance?: number;
+  };
 }
 
 export interface ApiResponse<T> {
