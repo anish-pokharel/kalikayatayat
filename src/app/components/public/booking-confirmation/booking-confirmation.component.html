@@ -1,80 +1,135 @@
+<!-- booking-confirmation.component.html -->
 <div class="confirmation-container" *ngIf="!isLoading && !errorMessage && booking">
+  <!-- Animated Background -->
+  <div class="animated-bg">
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3"></div>
+  </div>
+
   <div class="ticket-card">
-    <!-- Header -->
+    <!-- Header with Success Animation -->
     <div class="ticket-header">
       <div class="success-animation">
-        <div class="success-checkmark">✓</div>
+        <div class="success-checkmark">
+          <div class="check-icon">
+            <span class="icon-line line-tip"></span>
+            <span class="icon-line line-long"></span>
+            <div class="icon-circle"></div>
+            <div class="icon-fix"></div>
+          </div>
+        </div>
       </div>
-      <h1>Booking Confirmed!</h1>
-      <p>Your ticket has been booked successfully</p>
-      <div class="booking-id-badge">Booking ID: {{ booking.bookingId }}</div>
+      <h1>Booking Confirmed! 🎉</h1>
+      <p class="subtitle">Your ticket has been booked successfully</p>
+      <div class="booking-id-badge">
+        <span class="id-label">Booking ID</span>
+        <span class="id-value">{{ booking.bookingId || booking._id }}</span>
+      </div>
     </div>
 
-    <!-- Body -->
+    <!-- Ticket Body -->
     <div class="ticket-body">
       <!-- Journey Details -->
       <div class="journey-section">
-        <h3>Journey Details</h3>
+        <h3>
+          <span class="section-icon">🚌</span>
+          Journey Details
+        </h3>
         <div class="journey-timeline">
           <div class="timeline-node origin">
-            <div class="time">{{ booking.routeDetails?.departureTime }}</div>
-            <div class="city">{{ booking.routeDetails?.origin }}</div>
-            <div class="date">{{ booking.journeyDate | date:'dd MMM yyyy' }}</div>
+            <!-- <div class="time">{{ formatTime(booking.routeId?.departureTime || booking.departureTime) }}</div> -->
+            <div class="city">{{ booking.routeId?.origin || booking.origin }}</div>
+            <div class="date">{{ formatDate(booking.journeyDate || booking.travelDate) }}</div>
+            <!-- <div class="location-icon">🏁</div> -->
           </div>
-          <div class="timeline-line"></div>
+          <div class="timeline-connector">
+            <div class="connector-line"></div>
+            <div class="connector-dot"></div>
+            <div class="duration-badge">{{ booking.routeId?.duration || booking.duration || 'N/A' }}</div>
+          </div>
           <div class="timeline-node destination">
-            <div class="time">{{ booking.routeDetails?.arrivalTime }}</div>
-            <div class="city">{{ booking.routeDetails?.destination }}</div>
-            <div class="date">{{ booking.journeyDate | date:'dd MMM yyyy' }}</div>
+            <!-- <div class="time">{{ formatTime(booking.routeId?.arrivalTime || booking.arrivalTime) }}</div> -->
+            <div class="city">{{ booking.routeId?.destination || booking.destination }}</div>
+            <div class="date">{{ formatDate(booking.journeyDate || booking.travelDate) }}</div>
+            <!-- <div class="location-icon">🎯</div> -->
           </div>
         </div>
-        <div class="duration-info">
-          <span>⏱️ Duration: {{ booking.routeDetails?.duration }}</span>
-          <span>📏 Distance: {{ booking.routeDetails?.distance }} km</span>
+        <div class="distance-info" *ngIf="booking.routeId?.distance">
+          <span>📏 Distance: {{ booking.routeId.distance }} km</span>
         </div>
       </div>
 
       <!-- Bus Details -->
       <div class="bus-section">
-        <h3>Bus Details</h3>
+        <h3>
+          <span class="section-icon">🚍</span>
+          Bus Details
+        </h3>
         <div class="info-grid">
-          <div class="info-item">
-            <span class="label">Bus Name:</span>
-            <span class="value">{{ booking.busDetails?.busName }}</span>
+          <div class="info-card">
+            <div class="info-icon">🏢</div>
+            <div class="info-content">
+              <span class="label">Operator</span>
+              <span class="value">{{ booking.busId?.operator || booking.operator || 'N/A' }}</span>
+            </div>
           </div>
-          <div class="info-item">
-            <span class="label">Bus Number:</span>
-            <span class="value">{{ booking.busDetails?.busNumber }}</span>
+          <div class="info-card">
+            <div class="info-icon">🚌</div>
+            <div class="info-content">
+              <span class="label">Bus Name</span>
+              <span class="value">{{ booking.busId?.busName || booking.busName || 'N/A' }}</span>
+            </div>
           </div>
-          <div class="info-item">
-            <span class="label">Operator:</span>
-            <span class="value">{{ booking.busDetails?.operator }}</span>
+          <div class="info-card">
+            <div class="info-icon">🔢</div>
+            <div class="info-content">
+              <span class="label">Bus Number</span>
+              <span class="value">{{ booking.busId?.busNumber || booking.busNumber || 'N/A' }}</span>
+            </div>
           </div>
-          <div class="info-item">
-            <span class="label">Bus Type:</span>
-            <span class="value">{{ booking.busDetails?.busType }}</span>
+          <div class="info-card">
+            <div class="info-icon">💺</div>
+            <div class="info-content">
+              <span class="label">Bus Type</span>
+              <span class="value">{{ booking.busId?.busType || booking.busType || 'N/A' }}</span>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Passenger Details -->
       <div class="passenger-section">
-        <h3>Passenger Details</h3>
+        <h3>
+          <span class="section-icon">👥</span>
+          Passenger Details
+        </h3>
         <div class="passenger-cards">
-          <div class="passenger-card" *ngFor="let passenger of booking.passengers || booking.seats; let i = index">
-            <div class="seat-badge">Seat {{ passenger.seatNumber }}</div>
+          <div class="passenger-card" *ngFor="let passenger of (booking.seats || booking.passengerDetails || []); let i = index">
+            <div class="seat-badge">
+              <span class="seat-icon">💺</span>
+              Seat {{ passenger.seatNumber }}
+            </div>
             <div class="passenger-info">
               <div class="info-row">
-                <span class="label">Name:</span>
-                <span>{{ passenger.name || passenger.passengerName }}</span>
+                <span class="label">👤 Name:</span>
+                <span class="value">{{ passenger.passengerName || passenger.name }}</span>
+              </div>
+              <!-- <div class="info-row">
+                <span class="label">🎂 Age:</span>
+                <span class="value">{{ passenger.passengerAge || passenger.age }} years</span>
+              </div> -->
+              <div class="info-row">
+                <span class="label">⚥ Gender:</span>
+                <span class="value capitalize">{{ passenger.passengerGender || passenger.gender }}</span>
               </div>
               <div class="info-row">
-                <span class="label">Age/Gender:</span>
-                <span>{{ passenger.age || passenger.passengerAge }} yrs / {{ passenger.gender || passenger.passengerGender }}</span>
+                <span class="label">📞 Phone:</span>
+                <span class="value">{{ passenger.passengerPhone || passenger.phone }}</span>
               </div>
-              <div class="info-row">
-                <span class="label">Phone:</span>
-                <span>{{ passenger.phone || passenger.passengerPhone }}</span>
+              <div class="info-row" *ngIf="passenger.passengerEmail || passenger.email">
+                <span class="label">📧 Email:</span>
+                <span class="value">{{ passenger.passengerEmail || passenger.email }}</span>
               </div>
             </div>
           </div>
@@ -83,49 +138,121 @@
 
       <!-- Fare Details -->
       <div class="fare-section">
-        <h3>Fare Details</h3>
+        <h3>
+          <span class="section-icon">💰</span>
+          Fare Details
+        </h3>
         <div class="fare-breakdown">
-          <div class="fare-row">
-            <span>Base Fare</span>
-            <span>रू {{ (booking.totalAmount - (booking.taxAmount || 0)).toFixed(2) }}</span>
+          <div class="fare-row" *ngFor="let seat of booking.selectedSeats || []">
+            <span>Seat {{ seat.seatNumber }} ({{ seat.seatType }})</span>
+            <span>रू {{ seat.price }}</span>
           </div>
-          <div class="fare-row" *ngIf="booking.taxAmount">
-            <span>Tax (5%)</span>
-            <span>रू {{ booking.taxAmount?.toFixed(2) }}</span>
+          <div class="fare-row" *ngIf="booking.taxAmount && booking.taxAmount > 0">
+            <span>Tax (GST)</span>
+            <span>रू {{ booking.taxAmount.toFixed(2) }}</span>
           </div>
           <div class="fare-row total">
             <span>Total Amount</span>
-            <span>रू {{ booking.totalAmount?.toFixed(2) }}</span>
+            <span class="total-amount">रू {{ booking.totalAmount.toFixed(2) }}</span>
           </div>
         </div>
       </div>
 
       <!-- Boarding Point -->
       <div class="boarding-section" *ngIf="booking.boardingPoint">
-        <h3>Boarding Point</h3>
-        <div class="boarding-info">
-          <span class="icon">📍</span>
-          <span>{{ booking.boardingPoint }}</span>
+        <h3>
+          <span class="section-icon">📍</span>
+          Boarding Point
+        </h3>
+        <div class="boarding-card">
+          <div class="boarding-icon">🚏</div>
+          <div class="boarding-details">
+            <div class="boarding-location">{{ booking.boardingPoint }}</div>
+            <div class="boarding-address" *ngIf="booking.boardingAddress">{{ booking.boardingAddress }}</div>
+            <div class="boarding-time" *ngIf="booking.boardingTime">
+              <span>⏰ Boarding Time: {{ booking.boardingTime }}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Payment Info -->
+      <!-- Alternative Boarding Info if not provided -->
+      <div class="boarding-section" *ngIf="!booking.boardingPoint">
+        <h3>
+          <span class="section-icon">📍</span>
+          Boarding Information
+        </h3>
+        <div class="boarding-card">
+          <div class="boarding-icon">🚏</div>
+          <div class="boarding-details">
+            <div class="boarding-location">{{ booking.routeId?.origin || 'Bus Terminal' }}</div>
+            <div class="boarding-time">⏰ Please arrive 30 minutes before departure</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment & Status -->
       <div class="payment-section">
-        <h3>Payment Information</h3>
-        <div class="payment-info">
-          <div class="info-row">
-            <span class="label">Payment Method:</span>
-            <span class="value capitalize">{{ booking.paymentMethod }}</span>
+        <h3>
+          <span class="section-icon">💳</span>
+          Payment Information
+        </h3>
+        <div class="status-grid">
+          <div class="status-card">
+            <div class="status-icon">💳</div>
+            <div class="status-content">
+              <span class="label">Payment Method</span>
+              <span class="value capitalize">{{ booking.paymentMethod || 'Cash' }}</span>
+            </div>
           </div>
-          <div class="info-row">
-            <span class="label">Payment Status:</span>
-            <span class="status-badge" [class.completed]="booking.paymentStatus === 'completed'">
-              {{ booking.paymentStatus | uppercase }}
-            </span>
+          <div class="status-card">
+            <div class="status-icon">📊</div>
+            <div class="status-content">
+              <span class="label">Payment Status</span>
+              <span class="status-badge" [class]="getPaymentStatusClass()">
+                {{ (booking.paymentStatus || 'pending') | uppercase }}
+              </span>
+            </div>
           </div>
-          <div class="info-row">
-            <span class="label">Booking Date:</span>
-            <span>{{ booking.createdAt | date:'medium' }}</span>
+          <div class="status-card">
+            <div class="status-icon">✅</div>
+            <div class="status-content">
+              <span class="label">Booking Status</span>
+              <span class="status-badge" [class]="getBookingStatusClass()">
+                {{ (booking.bookingStatus || 'confirmed') | uppercase }}
+              </span>
+            </div>
+          </div>
+          <div class="status-card">
+            <div class="status-icon">📅</div>
+            <div class="status-content">
+              <span class="label">Booking Date</span>
+              <span class="value">{{ booking.createdAt | date:'dd MMM yyyy, hh:mm a' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contact Information -->
+      <div class="contact-section" *ngIf="booking.contactNumber || booking.email">
+        <h3>
+          <span class="section-icon">📞</span>
+          Contact Information
+        </h3>
+        <div class="contact-grid">
+          <div class="contact-card" *ngIf="booking.contactNumber">
+            <div class="contact-icon">📱</div>
+            <div class="contact-details">
+              <span class="label">Contact Number</span>
+              <span class="value">{{ booking.contactNumber }}</span>
+            </div>
+          </div>
+          <div class="contact-card" *ngIf="booking.email">
+            <div class="contact-icon">📧</div>
+            <div class="contact-details">
+              <span class="label">Email Address</span>
+              <span class="value">{{ booking.email }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -134,23 +261,31 @@
     <!-- Footer -->
     <div class="ticket-footer">
       <div class="important-notes">
-        <h4>⚠️ Important Instructions</h4>
+        <h4>
+          <span class="warning-icon">⚠️</span>
+          Important Instructions
+        </h4>
         <ul>
-          <li>Please arrive at the boarding point 30 minutes before departure</li>
-          <li>Carry a valid ID proof for verification</li>
-          <li>Show this ticket (digital or print) at the time of boarding</li>
-          <li>For any assistance, contact our support team</li>
+          <li>📱 Please arrive at the boarding point <strong>30 minutes before departure</strong></li>
+          <li>🪪 Carry a valid <strong>ID proof</strong> (Aadhar/Driver's License/PAN) for verification</li>
+          <li>📄 Show this ticket (digital or print) at the time of boarding</li>
+          <li>🔄 Cancellation policy: Free cancellation up to 24 hours before departure</li>
+          <li>💳 Payment of <strong>रू {{ booking.totalAmount }}</strong> needs to be completed at the counter</li>
+          <li>📞 For any assistance, contact our 24/7 support: <strong>+91 98765 43210</strong></li>
         </ul>
       </div>
       <div class="action-buttons">
         <button class="btn-download" (click)="downloadTicket()">
-          📥 Download Ticket
+          <span class="btn-icon">📥</span>
+          Download Ticket
         </button>
         <button class="btn-print" (click)="window.print()">
-          🖨️ Print Ticket
+          <span class="btn-icon">🖨️</span>
+          Print Ticket
         </button>
         <button class="btn-bookings" (click)="goToMyBookings()">
-          📋 My Bookings
+          <span class="btn-icon">📋</span>
+          My Bookings
         </button>
       </div>
     </div>
@@ -159,14 +294,24 @@
 
 <!-- Loading State -->
 <div class="loading-container" *ngIf="isLoading">
-  <div class="spinner"></div>
-  <p>Loading your booking details...</p>
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <div class="loading-text">
+      <h3>Processing Your Booking</h3>
+      <p>Please wait while we confirm your ticket...</p>
+    </div>
+  </div>
 </div>
 
 <!-- Error State -->
 <div class="error-container" *ngIf="errorMessage && !isLoading">
-  <div class="error-icon">❌</div>
-  <h2>Something went wrong</h2>
-  <p>{{ errorMessage }}</p>
-  <button class="btn-primary" (click)="goToMyBookings()">Go to My Bookings</button>
+  <div class="error-card">
+    <div class="error-icon">❌</div>
+    <h2>Something went wrong</h2>
+    <p>{{ errorMessage }}</p>
+    <button class="btn-primary" (click)="goToMyBookings()">
+      <span class="btn-icon">📋</span>
+      Go to My Bookings
+    </button>
+  </div>
 </div>

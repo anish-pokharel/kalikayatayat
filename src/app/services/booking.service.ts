@@ -265,6 +265,19 @@ export interface Passenger {
   passengerEmail?: string;
 }
 
+// export interface BookingRequest {
+//   busId: string;
+//   seats: Passenger[];
+//   totalAmount: number;
+//   taxAmount: number;
+//   journeyDate: string;
+//   paymentMethod: string;
+//   // Add optional boarding fields
+//   boardingPoint?: string;
+//   boardingAddress?: string;
+//   boardingTime?: string;
+// }
+
 export interface BookingRequest {
   busId: string;
   seats: Passenger[];
@@ -272,6 +285,9 @@ export interface BookingRequest {
   taxAmount: number;
   journeyDate: string;
   paymentMethod: string;
+  boardingPoint?: string;
+  boardingAddress?: string;
+  boardingTime?: string;
 }
 
 export interface Booking {

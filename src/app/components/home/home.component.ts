@@ -282,4 +282,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (!this.currentUser) return '';
     return `${this.currentUser.firstName} ${this.currentUser.lastName}`;
   }
+  clearSearch(): void {
+  this.searchCriteria.from = '';
+  this.searchCriteria.to = '';
+  this.searchCriteria.date = this.today;
+  this.quickBuses = [];
+}
 }

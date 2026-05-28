@@ -726,4 +726,5 @@ export class BusListComponent implements OnInit {
     this.searchCriteria.from = this.searchCriteria.to;
     this.searchCriteria.to = temp;
   }
+
 }

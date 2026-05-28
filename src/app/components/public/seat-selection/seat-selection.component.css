@@ -1,4 +1,6 @@
-/* Seat Container */
+/* seat-selection.component.css - Complete Combined Styles */
+
+/* ==================== BASE CONTAINER ==================== */
 .seat-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -6,7 +8,7 @@
   font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 }
 
-/* Header */
+/* ==================== HEADER STYLES ==================== */
 .booking-header {
   display: flex;
   align-items: center;
@@ -46,14 +48,83 @@
   font-size: 0.9rem;
 }
 
-/* Main 2-col layout */
+/* ==================== BUS INFO CARD ==================== */
+.bus-info-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+.bus-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.bus-info-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.bus-number {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+}
+
+.bus-info-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.info-label {
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+.info-value {
+  font-weight: 600;
+}
+
+.info-value.price {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* ==================== MAIN LAYOUT ==================== */
 .main-layout {
   display: grid;
   grid-template-columns: 1fr 380px;
   gap: 30px;
 }
 
-/* Seat Map Section */
+@media (max-width: 850px) {
+  .seat-container {
+    padding: 20px;
+  }
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+  .booking-header {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* ==================== SEAT MAP SECTION ==================== */
 .seat-map-section {
   background: white;
   border-radius: 28px;
@@ -76,20 +147,12 @@
   color: #1e2f3f;
 }
 
-.multi-select-toggle {
-  background: #eef2ff;
-  border: none;
-  padding: 8px 20px;
-  border-radius: 40px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: 0.2s;
-  color: #3b5b8c;
-}
-
-.multi-select-toggle.active {
-  background: #ff6b4a;
+.selected-info {
+  background: #667eea;
   color: white;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-size: 14px;
 }
 
 .bus-layout-card {
@@ -116,7 +179,7 @@
   font-size: 0.9rem;
 }
 
-/* Seat Grid */
+/* ==================== SEAT GRID ==================== */
 .seat-grid {
   display: flex;
   flex-direction: column;
@@ -144,102 +207,165 @@
   flex: 1;
 }
 
+/* ==================== SEAT STYLES ==================== */
 .seat {
-  width: 68px;
-  height: 68px;
-  background: white;
-  border-radius: 16px;
+  width: 70px;
+  height: 70px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  border-radius: 12px;
+  margin: 5px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
   position: relative;
-  font-weight: 500;
-  border: 1.5px solid transparent;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  border: 2px solid transparent;
 }
 
 .seat-number {
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: bold;
 }
 
 .seat-price-tag {
-  font-size: 0.65rem;
-  opacity: 0.8;
-  margin-top: 2px;
+  font-size: 11px;
+  margin-top: 4px;
 }
 
-.ladies-badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  background: #ff80ab;
-  border-radius: 20px;
-  font-size: 10px;
-  padding: 2px 5px;
-  color: white;
-}
-
-/* Seat Status Styles */
+/* Available Seat */
 .seat-available {
-  background: #e8f5e9;
-  border-color: #81c784;
-  color: #2e7d32;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  color: #333;
+  border: 2px solid #dee2e6;
+  cursor: pointer;
 }
+
 .seat-available:hover {
-  transform: scale(1.02);
-  background: #c8e6c9;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  background: linear-gradient(135deg, #e9ecef, #dee2e6);
 }
 
+/* Selected Seat - GREEN */
 .seat-selected {
-  background: #3b82f6;
-  border-color: #1e40af;
-  color: white;
+  background: linear-gradient(135deg, #28a745, #1e7e34) !important;
+  color: white !important;
+  border: 2px solid #155724 !important;
+  box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
   transform: scale(0.98);
-  box-shadow: 0 4px 12px rgba(59,130,246,0.3);
 }
 
+/* Booked Seat - RED */
 .seat-occupied {
-  background: #e2e8f0;
-  border-color: #94a3b8;
-  color: #475569;
-  cursor: not-allowed;
-  opacity: 0.6;
-  text-decoration: line-through;
+  background: linear-gradient(135deg, #dc3545, #c82333) !important;
+  background-color: #dc3545 !important;
+  color: white !important;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
+  border: 2px solid #a71d2a !important;
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.2), 0 2px 5px rgba(0,0,0,0.1);
+  position: relative;
+  pointer-events: none;
 }
 
+/* Diagonal stripes for booked seats */
+.seat-occupied::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.1) 10px,
+    rgba(255, 255, 255, 0.2) 10px,
+    rgba(255, 255, 255, 0.2) 20px
+  );
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.seat-occupied::after {
+  content: "🔴";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 12px;
+  opacity: 0.9;
+  text-shadow: 0 0 2px rgba(0,0,0,0.3);
+}
+
+.seat-occupied .seat-number {
+  color: white !important;
+  font-weight: bold;
+  position: relative;
+  z-index: 1;
+}
+
+.seat-occupied .seat-price-tag {
+  display: none;
+}
+
+.seat-occupied:hover {
+  transform: none !important;
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.2) !important;
+  cursor: not-allowed !important;
+}
+
+/* Ladies Seat */
 .seat-ladies {
-  background: #ffe4ec;
-  border-color: #f472b6;
-  color: #b91c1c;
+  background: linear-gradient(135deg, #e83e8c, #d63384);
+  color: white;
+  border: 2px solid #c8236c;
+  position: relative;
 }
 
+.seat-ladies::before {
+  content: "👩";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 14px;
+  background: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Temp Selected Seat */
 .seat-temp {
-  background: #fff3e0;
-  border-color: #f97316;
-  color: #c2410c;
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #333;
+  border: 2px dashed #ff8c00;
   animation: pulse 1s infinite;
 }
 
+/* Driver Seat */
 .seat-driver {
-  background: #334155;
+  background: #6c757d;
   color: white;
-  cursor: default;
-  opacity: 0.5;
-  border-color: #1e293b;
+  cursor: not-allowed;
+  opacity: 0.7;
+  pointer-events: none;
 }
 
+/* Animations */
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(249,115,22,0.4); }
-  70% { box-shadow: 0 0 0 6px rgba(249,115,22,0); }
-  100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
 }
 
-/* Legend */
+/* ==================== LEGEND ==================== */
 .seat-legend {
   display: flex;
   gap: 24px;
@@ -262,13 +388,14 @@
   height: 28px;
   border-radius: 10px;
 }
-.legend-box.available { background: #e8f5e9; border: 1px solid #81c784; }
-.legend-box.selected { background: #3b82f6; }
-.legend-box.occupied { background: #e2e8f0; border: 1px solid #94a3b8; }
-.legend-box.ladies { background: #ffe4ec; border: 1px solid #f472b6; }
-.legend-box.temp { background: #fff3e0; border: 1px solid #f97316; }
 
-/* Multi-select bar */
+.legend-box.available { background: #e8f5e9; border: 1px solid #81c784; }
+.legend-box.selected { background: #28a745; }
+.legend-box.occupied { background: #dc3545; }
+.legend-box.ladies { background: #e83e8c; }
+.legend-box.temp { background: #ffc107; }
+
+/* ==================== MULTI-SELECT BAR ==================== */
 .multi-select-bar {
   background: #fef9e3;
   margin-top: 16px;
@@ -279,6 +406,7 @@
   align-items: center;
   font-size: 0.85rem;
 }
+
 .btn-confirm-sm, .btn-cancel-sm {
   border: none;
   padding: 5px 14px;
@@ -286,16 +414,18 @@
   margin-left: 10px;
   cursor: pointer;
 }
+
 .btn-confirm-sm {
   background: #10b981;
   color: white;
 }
+
 .btn-cancel-sm {
   background: #ef4444;
   color: white;
 }
 
-/* Summary Section */
+/* ==================== SUMMARY SECTION ==================== */
 .summary-section {
   position: sticky;
   top: 30px;
@@ -316,6 +446,7 @@
   margin-bottom: 24px;
 }
 
+/* User Info */
 .user-info-bar {
   background: #f8f9fa;
   border-radius: 12px;
@@ -354,14 +485,17 @@
   color: #6c7a8e;
 }
 
+/* Selected Seats List */
 .selected-seats-list {
   margin-bottom: 24px;
 }
+
 .selected-seats-list h4 {
   font-size: 1rem;
   margin-bottom: 12px;
   color: #1f2a3e;
 }
+
 .selected-seat-item {
   background: #f8fafc;
   padding: 10px 15px;
@@ -371,6 +505,7 @@
   margin-bottom: 8px;
   align-items: center;
 }
+
 .remove-seat {
   background: #ffeded;
   border: none;
@@ -390,31 +525,58 @@
   color: #5b6e8c;
 }
 
+/* Boarding Section */
 .boarding-section {
   margin: 20px 0;
 }
+
+.boarding-section label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #1f2a3e;
+}
+
 .form-control {
   width: 100%;
   padding: 12px;
   border-radius: 40px;
   border: 1px solid #cbd5e1;
   margin-top: 8px;
+  font-size: 0.9rem;
 }
+
+.form-control:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+
+.help-text {
+  font-size: 0.7rem;
+  color: #5f7f9e;
+  margin-top: 5px;
+  display: block;
+}
+
 .boarding-details {
   font-size: 0.7rem;
   color: #5f7f9e;
   margin-top: 5px;
 }
 
+/* Fare Details */
 .fare-details {
   margin: 20px 0;
 }
+
 .fare-row {
   display: flex;
   justify-content: space-between;
   padding: 12px 0;
   border-bottom: 1px solid #edf2f7;
 }
+
 .fare-row.total {
   font-weight: 800;
   font-size: 1.25rem;
@@ -423,6 +585,7 @@
   color: #0f3b5c;
 }
 
+/* Proceed Button */
 .proceed-btn {
   width: 100%;
   background: linear-gradient(95deg, #2563eb, #1e40af);
@@ -435,15 +598,18 @@
   cursor: pointer;
   transition: 0.2s;
 }
+
 .proceed-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(37,99,235,0.3);
 }
+
 .proceed-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
+/* Warning & Error Messages */
 .warning-message, .error-message {
   margin-top: 16px;
   text-align: center;
@@ -451,10 +617,18 @@
   padding: 8px;
   border-radius: 40px;
 }
-.warning-message { background: #fff7e5; color: #b45309; }
-.error-message { background: #fee2e2; color: #b91c1c; }
 
-/* Modal Styles */
+.warning-message { 
+  background: #fff7e5; 
+  color: #b45309; 
+}
+
+.error-message { 
+  background: #fee2e2; 
+  color: #b91c1c; 
+}
+
+/* ==================== MODAL STYLES ==================== */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -492,17 +666,37 @@
   border-bottom: 1px solid #eef2f6;
 }
 
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.close-modal {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+}
+
 .modal-body {
   padding: 20px 24px;
   overflow-y: auto;
 }
 
+/* Passenger Card */
 .passenger-card {
   background: #f9fbfd;
   border-radius: 24px;
   padding: 18px;
   margin-bottom: 20px;
   border: 1px solid #e2edf7;
+}
+
+.passenger-card h4 {
+  margin: 0 0 15px 0;
+  color: #2563eb;
+  font-size: 1rem;
 }
 
 .auto-fill-note {
@@ -517,25 +711,45 @@
   gap: 8px;
 }
 
+/* Form Elements */
 .form-group {
   margin-bottom: 14px;
 }
+
 .form-group label {
   display: block;
   font-size: 0.8rem;
   font-weight: 600;
   margin-bottom: 5px;
+  color: #1f2a3e;
 }
+
 .form-group input, .form-group select {
   width: 100%;
   padding: 10px 14px;
   border-radius: 40px;
   border: 1px solid #cbd5e1;
+  font-size: 0.9rem;
 }
+
+.form-group input:focus, .form-group select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+
 .form-row {
   display: flex;
   gap: 14px;
 }
+
+@media (max-width: 850px) {
+  .form-row {
+    flex-direction: column;
+  }
+}
+
+/* Modal Footer */
 .modal-footer {
   display: flex;
   gap: 14px;
@@ -543,36 +757,52 @@
   padding: 18px 24px;
   border-top: 1px solid #eef2f6;
 }
+
 .btn-confirm, .btn-cancel {
   padding: 10px 26px;
   border-radius: 40px;
   border: none;
   cursor: pointer;
   font-weight: 600;
+  transition: all 0.2s;
 }
+
 .btn-confirm {
   background: #2563eb;
   color: white;
 }
+
+.btn-confirm:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
 .btn-cancel {
   background: #f1f5f9;
   color: #1e293b;
 }
+
+.btn-cancel:hover {
+  background: #e2e8f0;
+}
+
 .btn-confirm:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Payment Modal Specific */
+/* ==================== PAYMENT MODAL ==================== */
 .payment-amount {
   text-align: center;
   margin-bottom: 30px;
 }
+
 .payment-amount h4 {
   color: #666;
   font-size: 1rem;
   margin-bottom: 10px;
 }
+
 .amount-display {
   font-size: 2.5rem;
   font-weight: bold;
@@ -663,6 +893,11 @@
   color: #1976d2;
 }
 
+.info-box.warning {
+  background: #fff3e0;
+  color: #e65100;
+}
+
 .payment-error {
   background: #fee2e2;
   color: #b91c1c;
@@ -673,28 +908,48 @@
   font-size: 0.85rem;
 }
 
-.pay-btn {
-  width: 100%;
-  background: linear-gradient(95deg, #10b981, #059669);
-  border: none;
-  padding: 14px;
-  color: white;
-  font-weight: bold;
-  border-radius: 60px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: 0.2s;
-  margin-top: 20px;
+/* ==================== SUCCESS MODAL ==================== */
+.success-modal {
+  background: white;
+  text-align: center;
+  padding: 40px 50px;
+  border-radius: 48px;
+  width: 350px;
+  animation: scaleIn 0.2s;
 }
 
-.pay-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(16,185,129,0.3);
+.success-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
 }
 
-.pay-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.small-text {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 10px;
+}
+
+/* ==================== LOADING OVERLAY ==================== */
+.loading-overlay {
+  position: fixed;
+  background: rgba(0,0,0,0.7);
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  backdrop-filter: blur(6px);
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
 }
 
 .spinner-small {
@@ -709,602 +964,22 @@
   vertical-align: middle;
 }
 
-/* Success Modal */
-.success-modal {
-  background: white;
-  text-align: center;
-  padding: 40px 50px;
-  border-radius: 48px;
-  width: 350px;
-  animation: scaleIn 0.2s;
-}
-.success-icon {
-  font-size: 4rem;
-  margin-bottom: 16px;
-}
-.small-text {
-  font-size: 0.8rem;
-  color: #666;
-  margin-top: 10px;
-}
-
-/* Loading Overlay */
-.loading-overlay {
-  position: fixed;
-  background: rgba(0,0,0,0.7);
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 1100;
-  backdrop-filter: blur(6px);
-}
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #e2e8f0;
-  border-top-color: #2563eb;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 16px;
-}
 .loading-overlay p {
   color: white;
   font-size: 1rem;
 }
 
-/* Animations */
+/* ==================== ANIMATIONS ==================== */
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
 @keyframes slideUp {
   from { transform: translateY(30px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
 @keyframes scaleIn {
   from { transform: scale(0.9); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
-}
-
-/* Responsive */
-@media (max-width: 850px) {
-  .seat-container {
-    padding: 20px;
-  }
-  .main-layout {
-    grid-template-columns: 1fr;
-  }
-  .seat {
-    width: 55px;
-    height: 55px;
-  }
-  .seat-number {
-    font-size: 0.75rem;
-  }
-  .booking-header {
-    flex-direction: column;
-    text-align: center;
-  }
-  .form-row {
-    flex-direction: column;
-  }
-}
-
-
-
-/* Add to your seat-selection.component.css */
-
-/* Booked seat style */
-.seat-occupied {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-  color: white;
-  cursor: not-allowed;
-  opacity: 0.8;
-  border: 2px solid #a71d2a;
-  box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-  position: relative;
-}
-
-.seat-occupied::before {
-  content: "✕";
-  position: absolute;
-  font-size: 20px;
-  opacity: 0.5;
-}
-
-.seat-occupied:hover {
-  transform: none;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
-/* Booked seat tooltip on hover */
-.seat-occupied:hover::after {
-  content: attr(title);
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #333;
-  color: white;
-  padding: 5px 10px;
-  border-radius: 5px;
-  font-size: 12px;
-  white-space: nowrap;
-  z-index: 1000;
-  margin-bottom: 5px;
-}
-
-/* Disabled cursor for booked seats */
-.seat-occupied {
-  cursor: not-allowed !important;
-}
-
-/* Selected seat style */
-.seat-selected {
-  background: linear-gradient(135deg, #28a745, #218838);
-  color: white;
-  border: 2px solid #1e7e34;
-  box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
-}
-
-/* Available seat style */
-.seat-available {
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  color: #333;
-  border: 2px solid #dee2e6;
-  cursor: pointer;
-}
-
-.seat-available:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-  background: linear-gradient(135deg, #e9ecef, #dee2e6);
-}
-
-/* Ladies seat style */
-.seat-ladies {
-  background: linear-gradient(135deg, #e83e8c, #d63384);
-  color: white;
-  border: 2px solid #c8236c;
-}
-
-.seat-ladies::before {
-  content: "👩";
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  font-size: 14px;
-  background: white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
-
-/* Temp selected seat */
-.seat-temp {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
-  color: #333;
-  border: 2px dashed #ff8c00;
-  animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-/* Driver seat */
-.seat-driver {
-  background: #6c757d;
-  color: white;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-
-
-/* seat-selection.component.css - Add these styles */
-
-/* Booked seat - RED and disabled */
-.seat-occupied {
-  background: linear-gradient(135deg, #dc3545, #bd2130) !important;
-  color: white !important;
-  cursor: not-allowed !important;
-  opacity: 0.8;
-  border: 2px solid #721c24 !important;
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
-  position: relative;
-}
-
-.seat-occupied::after {
-  content: "✕";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 20px;
-  font-weight: bold;
-  opacity: 0.7;
-}
-
-.seat-occupied .seat-number,
-.seat-occupied .seat-price-tag {
-  opacity: 0.5;
-}
-
-.seat-occupied:hover {
-  transform: none !important;
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.2) !important;
-}
-
-/* Selected seat - GREEN */
-.seat-selected {
-  background: linear-gradient(135deg, #28a745, #1e7e34) !important;
-  color: white !important;
-  border: 2px solid #155724 !important;
-  box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
-}
-
-/* Available seat */
-.seat-available {
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  color: #333;
-  border: 2px solid #dee2e6;
-  cursor: pointer;
-}
-
-.seat-available:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-  background: linear-gradient(135deg, #e9ecef, #dee2e6);
-}
-
-/* Ladies seat */
-.seat-ladies {
-  background: linear-gradient(135deg, #e83e8c, #d63384);
-  color: white;
-  border: 2px solid #c8236c;
-}
-
-/* Driver seat */
-.seat-driver {
-  background: #6c757d;
-  color: white;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-/* Common seat styling */
-.seat {
-  width: 70px;
-  height: 70px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  margin: 5px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  font-weight: bold;
-}
-
-.seat-number {
-  font-size: 16px;
-  font-weight: bold;
-}
-
-.seat-price-tag {
-  font-size: 11px;
-  margin-top: 4px;
-}
-
-.ladies-badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: white;
-  border-radius: 50%;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
-
-
-/* Add to your component CSS */
-.bus-info-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 12px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.bus-info-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.bus-info-header h2 {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-.bus-number {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
-}
-
-.bus-info-details {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.info-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-}
-
-.info-label {
-  opacity: 0.8;
-  font-weight: 500;
-}
-
-.info-value {
-  font-weight: 600;
-}
-/* In your seat-selection.component.css */
-/* ENHANCED BOOKED SEAT STYLES - BRIGHT RED */
-.seat-occupied {
-  background: linear-gradient(135deg, #dc3545, #c82333) !important;
-  background-color: #dc3545 !important;
-  color: white !important;
-  cursor: not-allowed !important;
-  opacity: 1 !important;
-  border: 2px solid #a71d2a !important;
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.2), 0 2px 5px rgba(0,0,0,0.1);
-  position: relative;
-}
-
-/* Red background with diagonal stripes effect for better visibility */
-.seat-occupied::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: repeating-linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.1),
-    rgba(255, 255, 255, 0.1) 10px,
-    rgba(255, 255, 255, 0.2) 10px,
-    rgba(255, 255, 255, 0.2) 20px
-  );
-  border-radius: 12px;
-  pointer-events: none;
-}
-
-.seat-occupied::after {
-  content: "🔴";
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  font-size: 12px;
-  opacity: 0.9;
-  text-shadow: 0 0 2px rgba(0,0,0,0.3);
-}
-
-.seat-occupied .seat-number {
-  color: white !important;
-  font-weight: bold;
-  position: relative;
-  z-index: 1;
-}
-
-.seat-occupied .seat-price-tag {
-  display: none;
-}
-
-.seat-occupied:hover {
-  transform: none !important;
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.2) !important;
-  cursor: not-allowed !important;
-}
-
-/* Available seat - keep as is */
-.seat-available {
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  color: #333;
-  border: 2px solid #dee2e6;
-  cursor: pointer;
-}
-
-.seat-available:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-  background: linear-gradient(135deg, #e9ecef, #dee2e6);
-}
-
-/* Selected seat - GREEN */
-.seat-selected {
-  background: linear-gradient(135deg, #28a745, #1e7e34) !important;
-  color: white !important;
-  border: 2px solid #155724 !important;
-  box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
-}
-
-
-
-
-/* Add to your existing CSS */
-
-/* ENHANCED BOOKED SEAT STYLES - BRIGHT RED */
-.seat-occupied {
-  background: linear-gradient(135deg, #dc3545, #c82333) !important;
-  background-color: #dc3545 !important;
-  color: white !important;
-  cursor: not-allowed !important;
-  opacity: 1 !important;
-  border: 2px solid #a71d2a !important;
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.2), 0 2px 5px rgba(0,0,0,0.1);
-  position: relative;
-  pointer-events: none;
-}
-
-/* Red background with diagonal stripes effect for better visibility */
-.seat-occupied::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: repeating-linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.1),
-    rgba(255, 255, 255, 0.1) 10px,
-    rgba(255, 255, 255, 0.2) 10px,
-    rgba(255, 255, 255, 0.2) 20px
-  );
-  border-radius: 12px;
-  pointer-events: none;
-}
-
-.seat-occupied::after {
-  content: "🔴";
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  font-size: 12px;
-  opacity: 0.9;
-  text-shadow: 0 0 2px rgba(0,0,0,0.3);
-}
-
-.seat-occupied .seat-number {
-  color: white !important;
-  font-weight: bold;
-  position: relative;
-  z-index: 1;
-}
-
-.seat-occupied .seat-price-tag {
-  display: none;
-}
-
-.seat-occupied:hover {
-  transform: none !important;
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.2) !important;
-  cursor: not-allowed !important;
-}
-
-/* Available seat - keep as is */
-.seat-available {
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  color: #333;
-  border: 2px solid #dee2e6;
-  cursor: pointer;
-}
-
-.seat-available:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-  background: linear-gradient(135deg, #e9ecef, #dee2e6);
-}
-
-/* Selected seat - GREEN */
-.seat-selected {
-  background: linear-gradient(135deg, #28a745, #1e7e34) !important;
-  color: white !important;
-  border: 2px solid #155724 !important;
-  box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
-}
-
-/* Ladies seat */
-.seat-ladies {
-  background: linear-gradient(135deg, #e83e8c, #d63384);
-  color: white;
-  border: 2px solid #c8236c;
-}
-
-.seat-ladies::before {
-  content: "👩";
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  font-size: 14px;
-  background: white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
-
-/* Temp selected seat */
-.seat-temp {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
-  color: #333;
-  border: 2px dashed #ff8c00;
-  animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-/* Driver seat */
-.seat-driver {
-  background: #6c757d;
-  color: white;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-/* Common seat styling */
-.seat {
-  width: 70px;
-  height: 70px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  margin: 5px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  font-weight: bold;
-}
-
-.seat-number {
-  font-size: 16px;
-  font-weight: bold;
-}
-
-.seat-price-tag {
-  font-size: 11px;
-  margin-top: 4px;
 }

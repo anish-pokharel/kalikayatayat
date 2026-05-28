@@ -15,7 +15,7 @@
     <span>{{ successMessage }}</span>
     <button class="close-btn" (click)="successMessage = ''">×</button>
   </div>
-  <div *ngIf="errorMessage" class="alert alert-error">
+  <div *ngIf="errorMessage && !showAddModal && !showEditModal" class="alert alert-error">
     <span class="alert-icon">⚠️</span>
     <span>{{ errorMessage }}</span>
     <button class="close-btn" (click)="errorMessage = ''">×</button>
@@ -98,7 +98,6 @@
           <th>Seats</th>
           <th>Fare (₹)</th>
           <th>Departure</th>
-          <th>Arrival</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
@@ -123,10 +122,6 @@
             <small>{{ bus.departureDate | date:'dd/MM/yy' }}</small>
           </td>
           <td>
-            {{ bus.arrivalTime || 'N/A' }}<br>
-            <small>{{ bus.arrivalDate | date:'dd/MM/yy' }}</small>
-          </td>
-          <td>
             <span class="status-badge" [ngClass]="getStatusClass(bus.status)">
               {{ bus.status }}
             </span>
@@ -142,7 +137,7 @@
           </td>
         </tr>
         <tr *ngIf="filteredBuses.length === 0">
-          <td colspan="11" class="no-data">No buses found</td>
+          <td colspan="10" class="no-data">No buses found</td>
         </tr>
       </tbody>
     </table>
@@ -156,30 +151,46 @@
         <button class="close-btn" (click)="closeAddModal()">×</button>
       </div>
       <div class="modal-body">
+        <!-- Modal Error Message -->
+        <div *ngIf="modalErrorMessage" class="alert alert-error modal-alert">
+          <span class="alert-icon">⚠️</span>
+          <span>{{ modalErrorMessage }}</span>
+          <button class="close-btn" (click)="modalErrorMessage = ''">×</button>
+        </div>
+        
         <form #addForm="ngForm">
           <div class="form-section">
             <h3>Bus Information</h3>
             <div class="form-row">
-              <div class="form-group half">
+              <div class="form-group half" [class.has-error]="validationErrors.busNumber">
                 <label>Bus Number <span class="required">*</span></label>
                 <input type="text" [(ngModel)]="newBus.busNumber" name="busNumber" 
-                       required placeholder="e.g., BA-1-KHA-1234">
+                       required placeholder="e.g., BA-1-KHA-1234" #busNumber="ngModel">
+                <div class="error-message" *ngIf="validationErrors.busNumber">
+                  {{ validationErrors.busNumber }}
+                </div>
               </div>
-              <div class="form-group half">
+              <div class="form-group half" [class.has-error]="validationErrors.busName">
                 <label>Bus Name <span class="required">*</span></label>
                 <input type="text" [(ngModel)]="newBus.busName" name="busName" 
-                       required placeholder="e.g., Shree Yatri">
+                       required placeholder="e.g., Shree Yatri" #busName="ngModel">
+                <div class="error-message" *ngIf="validationErrors.busName">
+                  {{ validationErrors.busName }}
+                </div>
               </div>
             </div>
 
             <div class="form-row">
-              <div class="form-group half">
+              <div class="form-group half" [class.has-error]="validationErrors.busType">
                 <label>Bus Type <span class="required">*</span></label>
                 <select [(ngModel)]="newBus.busType" name="busType" required (change)="onRouteOrTypeChange()">
                   <option *ngFor="let type of busTypes" [value]="type">{{ type }}</option>
                 </select>
+                <div class="error-message" *ngIf="validationErrors.busType">
+                  {{ validationErrors.busType }}
+                </div>
               </div>
-              <div class="form-group half">
+              <div class="form-group half" [class.has-error]="validationErrors.routeId">
                 <label>Select Route <span class="required">*</span></label>
                 <select [(ngModel)]="newBus.routeId" name="routeId" required (change)="onRouteOrTypeChange()">
                   <option value="">-- Choose Route --</option>
@@ -187,14 +198,20 @@
                     {{ route.routeName }} ({{ route.origin }} → {{ route.destination }}) - {{ route.distance }}km
                   </option>
                 </select>
+                <div class="error-message" *ngIf="validationErrors.routeId">
+                  {{ validationErrors.routeId }}
+                </div>
               </div>
             </div>
 
             <div class="form-row">
-              <div class="form-group half">
+              <div class="form-group half" [class.has-error]="validationErrors.totalSeats">
                 <label>Total Seats <span class="required">*</span></label>
                 <input type="number" [(ngModel)]="newBus.totalSeats" name="totalSeats" 
                        required min="10" max="60">
+                <div class="error-message" *ngIf="validationErrors.totalSeats">
+                  {{ validationErrors.totalSeats }}
+                </div>
               </div>
               <div class="form-group half">
                 <label>Seat Layout</label>
@@ -218,41 +235,46 @@
           <div class="form-section">
             <h3>Driver Information</h3>
             <div class="form-row">
-              <div class="form-group half">
+              <div class="form-group half" [class.has-error]="validationErrors.driverName">
                 <label>Driver Name <span class="required">*</span></label>
                 <input type="text" [(ngModel)]="newBus.driverName" name="driverName" required>
+                <div class="error-message" *ngIf="validationErrors.driverName">
+                  {{ validationErrors.driverName }}
+                </div>
               </div>
-              <div class="form-group half">
+              <div class="form-group half" [class.has-error]="validationErrors.driverPhone">
                 <label>Driver Phone <span class="required">*</span></label>
                 <input type="tel" [(ngModel)]="newBus.driverPhone" name="driverPhone" required pattern="[0-9]{10}">
+                <div class="error-message" *ngIf="validationErrors.driverPhone">
+                  {{ validationErrors.driverPhone }}
+                </div>
               </div>
             </div>
-            <div class="form-group">
+            <div class="form-group" [class.has-error]="validationErrors.driverLicense">
               <label>Driver License <span class="required">*</span></label>
               <input type="text" [(ngModel)]="newBus.driverLicense" name="driverLicense" required>
+              <div class="error-message" *ngIf="validationErrors.driverLicense">
+                {{ validationErrors.driverLicense }}
+              </div>
             </div>
           </div>
 
           <div class="form-section">
             <h3>Schedule</h3>
             <div class="form-row">
-              <div class="form-group half">
+              <div class="form-group half" [class.has-error]="validationErrors.departureDate">
                 <label>Departure Date <span class="required">*</span></label>
                 <input type="date" [(ngModel)]="newBus.departureDate" name="departureDate" required [min]="today">
+                <div class="error-message" *ngIf="validationErrors.departureDate">
+                  {{ validationErrors.departureDate }}
+                </div>
               </div>
-              <div class="form-group half">
+              <div class="form-group half" [class.has-error]="validationErrors.departureTime">
                 <label>Departure Time <span class="required">*</span></label>
                 <input type="time" [(ngModel)]="newBus.departureTime" name="departureTime" required>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group half">
-                <label>Arrival Date <span class="required">*</span></label>
-                <input type="date" [(ngModel)]="newBus.arrivalDate" name="arrivalDate" required [min]="newBus.departureDate">
-              </div>
-              <div class="form-group half">
-                <label>Arrival Time <span class="required">*</span></label>
-                <input type="time" [(ngModel)]="newBus.arrivalTime" name="arrivalTime" required>
+                <div class="error-message" *ngIf="validationErrors.departureTime">
+                  {{ validationErrors.departureTime }}
+                </div>
               </div>
             </div>
           </div>
@@ -260,7 +282,7 @@
           <div class="form-section">
             <h3>Fare & Status</h3>
             <div class="form-row">
-              <div class="form-group half">
+              <div class="form-group half" [class.has-error]="validationErrors.fare">
                 <label>Fare (₹) <span class="required">*</span></label>
                 <input type="number" [(ngModel)]="newBus.fare" name="fare" required min="1" 
                        [class.auto-calculated]="currentFareInfo?.source === 'fare_declaration'"
@@ -281,6 +303,9 @@
                     <br><small class="hint">Please create fare in Fare Declaration</small>
                   </span>
                 </div>
+                <div class="error-message" *ngIf="validationErrors.fare">
+                  {{ validationErrors.fare }}
+                </div>
               </div>
               <div class="form-group half">
                 <label>Status</label>
@@ -294,7 +319,7 @@
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
-        <button class="btn-primary" (click)="saveBus()" [disabled]="!addForm.form.valid || isLoading || isCalculatingFare">
+        <button class="btn-primary" (click)="saveBus()" [disabled]="isLoading || isCalculatingFare">
           <span class="spinner-small" *ngIf="isLoading"></span>
           {{ isLoading ? 'Saving...' : 'Save Bus' }}
         </button>
@@ -310,6 +335,13 @@
         <button class="close-btn" (click)="closeEditModal()">×</button>
       </div>
       <div class="modal-body">
+        <!-- Modal Error Message -->
+        <div *ngIf="modalErrorMessage" class="alert alert-error modal-alert">
+          <span class="alert-icon">⚠️</span>
+          <span>{{ modalErrorMessage }}</span>
+          <button class="close-btn" (click)="modalErrorMessage = ''">×</button>
+        </div>
+        
         <form #editForm="ngForm">
           <div class="form-section">
             <h3>Bus Information</h3>
@@ -377,16 +409,6 @@
                 <input type="time" [(ngModel)]="selectedBus.departureTime" name="editDepartureTime" required>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group half">
-                <label>Arrival Date</label>
-                <input type="date" [(ngModel)]="selectedBus.arrivalDate" name="editArrivalDate" required>
-              </div>
-              <div class="form-group half">
-                <label>Arrival Time</label>
-                <input type="time" [(ngModel)]="selectedBus.arrivalTime" name="editArrivalTime" required>
-              </div>
-            </div>
           </div>
 
           <div class="form-section">
@@ -409,7 +431,7 @@
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" (click)="closeEditModal()">Cancel</button>
-        <button class="btn-primary" (click)="updateBus()" [disabled]="!editForm.form.valid || isLoading">
+        <button class="btn-primary" (click)="updateBus()" [disabled]="isLoading">
           <span class="spinner-small" *ngIf="isLoading"></span>
           {{ isLoading ? 'Updating...' : 'Update Bus' }}
         </button>
@@ -481,10 +503,6 @@
           <div class="detail-item">
             <span class="detail-label">Departure:</span>
             <span class="detail-value">{{ selectedBus.departureTime }} on {{ selectedBus.departureDate | date }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Arrival:</span>
-            <span class="detail-value">{{ selectedBus.arrivalTime }} on {{ selectedBus.arrivalDate | date }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Status:</span>

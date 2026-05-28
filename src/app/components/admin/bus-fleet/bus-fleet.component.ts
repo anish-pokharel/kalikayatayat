@@ -33,8 +33,23 @@ export class BusFleetComponent implements OnInit, OnDestroy {
   isCalculatingFare: boolean = false;
   errorMessage: string = '';
   successMessage: string = '';
+  modalErrorMessage: string = '';
   
   currentFareInfo: FareInfo | null = null;
+  
+  validationErrors: any = {
+    busNumber: '',
+    busName: '',
+    busType: '',
+    routeId: '',
+    driverName: '',
+    driverPhone: '',
+    driverLicense: '',
+    totalSeats: '',
+    fare: '',
+    departureTime: '',
+    departureDate: ''
+  };
   
   newBus: any = {
     busNumber: '',
@@ -49,9 +64,7 @@ export class BusFleetComponent implements OnInit, OnDestroy {
     amenities: [],
     fare: 0,
     departureTime: '08:00',
-    arrivalTime: '20:00',
     departureDate: new Date().toISOString().split('T')[0],
-    arrivalDate: new Date().toISOString().split('T')[0],
     status: 'active'
   };
 
@@ -75,9 +88,11 @@ export class BusFleetComponent implements OnInit, OnDestroy {
 
   private searchSubject = new Subject<string>();
   private subscriptions: Subscription = new Subscription();
-today: any;
+  today: any;
 
-  constructor(private busService: BusService) {}
+  constructor(private busService: BusService) {
+    this.today = new Date().toISOString().split('T')[0];
+  }
 
   ngOnInit(): void {
     this.loadRoutes();
@@ -106,6 +121,7 @@ today: any;
       error: (error: any) => {
         console.error('Error loading routes:', error);
         this.errorMessage = 'Failed to load routes';
+        this.clearMessagesAfterTimeout();
       }
     });
     this.subscriptions.add(sub);
@@ -134,6 +150,7 @@ today: any;
         console.error('Error loading buses:', error);
         this.errorMessage = 'Failed to load buses';
         this.isLoading = false;
+        this.clearMessagesAfterTimeout();
       }
     });
     this.subscriptions.add(sub);
@@ -166,17 +183,21 @@ today: any;
           if (response.data.source === 'fare_declaration') {
             this.successMessage = `✅ Fare loaded from Fare Declaration: ₹${response.data.fare}`;
           } else {
-            this.successMessage = `⚠️ No fare declaration found. Calculated fare: ₹${response.data.fare}`;
+            this.modalErrorMessage = `⚠️ No fare declaration found! Calculated fare: ₹${response.data.fare}. Please create fare in Fare Declaration.`;
           }
           
-          setTimeout(() => this.successMessage = '', 3000);
+          setTimeout(() => {
+            this.successMessage = '';
+            this.modalErrorMessage = '';
+          }, 5000);
         }
         this.isCalculatingFare = false;
       },
       error: (error: any) => {
         console.error('Error calculating fare:', error);
-        this.errorMessage = 'Failed to calculate fare';
+        this.modalErrorMessage = 'Failed to calculate fare';
         this.isCalculatingFare = false;
+        this.clearMessagesAfterTimeout();
       }
     });
     this.subscriptions.add(sub);
@@ -205,27 +226,62 @@ today: any;
       amenities: [],
       fare: 0,
       departureTime: '08:00',
-      arrivalTime: '20:00',
       departureDate: new Date().toISOString().split('T')[0],
-      arrivalDate: new Date().toISOString().split('T')[0],
       status: 'active'
     };
     this.currentFareInfo = null;
+    this.modalErrorMessage = '';
+    this.clearValidationErrors();
     this.showAddModal = true;
   }
 
   closeAddModal(): void {
     this.showAddModal = false;
     this.currentFareInfo = null;
+    this.modalErrorMessage = '';
+    this.clearValidationErrors();
+  }
+
+  clearValidationErrors(): void {
+    this.validationErrors = {
+      busNumber: '',
+      busName: '',
+      busType: '',
+      routeId: '',
+      driverName: '',
+      driverPhone: '',
+      driverLicense: '',
+      totalSeats: '',
+      fare: '',
+      departureTime: '',
+      departureDate: ''
+    };
   }
 
   saveBus(): void {
-    if (!this.validateBus(this.newBus)) return;
+    if (!this.validateBusWithErrors()) return;
 
     this.isLoading = true;
-    this.errorMessage = '';
+    this.modalErrorMessage = '';
 
-    const sub = this.busService.createBus(this.newBus).subscribe({
+    const busData = {
+      busNumber: this.newBus.busNumber,
+      busName: this.newBus.busName,
+      busType: this.newBus.busType,
+      routeId: this.newBus.routeId,
+      driverName: this.newBus.driverName,
+      driverPhone: this.newBus.driverPhone,
+      driverLicense: this.newBus.driverLicense,
+      totalSeats: this.newBus.totalSeats,
+      seatLayout: this.newBus.seatLayout,
+      amenities: this.newBus.amenities,
+      fare: this.newBus.fare,
+      departureTime: this.newBus.departureTime,
+      departureDate: this.newBus.departureDate,
+      status: this.newBus.status
+    };
+
+    const sub = this.busService.createBus(busData).subscribe({
       next: (response: ApiResponse<Bus>) => {
         if (response.success) {
           this.successMessage = 'Bus created successfully!';
@@ -237,8 +293,9 @@ today: any;
       },
       error: (error: any) => {
         console.error('Error creating bus:', error);
-        this.errorMessage = error.error?.message || 'Failed to create bus';
+        this.modalErrorMessage = error.error?.message || 'Failed to create bus';
         this.isLoading = false;
+        this.clearMessagesAfterTimeout();
       }
     });
     this.subscriptions.add(sub);
@@ -250,7 +307,12 @@ today: any;
       const sub = this.busService.getBusById(bus._id).subscribe({
         next: (response: ApiResponse<Bus>) => {
           if (response.success && response.data) {
-            this.selectedBus = response.data;
+            this.selectedBus = { ...response.data };
+            // Format date for input
+            if (this.selectedBus.departureDate) {
+              this.selectedBus.departureDate = new Date(this.selectedBus.departureDate).toISOString().split('T')[0];
+            }
+            this.modalErrorMessage = '';
             this.showEditModal = true;
           }
           this.isLoading = false;
@@ -259,6 +321,7 @@ today: any;
           console.error('Error fetching bus:', error);
           this.errorMessage = 'Failed to load bus details';
           this.isLoading = false;
+          this.clearMessagesAfterTimeout();
         }
       });
       this.subscriptions.add(sub);
@@ -268,16 +331,34 @@ today: any;
   closeEditModal(): void {
     this.showEditModal = false;
     this.selectedBus = null;
+    this.modalErrorMessage = '';
   }
 
   updateBus(): void {
-    if (!this.selectedBus || !this.selectedBus._id) return;
-    if (!this.validateBus(this.selectedBus)) return;
+    if (!this.selectedBus || !this.selectedBus._id) {
+      this.modalErrorMessage = 'Bus information is missing';
+      return;
+    }
+    
+    if (!this.validateEditBus()) return;
 
     this.isLoading = true;
-    this.errorMessage = '';
+    this.modalErrorMessage = '';
 
-    const sub = this.busService.updateBus(this.selectedBus._id, this.selectedBus).subscribe({
+    const updateData = {
+      busNumber: this.selectedBus.busNumber,
+      busName: this.selectedBus.busName,
+      driverName: this.selectedBus.driverName,
+      driverPhone: this.selectedBus.driverPhone,
+      driverLicense: this.selectedBus.driverLicense,
+      totalSeats: this.selectedBus.totalSeats,
+      seatLayout: this.selectedBus.seatLayout,
+      departureTime: this.selectedBus.departureTime,
+      departureDate: this.selectedBus.departureDate,
+      status: this.selectedBus.status
+    };
+
+    const sub = this.busService.updateBus(this.selectedBus._id, updateData).subscribe({
       next: (response: ApiResponse<Bus>) => {
         if (response.success) {
           this.successMessage = 'Bus updated successfully!';
@@ -289,15 +370,16 @@ today: any;
       },
       error: (error: any) => {
         console.error('Error updating bus:', error);
-        this.errorMessage = error.error?.message || 'Failed to update bus';
+        this.modalErrorMessage = error.error?.message || 'Failed to update bus';
         this.isLoading = false;
+        this.clearMessagesAfterTimeout();
       }
     });
     this.subscriptions.add(sub);
   }
 
   openDetailsModal(bus: Bus): void {
-    this.selectedBus = bus;
+    this.selectedBus = { ...bus };
     this.showDetailsModal = true;
   }
 
@@ -307,60 +389,67 @@ today: any;
   }
 
   openDeleteModal(bus: Bus): void {
-    this.selectedBus = bus;
+    this.selectedBus = { ...bus };
     this.showDeleteModal = true;
   }
 
   closeDeleteModal(): void {
     this.showDeleteModal = false;
     this.selectedBus = null;
+    this.modalErrorMessage = '';
   }
 
   confirmDelete(): void {
-    if (this.selectedBus && this.selectedBus._id) {
-      this.isLoading = true;
-      this.errorMessage = '';
-
-      const sub = this.busService.deleteBus(this.selectedBus._id).subscribe({
-        next: (response: ApiResponse<null>) => {
-          if (response.success) {
-            this.successMessage = 'Bus deleted successfully!';
-            this.loadBuses();
-            this.closeDeleteModal();
-            setTimeout(() => this.successMessage = '', 3000);
-          }
-          this.isLoading = false;
-        },
-        error: (error: any) => {
-          console.error('Error deleting bus:', error);
-          this.errorMessage = error.error?.message || 'Failed to delete bus';
-          this.isLoading = false;
-        }
-      });
-      this.subscriptions.add(sub);
+    if (!this.selectedBus || !this.selectedBus._id) {
+      this.modalErrorMessage = 'Bus information is missing';
+      return;
     }
+
+    this.isLoading = true;
+    this.modalErrorMessage = '';
+
+    const sub = this.busService.deleteBus(this.selectedBus._id).subscribe({
+      next: (response: ApiResponse<null>) => {
+        if (response.success) {
+          this.successMessage = 'Bus deleted successfully!';
+          this.loadBuses();
+          this.closeDeleteModal();
+          setTimeout(() => this.successMessage = '', 3000);
+        }
+        this.isLoading = false;
+      },
+      error: (error: any) => {
+        console.error('Error deleting bus:', error);
+        this.modalErrorMessage = error.error?.message || 'Failed to delete bus. Please check if bus has any bookings.';
+        this.isLoading = false;
+        this.clearMessagesAfterTimeout();
+      }
+    });
+    this.subscriptions.add(sub);
   }
 
   toggleStatus(bus: Bus): void {
-    if (bus._id) {
-      this.isLoading = true;
-      const sub = this.busService.toggleBusStatus(bus._id).subscribe({
-        next: (response: any) => {
-          if (response.success) {
-            bus.status = bus.status === 'active' ? 'inactive' : 'active';
-            this.successMessage = `Bus ${bus.status === 'active' ? 'activated' : 'deactivated'}!`;
-            setTimeout(() => this.successMessage = '', 3000);
-          }
-          this.isLoading = false;
-        },
-        error: (error: any) => {
-          console.error('Error toggling status:', error);
-          this.errorMessage = error.error?.message || 'Failed to toggle status';
-          this.isLoading = false;
+    if (!bus._id) return;
+    
+    this.isLoading = true;
+    const sub = this.busService.toggleBusStatus(bus._id).subscribe({
+      next: (response: any) => {
+        if (response.success) {
+          bus.status = bus.status === 'active' ? 'inactive' : 'active';
+          this.successMessage = `Bus ${bus.status === 'active' ? 'activated' : 'deactivated'} successfully!`;
+          this.loadBuses(); // Reload to get fresh data
+          setTimeout(() => this.successMessage = '', 3000);
         }
-      });
-      this.subscriptions.add(sub);
-    }
+        this.isLoading = false;
+      },
+      error: (error: any) => {
+        console.error('Error toggling status:', error);
+        this.errorMessage = error.error?.message || 'Failed to toggle status';
+        this.isLoading = false;
+        this.clearMessagesAfterTimeout();
+      }
+    });
+    this.subscriptions.add(sub);
   }
 
   getStatusClass(status: string): string {
@@ -389,55 +478,124 @@ today: any;
     return this.filteredBuses.filter(b => b.status === 'maintenance').length;
   }
 
-  private validateBus(bus: any): boolean {
+  private validateBusWithErrors(bus: any = this.newBus): boolean {
+    let isValid = true;
+    this.clearValidationErrors();
+
     if (!bus.busNumber?.trim()) {
-      this.errorMessage = 'Bus number is required';
-      return false;
+      this.validationErrors.busNumber = 'Bus number is required';
+      isValid = false;
+    } else if (bus.busNumber.length < 3) {
+      this.validationErrors.busNumber = 'Bus number must be at least 3 characters';
+      isValid = false;
     }
+    
     if (!bus.busName?.trim()) {
-      this.errorMessage = 'Bus name is required';
-      return false;
+      this.validationErrors.busName = 'Bus name is required';
+      isValid = false;
     }
+    
     if (!bus.busType) {
-      this.errorMessage = 'Bus type is required';
-      return false;
+      this.validationErrors.busType = 'Bus type is required';
+      isValid = false;
     }
+    
     if (!bus.routeId) {
-      this.errorMessage = 'Please select a route';
-      return false;
+      this.validationErrors.routeId = 'Please select a route';
+      isValid = false;
     }
+    
     if (!bus.driverName?.trim()) {
-      this.errorMessage = 'Driver name is required';
-      return false;
+      this.validationErrors.driverName = 'Driver name is required';
+      isValid = false;
     }
+    
     if (!bus.driverPhone?.trim()) {
-      this.errorMessage = 'Driver phone is required';
-      return false;
+      this.validationErrors.driverPhone = 'Driver phone is required';
+      isValid = false;
+    } else if (!/^[0-9]{10}$/.test(bus.driverPhone)) {
+      this.validationErrors.driverPhone = 'Please enter a valid 10-digit phone number';
+      isValid = false;
     }
+    
     if (!bus.driverLicense?.trim()) {
-      this.errorMessage = 'Driver license is required';
-      return false;
+      this.validationErrors.driverLicense = 'Driver license is required';
+      isValid = false;
     }
+    
     if (!bus.totalSeats || bus.totalSeats < 10 || bus.totalSeats > 60) {
-      this.errorMessage = 'Total seats must be between 10 and 60';
-      return false;
+      this.validationErrors.totalSeats = 'Total seats must be between 10 and 60';
+      isValid = false;
     }
+    
     if (!bus.fare || bus.fare <= 0) {
-      this.errorMessage = 'Fare must be greater than 0';
+      this.validationErrors.fare = 'Fare must be greater than 0';
+      isValid = false;
+    }
+    
+    if (!bus.departureTime) {
+      this.validationErrors.departureTime = 'Departure time is required';
+      isValid = false;
+    }
+    
+    if (!bus.departureDate) {
+      this.validationErrors.departureDate = 'Departure date is required';
+      isValid = false;
+    }
+
+    if (!isValid) {
+      setTimeout(() => {
+        const firstError = document.querySelector('.has-error');
+        if (firstError) {
+          firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+
+    return isValid;
+  }
+
+  private validateEditBus(): boolean {
+    if (!this.selectedBus.busNumber?.trim()) {
+      this.modalErrorMessage = 'Bus number is required';
       return false;
     }
-    if (!bus.departureTime || !bus.arrivalTime) {
-      this.errorMessage = 'Departure and arrival times are required';
+    if (!this.selectedBus.busName?.trim()) {
+      this.modalErrorMessage = 'Bus name is required';
       return false;
     }
-    if (!bus.departureDate || !bus.arrivalDate) {
-      this.errorMessage = 'Departure and arrival dates are required';
+    if (!this.selectedBus.driverName?.trim()) {
+      this.modalErrorMessage = 'Driver name is required';
       return false;
     }
-    if (new Date(bus.departureDate) >= new Date(bus.arrivalDate)) {
-      this.errorMessage = 'Arrival date must be after departure date';
+    if (!this.selectedBus.driverPhone?.trim()) {
+      this.modalErrorMessage = 'Driver phone is required';
+      return false;
+    }
+    if (!this.selectedBus.driverLicense?.trim()) {
+      this.modalErrorMessage = 'Driver license is required';
+      return false;
+    }
+    if (!this.selectedBus.totalSeats || this.selectedBus.totalSeats < 10 || this.selectedBus.totalSeats > 60) {
+      this.modalErrorMessage = 'Total seats must be between 10 and 60';
+      return false;
+    }
+    if (!this.selectedBus.departureTime) {
+      this.modalErrorMessage = 'Departure time is required';
+      return false;
+    }
+    if (!this.selectedBus.departureDate) {
+      this.modalErrorMessage = 'Departure date is required';
       return false;
     }
     return true;
+  }
+
+  private clearMessagesAfterTimeout(): void {
+    setTimeout(() => {
+      this.errorMessage = '';
+      this.modalErrorMessage = '';
+      this.successMessage = '';
+    }, 5000);
   }
 }

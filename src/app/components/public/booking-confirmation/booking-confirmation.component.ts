@@ -31,7 +31,6 @@ window: any;
       if (this.bookingId) {
         this.fetchBookingDetails();
       } else {
-        // Try to get from navigation state
         const navigation = this.router.getCurrentNavigation();
         const state = navigation?.extras.state as { booking: any };
         if (state?.booking) {
@@ -51,6 +50,7 @@ window: any;
         next: (response: any) => {
           if (response.success) {
             this.booking = response.data;
+            console.log('Booking details:', this.booking);
           } else {
             this.errorMessage = response.message || 'Failed to load booking';
           }
@@ -65,7 +65,6 @@ window: any;
   }
 
   downloadTicket(): void {
-    // Implement PDF download functionality
     window.print();
   }
 
@@ -83,11 +82,35 @@ window: any;
     });
   }
 
-  formatTime(date: string): string {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  formatTime(time: string): string {
+    if (!time) return 'N/A';
+    if (time.includes(':')) {
+      const [hour, minute] = time.split(':');
+      let hourNum = parseInt(hour);
+      const period = hourNum >= 12 ? 'PM' : 'AM';
+      hourNum = hourNum % 12 || 12;
+      return `${hourNum}:${minute} ${period}`;
+    }
+    return time;
+  }
+
+  getBookingStatusClass(): string {
+    const status = this.booking?.bookingStatus;
+    switch(status?.toLowerCase()) {
+      case 'confirmed': return 'status-confirmed';
+      case 'cancelled': return 'status-cancelled';
+      case 'completed': return 'status-completed';
+      default: return 'status-pending';
+    }
+  }
+
+  getPaymentStatusClass(): string {
+    const status = this.booking?.paymentStatus;
+    switch(status?.toLowerCase()) {
+      case 'completed':
+      case 'paid': return 'payment-completed';
+      case 'pending': return 'payment-pending';
+      default: return 'payment-pending';
+    }
   }
 }
