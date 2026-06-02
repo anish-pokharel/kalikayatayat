@@ -723,3 +723,33 @@
     grid-template-columns: 1fr;
   }
 }
+/* No Data State */
+.no-data {
+  text-align: center;
+  padding: 40px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  color: #999;
+}
+
+.no-data p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Status Completed */
+.status-completed {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+
+/* Bus Type Badge */
+.bus-type {
+  display: inline-block;
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  margin-left: 8px;
+}

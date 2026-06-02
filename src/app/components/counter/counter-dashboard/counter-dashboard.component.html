@@ -1,11 +1,10 @@
 <div class="counter-dashboard">
-  <!-- Loading Spinner -->
   <div class="loading-overlay" *ngIf="isLoading">
     <div class="spinner"></div>
     <p>Loading dashboard...</p>
   </div>
 
-  <!-- Sidebar -->
+    
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="logo">
@@ -32,7 +31,7 @@
         <span class="nav-icon">🎫</span>
         <span>New Booking</span>
       </a>
-      <a href="#" class="nav-item" (click)="$event.preventDefault()">
+      <a href="#" class="nav-item" (click)="$event.preventDefault(); manageBooking()">
         <span class="nav-icon">📅</span>
         <span>Manage Bookings</span>
       </a>
@@ -58,9 +57,8 @@
     </div>
   </aside>
 
-  <!-- Main Content -->
   <main class="main-content">
-    <!-- Header -->
+    
     <header class="main-header">
       <div class="header-title">
         <h1>Counter Dashboard</h1>
@@ -74,7 +72,7 @@
       </div>
     </header>
 
-    <!-- Statistics Cards -->
+     
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-icon blue">
@@ -132,7 +130,7 @@
       </div>
     </div>
 
-    <!-- Quick Actions -->
+
     <div class="quick-actions">
       <button class="action-btn primary" (click)="createNewBooking()">
         <span>➕</span> Create New Booking
@@ -142,7 +140,7 @@
       </button>
     </div>
 
-    <!-- Search Customer Section -->
+  
     <div class="search-section">
       <div class="section-header">
         <h2>🔍 Quick Customer Search</h2>
@@ -172,9 +170,9 @@
       </div>
     </div>
 
-    <!-- Two Column Layout -->
+
     <div class="two-columns">
-      <!-- Recent Bookings -->
+    
       <div class="column">
         <div class="section-header">
           <h2>📋 Recent Bookings</h2>
@@ -227,7 +225,7 @@
         </div>
       </div>
 
-      <!-- Upcoming Buses -->
+      
       <div class="column">
         <div class="section-header">
           <h2>🚌 Upcoming Buses</h2>
@@ -269,7 +267,6 @@
       </div>
     </div>
 
-    <!-- Welcome Banner -->
     <div class="welcome-banner">
       <div class="banner-content">
         <h3>💡 Pro Tip</h3>
@@ -278,3 +275,4 @@
     </div>
   </main>
 </div>
+

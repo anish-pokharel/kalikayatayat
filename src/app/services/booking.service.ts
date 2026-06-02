@@ -529,4 +529,13 @@ export class BookingService {
   getPublicBookedSeats(busId: string, travelDate: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/bookings/seats/available/${busId}/${travelDate}`);
   }
+  // Add this method to your BookingService class (in booking.service.ts)
+
+searchBuses(source: string, destination: string, travelDate: string): Observable<ApiResponse<any[]>> {
+  return this.http.post<ApiResponse<any[]>>(`${this.apiUrl}/bookings/search-buses`, {
+    source,
+    destination,
+    travelDate
+  });
+}
 }

@@ -1,0 +1,225 @@
+<div class="manage-bookings-container">
+  @if (isLoading) {
+    <div class="loading-overlay">
+      <div class="spinner"></div>
+      <p>Loading...</p>
+    </div>
+  }
+
+  <!-- Header -->
+  <div class="page-header">
+    <button class="back-btn" (click)="goBack()">
+      ← Back to Dashboard
+    </button>
+    <h1>Manage Bus Bookings</h1>
+    <p>View and manage seat bookings for any bus on any date</p>
+  </div>
+
+  <!-- Search Section -->
+  <div class="search-section">
+    <div class="search-card">
+      <h3>🔍 Search Bus Seats</h3>
+      <div class="search-filters">
+        <div class="filter-group">
+          <label>Select Bus</label>
+          <select [(ngModel)]="selectedBusId" class="form-control" (change)="onBusChange()">
+            <option value="">-- Select Bus --</option>
+            @for (bus of busList; track bus._id) {
+              <option [value]="bus._id">
+                {{ getBusDisplayName(bus) }}
+              </option>
+            }
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label>Travel Date</label>
+          <input 
+            type="date" 
+            [(ngModel)]="selectedDate" 
+            class="form-control"
+            [min]="getMinDate()"
+            [max]="getMaxDate()"
+            (change)="onDateChange()"
+          >
+          @if (isDateLoading) {
+            <small class="loading-text">Loading available dates...</small>
+          }
+        </div>
+        
+        <div class="filter-group">
+          <label>&nbsp;</label>
+          <button class="search-btn" (click)="searchBusSeats()" [disabled]="!selectedBusId || !selectedDate">
+            🔍 Search Seats
+          </button>
+        </div>
+      </div>
+      
+      <!-- Selected Date Display -->
+      @if (selectedDate && selectedBusId) {
+        <div class="selected-date-info">
+          <span class="date-badge">
+            📅 {{ formatDisplayDate(selectedDate) }}
+          </span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Seat Map Section -->
+  @if (seatMap) {
+    <div class="seat-map-section">
+      <div class="stats-cards">
+        <div class="stat-card">
+          <div class="stat-icon">🚌</div>
+          <div class="stat-info">
+            <h4>{{ seatMap.bus?.busName || 'Bus' }}</h4>
+            <p>{{ seatMap.bus?.busNumber }} | {{ seatMap.bus?.busType }}</p>
+            <small>{{ seatMap.bus?.source }} → {{ seatMap.bus?.destination }}</small>
+            <br>
+            <small>Departs: {{ seatMap.bus?.departureTime }} | Fare: {{ formatCurrency(seatFare) }}</small>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon">💺</div>
+          <div class="stat-info">
+            <h4>Total Seats</h4>
+            <p class="stat-number">{{ totalSeats }}</p>
+          </div>
+        </div>
+        
+        <div class="stat-card booked">
+          <div class="stat-icon">📕</div>
+          <div class="stat-info">
+            <h4>Booked Seats</h4>
+            <p class="stat-number">{{ bookedSeatsCount }}</p>
+            <small>{{ (bookedSeatsCount/totalSeats*100).toFixed(1) }}% occupied</small>
+          </div>
+        </div>
+        
+        <div class="stat-card available">
+          <div class="stat-icon">📗</div>
+          <div class="stat-info">
+            <h4>Available Seats</h4>
+            <p class="stat-number">{{ availableSeatsCount }}</p>
+            <small>{{ (availableSeatsCount/totalSeats*100).toFixed(1) }}% free</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Occupancy Progress Bar -->
+      <div class="occupancy-bar">
+        <div class="progress-label">
+          <span>Occupancy Rate for {{ formatDisplayDate(selectedDate) }}</span>
+          <span class="percentage">{{ occupancyRate.toFixed(1) }}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="occupancyRate" [class]="getOccupancyClass()"></div>
+        </div>
+      </div>
+
+      <!-- Seat Layout -->
+      <div class="seat-layout">
+        <h3>Seat Layout</h3>
+        <div class="seat-legend">
+          <div class="legend-item">
+            <div class="seat-box available-demo"></div>
+            <span>Available ({{ availableSeatsCount }})</span>
+          </div>
+          <div class="legend-item">
+            <div class="seat-box selected-demo"></div>
+            <span>Selected</span>
+          </div>
+          <div class="legend-item">
+            <div class="seat-box booked-demo"></div>
+            <span>Booked ({{ bookedSeatsCount }})</span>
+          </div>
+        </div>
+        
+        <div class="bus-layout">
+          <div class="driver-section">🚌 DRIVER</div>
+          <div class="seats-container">
+            @for (row of getSeatRows(); track $index) {
+              <div class="seat-row">
+                <div class="row-number">{{ $index + 1 }}</div>
+                @for (seat of row; track seat.seatNumber) {
+                  <div 
+                    class="seat" 
+                    [class]="getSeatClass(seat)"
+                    (click)="selectSeat(seat)"
+                    [title]="seat.status === 'booked' ? 'Booked - Click for details' : 'Available - Click to book'">
+                    <div class="seat-number">{{ seat.seatNumber }}</div>
+                    <div class="seat-fare">{{ formatCurrency(seat.fare) }}</div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Booked Seats Details -->
+  @if (bookedSeats.length > 0) {
+    <div class="booked-seats-section">
+      <h3>📋 Booked Seats Details for {{ formatDisplayDate(selectedDate) }}</h3>
+      <div class="booked-seats-grid">
+        @for (seat of bookedSeats; track seat.seatNumber) {
+          <div class="booked-seat-card">
+            <div class="seat-number">Seat {{ seat.seatNumber }}</div>
+            <div class="seat-fare">Fare: {{ formatCurrency(seat.fare) }}</div>
+            @if (seat.passenger) {
+              <div class="passenger-info">
+                <p><strong>Passenger:</strong> {{ seat.passenger.passengerName || 'N/A' }}</p>
+                <p><strong>Phone:</strong> {{ seat.passenger.passengerPhone || 'N/A' }}</p>
+                <p><strong>Booking ID:</strong> {{ seat.passenger.bookingId || 'N/A' }}</p>
+              </div>
+            } @else {
+              <div class="passenger-info">
+                <p><strong>Status:</strong> Booked</p>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Available Seats Summary -->
+  @if (availableSeats.length > 0) {
+    <div class="available-seats-section">
+      <h3>✅ Available Seats for {{ formatDisplayDate(selectedDate) }}</h3>
+      <div class="available-seats-list">
+        @for (seat of availableSeats; track seat.seatNumber) {
+          <span class="available-seat-badge" (click)="selectSeat(seat)">
+            Seat {{ seat.seatNumber }} - {{ formatCurrency(seat.fare) }}
+          </span>
+        }
+      </div>
+      <div class="quick-action">
+        <button class="create-booking-btn" (click)="createNewBooking()">
+          + Create New Booking for {{ formatDisplayDate(selectedDate) }}
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- No Data Message -->
+  @if (!isLoading && !seatMap && selectedBusId && selectedDate) {
+    <div class="no-data">
+      <p>No seat data available for {{ formatDisplayDate(selectedDate) }} on this bus.</p>
+      <button class="search-btn" (click)="searchBusSeats()">Try Again</button>
+      <button class="create-booking-btn" (click)="createNewBooking()" style="margin-left: 10px;">
+        Create New Booking
+      </button>
+    </div>
+  }
+
+  @if (!isLoading && !selectedBusId) {
+    <div class="no-data">
+      <p>Please select a bus and date to view seat availability.</p>
+    </div>
+  }
+</div>

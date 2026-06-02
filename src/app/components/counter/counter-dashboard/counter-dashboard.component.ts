@@ -250,7 +250,9 @@ export class CounterDashboardComponent implements OnInit, OnDestroy {
   createNewBooking(): void {
     this.router.navigate(['/counter/new-booking']);
   }
-
+ manageBooking(): void {
+    this.router.navigate(['/counter/manage-bookings']);
+  }
   viewBusSchedule(busId: string): void {
     console.log('View bus schedule:', busId);
     this.router.navigate(['/counter/bus-schedule', busId]);
@@ -299,3 +301,5 @@ export class CounterDashboardComponent implements OnInit, OnDestroy {
     }
   }
 }
+
+
