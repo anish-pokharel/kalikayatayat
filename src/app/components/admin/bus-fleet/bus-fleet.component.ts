@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { BusService, Bus, Route, FareInfo, ApiResponse } from '../../../services/bus.service';
+import { AddNewBusService, AddNewBus } from '../../../services/addNewbuswithRoute.service';
 import { Subscription, debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
 @Component({
@@ -30,12 +31,16 @@ export class BusFleetComponent implements OnInit, OnDestroy {
   selectedBus: any = null;
   
   isLoading: boolean = false;
+  isLoadingBusNumbers: boolean = false;
   isCalculatingFare: boolean = false;
   errorMessage: string = '';
   successMessage: string = '';
   modalErrorMessage: string = '';
   
   currentFareInfo: FareInfo | null = null;
+  
+  // Bus number options for dropdown
+  busNumberOptions: AddNewBus[] = [];
   
   validationErrors: any = {
     busNumber: '',
@@ -70,6 +75,7 @@ export class BusFleetComponent implements OnInit, OnDestroy {
 
   busTypes: string[] = [
     'AC Sleeper',
+    'AC',
     'AC Seater',
     'Non-AC Sleeper',
     'Non-AC Seater',
@@ -90,13 +96,17 @@ export class BusFleetComponent implements OnInit, OnDestroy {
   private subscriptions: Subscription = new Subscription();
   today: any;
 
-  constructor(private busService: BusService) {
+  constructor(
+    private busService: BusService,
+    private addNewBusService: AddNewBusService
+  ) {
     this.today = new Date().toISOString().split('T')[0];
   }
 
   ngOnInit(): void {
     this.loadRoutes();
     this.loadBuses();
+    this.loadBusNumberOptions();
     
     const searchSub = this.searchSubject.pipe(
       debounceTime(500),
@@ -154,6 +164,149 @@ export class BusFleetComponent implements OnInit, OnDestroy {
       }
     });
     this.subscriptions.add(sub);
+  }
+
+  /**
+   * Load bus number options from /api/getNewBuses
+   */
+  loadBusNumberOptions(): void {
+    this.isLoadingBusNumbers = true;
+    const sub = this.addNewBusService.getBusNumberOptions().subscribe({
+      next: (response: ApiResponse<AddNewBus[]>) => {
+        if (response.success && response.data) {
+          this.busNumberOptions = response.data;
+          console.log('✅ Loaded bus options:', this.busNumberOptions.length);
+        } else {
+          console.warn('⚠️ No bus data received');
+          this.busNumberOptions = [];
+        }
+        this.isLoadingBusNumbers = false;
+      },
+      error: (error: any) => {
+        console.error('❌ Error loading bus numbers:', error);
+        this.busNumberOptions = [];
+        this.isLoadingBusNumbers = false;
+        this.errorMessage = 'Failed to load bus numbers: ' + (error.error?.message || error.message);
+        this.clearMessagesAfterTimeout();
+      }
+    });
+    this.subscriptions.add(sub);
+  }
+
+  /**
+   * When a bus number is selected from dropdown in ADD modal, auto-fill all details
+   */
+  onBusNumberSelect(): void {
+    if (!this.newBus.busNumber) {
+      console.log('No bus number selected');
+      return;
+    }
+
+    console.log('🔍 Selected bus number:', this.newBus.busNumber);
+    
+    // Find the selected bus from the options
+    const selectedBus = this.busNumberOptions.find(
+      bus => bus.busNumber === this.newBus.busNumber
+    );
+
+    if (selectedBus) {
+      console.log('✅ Found bus details:', selectedBus);
+      
+      // Auto-fill all fields with the selected bus details
+      this.newBus.busName = selectedBus.busName || '';
+      this.newBus.busType = selectedBus.busType || 'AC Sleeper';
+      this.newBus.driverName = selectedBus.driverName || '';
+      this.newBus.driverPhone = selectedBus.driverPhone || '';
+      this.newBus.driverLicense = selectedBus.driverLicense || '';
+      this.newBus.totalSeats = selectedBus.totalSeats || 40;
+      this.newBus.seatLayout = selectedBus.seatLayout || '2x2';
+      this.newBus.amenities = selectedBus.amenities || [];
+      this.newBus.status = selectedBus.status || 'active';
+      
+      // Clear any previous errors
+      this.modalErrorMessage = '';
+      
+      this.successMessage = `✅ Bus details loaded for ${this.newBus.busNumber}`;
+      setTimeout(() => this.successMessage = '', 3000);
+    } else {
+      console.warn('⚠️ Bus not found in options:', this.newBus.busNumber);
+      this.modalErrorMessage = `Bus ${this.newBus.busNumber} not found in the system`;
+    }
+  }
+
+  /**
+   * When a bus number is selected in the EDIT modal, auto-fill all details
+   */
+  onEditBusNumberSelect(): void {
+    if (!this.selectedBus?.busNumber) {
+      console.log('No bus number selected');
+      return;
+    }
+
+    console.log('🔍 Edit - Selected bus number:', this.selectedBus.busNumber);
+    
+    // Find the selected bus from the options
+    const selectedBus = this.busNumberOptions.find(
+      bus => bus.busNumber === this.selectedBus.busNumber
+    );
+
+    if (selectedBus) {
+      console.log('✅ Edit - Found bus details:', selectedBus);
+      
+      // Store the current ID to maintain the same document
+      const currentId = this.selectedBus._id;
+      
+      // Auto-fill all fields with the selected bus details
+      this.selectedBus.busName = selectedBus.busName || '';
+      this.selectedBus.busType = selectedBus.busType || 'AC Sleeper';
+      this.selectedBus.routeId = selectedBus.routeId || this.selectedBus.routeId || '';
+      this.selectedBus.driverName = selectedBus.driverName || '';
+      this.selectedBus.driverPhone = selectedBus.driverPhone || '';
+      this.selectedBus.driverLicense = selectedBus.driverLicense || '';
+      this.selectedBus.totalSeats = selectedBus.totalSeats || 40;
+      this.selectedBus.seatLayout = selectedBus.seatLayout || '2x2';
+      this.selectedBus.amenities = selectedBus.amenities || [];
+      this.selectedBus.fare = selectedBus.fare || 0;
+      this.selectedBus.status = selectedBus.status || 'active';
+      
+      // Handle optional fields
+      if (selectedBus.departureTime) {
+        this.selectedBus.departureTime = selectedBus.departureTime;
+      }
+      if (selectedBus.departureDate) {
+        this.selectedBus.departureDate = selectedBus.departureDate;
+      }
+      
+      // Restore the ID
+      this.selectedBus._id = currentId;
+      
+      // Clear any previous errors
+      this.modalErrorMessage = '';
+      
+      this.successMessage = `✅ Bus details loaded for ${this.selectedBus.busNumber}`;
+      setTimeout(() => this.successMessage = '', 3000);
+    } else {
+      console.warn('⚠️ Edit - Bus not found in options:', this.selectedBus.busNumber);
+      this.modalErrorMessage = `Bus ${this.selectedBus.busNumber} not found in the system`;
+    }
+  }
+
+  /**
+   * Toggle amenities in edit modal
+   */
+  toggleEditAmenity(amenity: string): void {
+    if (!this.selectedBus) return;
+    
+    if (!this.selectedBus.amenities) {
+      this.selectedBus.amenities = [];
+    }
+    
+    const index = this.selectedBus.amenities.indexOf(amenity);
+    if (index > -1) {
+      this.selectedBus.amenities.splice(index, 1);
+    } else {
+      this.selectedBus.amenities.push(amenity);
+    }
   }
 
   onSearch(): void {
@@ -233,6 +386,9 @@ export class BusFleetComponent implements OnInit, OnDestroy {
     this.modalErrorMessage = '';
     this.clearValidationErrors();
     this.showAddModal = true;
+    
+    // Refresh bus number options when modal opens
+    this.loadBusNumberOptions();
   }
 
   closeAddModal(): void {
@@ -286,6 +442,7 @@ export class BusFleetComponent implements OnInit, OnDestroy {
         if (response.success) {
           this.successMessage = 'Bus created successfully!';
           this.loadBuses();
+          this.loadBusNumberOptions();
           this.closeAddModal();
           setTimeout(() => this.successMessage = '', 3000);
         }
@@ -304,6 +461,12 @@ export class BusFleetComponent implements OnInit, OnDestroy {
   openEditModal(bus: Bus): void {
     if (bus._id) {
       this.isLoading = true;
+      
+      // Load bus number options if not loaded
+      if (this.busNumberOptions.length === 0) {
+        this.loadBusNumberOptions();
+      }
+      
       const sub = this.busService.getBusById(bus._id).subscribe({
         next: (response: ApiResponse<Bus>) => {
           if (response.success && response.data) {
@@ -348,11 +511,15 @@ export class BusFleetComponent implements OnInit, OnDestroy {
     const updateData = {
       busNumber: this.selectedBus.busNumber,
       busName: this.selectedBus.busName,
+      busType: this.selectedBus.busType,
+      routeId: this.selectedBus.routeId,
       driverName: this.selectedBus.driverName,
       driverPhone: this.selectedBus.driverPhone,
       driverLicense: this.selectedBus.driverLicense,
       totalSeats: this.selectedBus.totalSeats,
       seatLayout: this.selectedBus.seatLayout,
+      amenities: this.selectedBus.amenities,
+      fare: this.selectedBus.fare,
       departureTime: this.selectedBus.departureTime,
       departureDate: this.selectedBus.departureDate,
       status: this.selectedBus.status
@@ -437,7 +604,7 @@ export class BusFleetComponent implements OnInit, OnDestroy {
         if (response.success) {
           bus.status = bus.status === 'active' ? 'inactive' : 'active';
           this.successMessage = `Bus ${bus.status === 'active' ? 'activated' : 'deactivated'} successfully!`;
-          this.loadBuses(); // Reload to get fresh data
+          this.loadBuses();
           setTimeout(() => this.successMessage = '', 3000);
         }
         this.isLoading = false;

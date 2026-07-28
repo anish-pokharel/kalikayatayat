@@ -105,6 +105,7 @@ import { CounterNewBookingComponent } from './components/counter/counter-new-boo
 import { ManageBookingComponent } from './components/counter/manage-booking/manage-booking.component';
 
 import { CounterGuard } from './guards/counter.guard';
+import { AddBusComponent } from './components/admin/add-bus/add-bus.component';
 
 export const routes: Routes = [
     { path: '', component: HomeComponent },
@@ -135,6 +136,8 @@ export const routes: Routes = [
             { path: 'route-plan', component: RoutePlanComponent },
             { path: 'routes', component: RoutemanagementComponent },
             { path: 'bus-fleet', component: BusFleetComponent },
+            { path: 'add-bus', component: AddBusComponent },
+
             { path: 'fare-declaration', component: FareDeclarationComponent }
         ]
     },

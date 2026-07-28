@@ -1,0 +1,481 @@
+<div class="add-bus-container">
+  <!-- ==================== HEADER SECTION ==================== -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <div class="header-icon-wrapper">
+          <span class="header-icon">🚍</span>
+        </div>
+        <div>
+          <h1>Add New Bus</h1>
+          <p class="subtitle">Register a new bus to your fleet</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-refresh" (click)="fetchBuses()" title="Refresh Fleet">
+          <span class="refresh-icon">🔄</span>
+        </button>
+        <span class="bus-count-badge">{{ totalBuses }} Buses</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ALERT MESSAGES ==================== -->
+  <div *ngIf="errorMessage" class="alert alert-error">
+    <span class="alert-icon">⚠️</span>
+    <span class="alert-text">{{ errorMessage }}</span>
+    <button class="alert-close" (click)="errorMessage = ''">✕</button>
+  </div>
+  <div *ngIf="successMessage" class="alert alert-success">
+    <span class="alert-icon">✅</span>
+    <span class="alert-text">{{ successMessage }}</span>
+    <button class="alert-close" (click)="successMessage = ''">✕</button>
+  </div>
+
+  <!-- ==================== ADD BUS FORM ==================== -->
+  <div class="form-wrapper">
+    <div class="form-header">
+      <div class="form-header-left">
+        <h2>📝 Bus Details</h2>
+        <span class="form-badge">Required *</span>
+      </div>
+      <div class="form-header-right">
+        <span class="step-indicator">Step 1 of 2</span>
+      </div>
+    </div>
+
+    <form [formGroup]="busForm" (ngSubmit)="onSubmit()" class="bus-form">
+      <!-- Two Column Grid -->
+      <div class="form-grid">
+        <!-- LEFT COLUMN - Bus Information -->
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-icon">🚌</span>
+            <h3>Bus Information</h3>
+          </div>
+
+          <div class="form-group">
+            <label>Bus Number <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <span class="input-icon">🔢</span>
+              <input type="text" formControlName="busNumber" 
+                     placeholder="e.g., BA 1 KHA 1234"
+                     [class.invalid]="busForm.get('busNumber')?.invalid && busForm.get('busNumber')?.touched">
+            </div>
+            <small>Example: BA 1 KHA 1234 or BP 02-001</small>
+            <div *ngIf="busForm.get('busNumber')?.invalid && busForm.get('busNumber')?.touched" class="error-text">
+              Please enter a valid bus number
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Bus Name <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <span class="input-icon">📛</span>
+              <input type="text" formControlName="busName" 
+                     placeholder="e.g., Greenline Volvo">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Bus Type <span class="required">*</span></label>
+              <div class="input-wrapper">
+                <span class="input-icon">🚎</span>
+                <select formControlName="busType">
+                  <option value="" disabled>Select Type</option>
+                  <option *ngFor="let type of busTypeOptionsForForm" [value]="type.value">
+                    {{ type.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>Total Seats <span class="required">*</span></label>
+              <div class="input-wrapper">
+                <span class="input-icon">💺</span>
+                <input type="number" formControlName="totalSeats" min="10" max="60" step="1">
+              </div>
+              <small>Between 10 and 60 seats</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Seat Layout <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <span class="input-icon">📐</span>
+              <select formControlName="seatLayout">
+                <option *ngFor="let layout of seatLayoutOptions" [value]="layout.value">
+                  {{ layout.label }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Status</label>
+            <div class="input-wrapper">
+              <span class="input-icon">📊</span>
+              <select formControlName="status">
+                <option value="active">🟢 Active</option>
+                <option value="inactive">🔴 Inactive</option>
+                <option value="maintenance">🟡 Maintenance</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN - Driver Details -->
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-icon">👨‍✈️</span>
+            <h3>Driver Details</h3>
+          </div>
+
+          <div class="form-group">
+            <label>Driver Name <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <span class="input-icon">👤</span>
+              <input type="text" formControlName="driverName" 
+                     placeholder="Full name of the driver">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Driver Phone <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <span class="input-icon">📱</span>
+              <input type="tel" formControlName="driverPhone" 
+                     placeholder="10-digit mobile number"
+                     [class.invalid]="busForm.get('driverPhone')?.invalid && busForm.get('driverPhone')?.touched">
+            </div>
+            <small *ngIf="busForm.get('driverPhone')?.invalid && busForm.get('driverPhone')?.touched" class="error-text">
+              Enter valid 10-digit phone number
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>Driver License <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <span class="input-icon">🪪</span>
+              <input type="text" formControlName="driverLicense" 
+                     placeholder="e.g., 01-02-1234567">
+            </div>
+          </div>
+
+          <!-- Institute Information -->
+          <div class="institute-section" *ngIf="!currentUser.instituteName">
+            <div class="card-header">
+              <span class="card-icon">🏢</span>
+              <h3>Institute Information</h3>
+            </div>
+            
+            <div class="form-group">
+              <label>Institute Name</label>
+              <div class="input-wrapper">
+                <span class="input-icon">🏛️</span>
+                <input type="text" formControlName="instituteName" placeholder="Enter institute name">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>Institute ID</label>
+              <div class="input-wrapper">
+                <span class="input-icon">🆔</span>
+                <input type="text" formControlName="instituteId" placeholder="Enter institute ID">
+              </div>
+            </div>
+          </div>
+
+          <div class="institute-info" *ngIf="currentUser.instituteName">
+            <div class="info-box">
+              <div class="info-row">
+                <span class="info-label">🏢 Institute</span>
+                <span class="info-value">{{ currentUser.instituteName }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">🆔 ID</span>
+                <span class="info-value">{{ currentUser.instituteId || 'N/A' }}</span>
+              </div>
+              <div class="info-note">Bus will be added under this institute</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Amenities Section - Full Width -->
+      <div class="amenities-wrapper">
+        <div class="card-header">
+          <span class="card-icon">✨</span>
+          <h3>Amenities & Facilities</h3>
+          <span class="selected-count" *ngIf="getSelectedAmenities().length > 0">
+            {{ getSelectedAmenities().length }} selected
+          </span>
+        </div>
+        <p class="card-subtitle">Select all amenities available on this bus</p>
+        
+        <div class="amenities-grid">
+          <div *ngFor="let amenity of amenitiesList; let i = index" 
+               class="amenity-item" 
+               [class.selected]="amenity.selected"
+               (click)="toggleAmenity(i)">
+            <span class="amenity-icon">{{ amenity.icon }}</span>
+            <span class="amenity-label">{{ amenity.label }}</span>
+            <span class="check-indicator" *ngIf="amenity.selected">✓</span>
+          </div>
+        </div>
+        
+        <div class="selected-preview" *ngIf="getSelectedAmenities().length">
+          <strong>Selected amenities:</strong> 
+          <span class="amenity-tags">
+            <span *ngFor="let amenity of getSelectedAmenities()" class="amenity-tag">
+              {{ amenity }}
+            </span>
+          </span>
+        </div>
+        <div class="selected-preview empty" *ngIf="!getSelectedAmenities().length">
+          <span>💡 No amenities selected yet. Click on amenities above to add.</span>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" (click)="cancel()">
+          <span>✕</span> Cancel
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="submitting || busForm.invalid">
+          <span *ngIf="!submitting">🚌 Add Bus</span>
+          <span *ngIf="submitting" class="spinner"></span>
+          <span *ngIf="submitting">Saving...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ==================== BUS LIST SECTION ==================== -->
+  <div class="list-wrapper">
+    <div class="list-header">
+      <div class="list-header-left">
+        <h2>📋 Bus Fleet</h2>
+        <span class="list-count">{{ totalItems }} buses</span>
+      </div>
+      <div class="list-header-right">
+        <button class="btn-add-bus" (click)="addNewBus()">
+          <span>➕</span> Add New
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🚌</div>
+        <div class="stat-info">
+          <span class="stat-label">Total Buses</span>
+          <span class="stat-number">{{ totalBuses }}</span>
+        </div>
+      </div>
+      <div class="stat-card stat-active">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+          <span class="stat-label">Active</span>
+          <span class="stat-number">{{ activeBuses }}</span>
+        </div>
+      </div>
+      <div class="stat-card stat-maintenance">
+        <div class="stat-icon">🔧</div>
+        <div class="stat-info">
+          <span class="stat-label">Maintenance</span>
+          <span class="stat-number">{{ maintenanceBuses }}</span>
+        </div>
+      </div>
+      <div class="stat-card stat-seats">
+        <div class="stat-icon">💺</div>
+        <div class="stat-info">
+          <span class="stat-label">Total Seats</span>
+          <span class="stat-number">{{ totalSeatsCount }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-wrapper">
+      <div class="filters-row">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input 
+            type="text" 
+            [(ngModel)]="searchTerm" 
+            (input)="onSearchChange()"
+            placeholder="Search buses..."
+            class="search-input"
+          >
+        </div>
+        
+        <div class="filter-group">
+          <select [(ngModel)]="selectedStatus" (change)="onStatusChange()" class="filter-select">
+            <option value="all">All Status</option>
+            <option value="active">🟢 Active</option>
+            <option value="inactive">🔴 Inactive</option>
+            <option value="maintenance">🟡 Maintenance</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <select [(ngModel)]="selectedBusType" (change)="onBusTypeChange()" class="filter-select">
+            <option *ngFor="let type of busTypeOptions" [value]="type.value">
+              {{ type.label }}
+            </option>
+          </select>
+        </div>
+        
+        <button class="btn-clear" (click)="clearFilters()" *ngIf="searchTerm || selectedStatus !== 'all' || selectedBusType !== 'all'">
+          ✕ Clear
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <p>Loading buses...</p>
+    </div>
+
+    <!-- Bus Table -->
+    <div class="table-wrapper" *ngIf="!loading">
+      <div class="table-responsive">
+        <table class="bus-table">
+          <thead>
+            <tr>
+              <th>Bus</th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Driver</th>
+              <th>Seats</th>
+              <th>Status</th>
+              <th class="actions-header">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let bus of getPaginatedBuses()">
+              <td>
+                <span class="bus-number-badge">{{ bus.busNumber }}</span>
+              </td>
+              <td>
+                <div class="bus-name-cell">
+                  <strong>{{ bus.busName }}</strong>
+                  <div class="bus-amenities-preview" *ngIf="bus.amenities && bus.amenities.length">
+                    <span class="amenity-tag" *ngFor="let amenity of bus.amenities.slice(0, 2)">
+                      {{ amenity }}
+                    </span>
+                    <span class="amenity-more" *ngIf="bus.amenities.length > 2">
+                      +{{ bus.amenities.length - 2 }}
+                    </span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="bus-type-badge">{{ bus.busType }}</span>
+              </td>
+              <td>
+                <div class="driver-info">
+                  <span class="driver-name">{{ bus.driverName }}</span>
+                  <span class="driver-contact">{{ bus.driverPhone }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="seats-number">{{ bus.totalSeats }}</span>
+                <span class="seat-layout">({{ bus.seatLayout }})</span>
+              </td>
+              <td>
+                <span class="status-badge" [class]="getStatusClass(bus.status)">
+                  {{ bus.status | titlecase }}
+                </span>
+              </td>
+              <td>
+                <div class="action-group">
+                  <button class="action-btn view-btn" (click)="viewBusDetails(bus)" title="View Details">
+                    👁️
+                  </button>
+                  <button class="action-btn edit-btn" (click)="editBus(bus)" title="Edit Bus">
+                    ✏️
+                  </button>
+                  <button class="action-btn status-btn" (click)="toggleBusStatus(bus)" title="Toggle Status">
+                    🔄
+                  </button>
+                  <button class="action-btn delete-btn" (click)="confirmDelete(bus)" title="Delete Bus">
+                    🗑️
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="filteredBuses.length === 0">
+              <td colspan="7" class="empty-state">
+                <div class="empty-state-content">
+                  <span class="empty-icon">🚌</span>
+                  <p>No buses found</p>
+                  <button class="btn-add-small" (click)="addNewBus()">Add Your First Bus</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination-wrapper" *ngIf="getTotalPages() > 1">
+        <div class="pagination-info">
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to 
+          {{ Math.min(currentPage * itemsPerPage, totalItems) }} of {{ totalItems }}
+        </div>
+        <div class="pagination-controls">
+          <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage === 1">
+            ⏮
+          </button>
+          <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
+            ◀
+          </button>
+          
+          <div class="page-numbers">
+            <button *ngFor="let page of getPageNumbers()" 
+                    class="page-number" 
+                    [class.active]="page === currentPage" 
+                    (click)="goToPage(page)">
+              {{ page }}
+            </button>
+          </div>
+          
+          <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === getTotalPages()">
+            ▶
+          </button>
+          <button class="page-btn" (click)="goToPage(getTotalPages())" [disabled]="currentPage === getTotalPages()">
+            ⏭
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== DELETE MODAL ==================== -->
+  <div class="modal-overlay" *ngIf="showDeleteModal" (click)="cancelDelete()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>⚠️ Delete Bus</h3>
+        <button class="modal-close" (click)="cancelDelete()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="delete-warning">
+          <span class="warning-icon">🚌</span>
+          <p>Are you sure you want to delete <strong>{{ selectedBus?.busNumber }}</strong>?</p>
+          <p class="warning-text">{{ selectedBus?.busName }}</p>
+          <p class="warning-note">This action cannot be undone. All associated data will be permanently removed.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="cancelDelete()">Cancel</button>
+        <button class="btn-danger" (click)="deleteBus()">Delete Bus</button>
+      </div>
+    </div>
+  </div>
+</div>

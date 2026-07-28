@@ -151,7 +151,6 @@
         <button class="close-btn" (click)="closeAddModal()">×</button>
       </div>
       <div class="modal-body">
-        <!-- Modal Error Message -->
         <div *ngIf="modalErrorMessage" class="alert alert-error modal-alert">
           <span class="alert-icon">⚠️</span>
           <span>{{ modalErrorMessage }}</span>
@@ -161,11 +160,46 @@
         <form #addForm="ngForm">
           <div class="form-section">
             <h3>Bus Information</h3>
+            
+            <div class="form-group" [class.has-error]="validationErrors.busNumber">
+              <label>Select Existing Bus Number</label>
+              <div class="bus-number-select-container">
+                <select [(ngModel)]="newBus.busNumber" name="selectedBusNumber" 
+                        (change)="onBusNumberSelect()">
+                  <option value="">-- Select Bus Number --</option>
+                  <option *ngFor="let bus of busNumberOptions" [value]="bus.busNumber">
+                    {{ bus.busNumber }} - {{ bus.busName || 'No Name' }}
+                    <span *ngIf="bus.busType">({{ bus.busType }})</span>
+                  </option>
+                </select>
+                <button type="button" class="btn-refresh" (click)="loadBusNumberOptions()" 
+                        [disabled]="isLoadingBusNumbers" title="Refresh bus list">
+                  <span *ngIf="!isLoadingBusNumbers">🔄</span>
+                  <span *ngIf="isLoadingBusNumbers" class="spinner-small"></span>
+                </button>
+              </div>
+              
+              <div *ngIf="busNumberOptions.length === 0 && !isLoadingBusNumbers" class="debug-info">
+                <small class="text-warning">⚠️ No buses found. Make sure the API is working.</small>
+              </div>
+              <div *ngIf="isLoadingBusNumbers" class="debug-info">
+                <small class="text-info">🔄 Loading buses...</small>
+              </div>
+              <div *ngIf="busNumberOptions.length > 0" class="debug-info">
+                <small class="text-success">✅ {{ busNumberOptions.length }} buses available</small>
+              </div>
+              
+              <small class="field-hint">Select an existing bus to auto-fill its details</small>
+              <div class="error-message" *ngIf="validationErrors.busNumber">
+                {{ validationErrors.busNumber }}
+              </div>
+            </div>
+
             <div class="form-row">
               <div class="form-group half" [class.has-error]="validationErrors.busNumber">
-                <label>Bus Number <span class="required">*</span></label>
+                <label>Or Enter Bus Number <span class="required">*</span></label>
                 <input type="text" [(ngModel)]="newBus.busNumber" name="busNumber" 
-                       required placeholder="e.g., BA-1-KHA-1234" #busNumber="ngModel">
+                       required placeholder="e.g., BA-1-KHA-1234">
                 <div class="error-message" *ngIf="validationErrors.busNumber">
                   {{ validationErrors.busNumber }}
                 </div>
@@ -173,7 +207,7 @@
               <div class="form-group half" [class.has-error]="validationErrors.busName">
                 <label>Bus Name <span class="required">*</span></label>
                 <input type="text" [(ngModel)]="newBus.busName" name="busName" 
-                       required placeholder="e.g., Shree Yatri" #busName="ngModel">
+                       required placeholder="e.g., Shree Yatri">
                 <div class="error-message" *ngIf="validationErrors.busName">
                   {{ validationErrors.busName }}
                 </div>
@@ -284,24 +318,9 @@
             <div class="form-row">
               <div class="form-group half" [class.has-error]="validationErrors.fare">
                 <label>Fare (₹) <span class="required">*</span></label>
-                <input type="number" [(ngModel)]="newBus.fare" name="fare" required min="1" 
-                       [class.auto-calculated]="currentFareInfo?.source === 'fare_declaration'"
-                       [class.calculated]="currentFareInfo?.source === 'calculated'">
+                <input type="number" [(ngModel)]="newBus.fare" name="fare" required min="1">
                 <div *ngIf="isCalculatingFare" class="calculating">
-                  <span class="spinner-small"></span> Loading fare from declaration...
-                </div>
-                <div *ngIf="!isCalculatingFare && currentFareInfo" class="fare-info">
-                  <span *ngIf="currentFareInfo.source === 'fare_declaration'" class="auto-calc">
-                    ✅ From Fare Declaration: ₹{{ currentFareInfo.fare }}
-                    <small *ngIf="currentFareInfo.effectiveFrom">
-                      (Valid: {{ currentFareInfo.effectiveFrom | date:'dd/MM/yyyy' }} - {{ currentFareInfo.effectiveTo | date:'dd/MM/yyyy' }})
-                    </small>
-                  </span>
-                  <span *ngIf="currentFareInfo.source === 'calculated'" class="calculated-info">
-                    ⚠️ No fare declaration found! Calculated: ₹{{ currentFareInfo.fare }} 
-                    <small>({{ currentFareInfo.distance }}km × ₹{{ currentFareInfo.rate }}/km)</small>
-                    <br><small class="hint">Please create fare in Fare Declaration</small>
-                  </span>
+                  <span class="spinner-small"></span> Loading fare...
                 </div>
                 <div class="error-message" *ngIf="validationErrors.fare">
                   {{ validationErrors.fare }}
@@ -335,7 +354,6 @@
         <button class="close-btn" (click)="closeEditModal()">×</button>
       </div>
       <div class="modal-body">
-        <!-- Modal Error Message -->
         <div *ngIf="modalErrorMessage" class="alert alert-error modal-alert">
           <span class="alert-icon">⚠️</span>
           <span>{{ modalErrorMessage }}</span>
@@ -345,36 +363,86 @@
         <form #editForm="ngForm">
           <div class="form-section">
             <h3>Bus Information</h3>
-            <div class="form-row">
-              <div class="form-group half">
-                <label>Bus Number <span class="required">*</span></label>
-                <input type="text" [(ngModel)]="selectedBus.busNumber" name="editBusNumber" required>
+            
+            <!-- Bus Number Dropdown -->
+            <div class="form-group" [class.has-error]="validationErrors.busNumber">
+              <label>Bus Number <span class="required">*</span></label>
+              <div class="bus-number-select-container">
+                <select [(ngModel)]="selectedBus.busNumber" name="editBusNumber" 
+                        (change)="onEditBusNumberSelect()" required>
+                  <option value="">-- Select Bus Number --</option>
+                  <option *ngFor="let bus of busNumberOptions" [value]="bus.busNumber">
+                    {{ bus.busNumber }} - {{ bus.busName || 'No Name' }}
+                    <span *ngIf="bus.busType">({{ bus.busType }})</span>
+                  </option>
+                </select>
+                <button type="button" class="btn-refresh" (click)="loadBusNumberOptions()" 
+                        [disabled]="isLoadingBusNumbers" title="Refresh bus list">
+                  <span *ngIf="!isLoadingBusNumbers">🔄</span>
+                  <span *ngIf="isLoadingBusNumbers" class="spinner-small"></span>
+                </button>
               </div>
+              
+              <div *ngIf="busNumberOptions.length === 0 && !isLoadingBusNumbers" class="debug-info">
+                <small class="text-warning">⚠️ No buses found. Make sure the API is working.</small>
+              </div>
+              <div *ngIf="isLoadingBusNumbers" class="debug-info">
+                <small class="text-info">🔄 Loading buses...</small>
+              </div>
+              <div *ngIf="busNumberOptions.length > 0" class="debug-info">
+                <small class="text-success">✅ {{ busNumberOptions.length }} buses available</small>
+              </div>
+              
+              <small class="field-hint">Select a bus number to load its details</small>
+              <div class="error-message" *ngIf="validationErrors.busNumber">
+                {{ validationErrors.busNumber }}
+              </div>
+            </div>
+
+            <div class="form-row">
               <div class="form-group half">
                 <label>Bus Name <span class="required">*</span></label>
                 <input type="text" [(ngModel)]="selectedBus.busName" name="editBusName" required>
               </div>
-            </div>
-            <div class="form-row">
               <div class="form-group half">
                 <label>Bus Type</label>
-                <input type="text" [value]="selectedBus.busType" class="readonly-field" readonly>
-              </div>
-              <div class="form-group half">
-                <label>Route</label>
-                <input type="text" [value]="getRouteName(selectedBus.routeId)" class="readonly-field" readonly>
+                <select [(ngModel)]="selectedBus.busType" name="editBusType">
+                  <option *ngFor="let type of busTypes" [value]="type">{{ type }}</option>
+                </select>
               </div>
             </div>
+
             <div class="form-row">
+              <div class="form-group half">
+                <label>Route</label>
+                <select [(ngModel)]="selectedBus.routeId" name="editRouteId">
+                  <option value="">-- Select Route --</option>
+                  <option *ngFor="let route of routes" [value]="route._id">
+                    {{ route.routeName }} ({{ route.origin }} → {{ route.destination }})
+                  </option>
+                </select>
+              </div>
               <div class="form-group half">
                 <label>Total Seats</label>
                 <input type="number" [(ngModel)]="selectedBus.totalSeats" name="editTotalSeats" required min="10" max="60">
               </div>
+            </div>
+
+            <div class="form-row">
               <div class="form-group half">
                 <label>Seat Layout</label>
                 <select [(ngModel)]="selectedBus.seatLayout" name="editSeatLayout">
                   <option *ngFor="let layout of seatLayouts" [value]="layout">{{ layout }}</option>
                 </select>
+              </div>
+              <div class="form-group half">
+                <label>Amenities</label>
+                <div class="amenities-grid compact">
+                  <label *ngFor="let amenity of amenityOptions" class="checkbox-label">
+                    <input type="checkbox" [checked]="selectedBus.amenities?.includes(amenity)"
+                           (change)="toggleEditAmenity(amenity)"> {{ amenity }}
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -416,8 +484,7 @@
             <div class="form-row">
               <div class="form-group half">
                 <label>Fare (₹)</label>
-                <input type="number" [value]="selectedBus.fare" class="readonly-field" readonly>
-                <small class="field-hint">Fare is from Fare Declaration</small>
+                <input type="number" [(ngModel)]="selectedBus.fare" name="editFare" required min="1">
               </div>
               <div class="form-group half">
                 <label>Status</label>
@@ -462,19 +529,7 @@
           </div>
           <div class="detail-item">
             <span class="detail-label">Route:</span>
-            <span class="detail-value">{{ selectedBus.routeName }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Origin:</span>
-            <span class="detail-value">{{ selectedBus.origin }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Destination:</span>
-            <span class="detail-value">{{ selectedBus.destination }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Distance:</span>
-            <span class="detail-value">{{ selectedBus.distance }} km</span>
+            <span class="detail-value">{{ getRouteName(selectedBus.routeId) }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Driver:</span>
@@ -541,7 +596,7 @@
         <p>Delete bus:</p>
         <p class="delete-details">
           <strong>{{ selectedBus.busNumber }}</strong> - {{ selectedBus.busName }}<br>
-          {{ selectedBus.routeName }}
+          {{ getRouteName(selectedBus.routeId) }}
         </p>
         <p class="warning-text">This action cannot be undone!</p>
       </div>
