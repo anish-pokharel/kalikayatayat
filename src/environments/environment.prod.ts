@@ -7,8 +7,8 @@ export const environment = {
   apiUrl: 'http://localhost:3000/api',
 
   khalti: {
-    publicKey: 'live_public_key_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-    secretKey: 'live_secret_key_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    publicKey: 'test_public_key_0275cc5e2bae42fb890536aae01e9e73',
+    // secretKey: 'live_secret_key_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
     returnUrl: 'https://kalikayatayat.netlify.app/payment-callback'  // Updated to your frontend domain
   }
 };

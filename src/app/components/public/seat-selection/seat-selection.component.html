@@ -7,17 +7,13 @@
     </div>
   </div>
 
- 
+  
   <div class="bus-info-card" *ngIf="busDetails">
     <div class="bus-info-header">
       <h2>{{ getBusName() }}</h2>
       <span class="bus-number">{{ getBusNumber() }}</span>
     </div>
     <div class="bus-info-details">
-      <div class="info-row">
-        <span class="info-label">Operator:</span>
-        <span class="info-value">{{ getOperatorName() }}</span>
-      </div>
       <div class="info-row">
         <span class="info-label">Departure:</span>
         <span class="info-value">{{ getDepartureTime() }}</span>
@@ -27,85 +23,86 @@
         <span class="info-value">{{ getArrivalTime() }}</span>
       </div>
       <div class="info-row">
+        <span class="info-label">Duration:</span>
+        <span class="info-value">{{ getDuration() }}</span>
+      </div>
+      <div class="info-row">
         <span class="info-label">Journey Date:</span>
         <span class="info-value">{{ journeyDetails.date }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Price per Seat:</span>
+        <span class="info-value price">₹{{ seatPrice }}</span>
       </div>
     </div>
   </div>
 
-
-  <div class="main-layout">
   
+  <div class="main-layout">
+    
     <div class="seat-map-section">
       <div class="seat-map-header">
         <h3>Select Seats (Max {{ maxSeats }})</h3>
-        <button 
-          class="multi-select-toggle" 
-          [class.active]="isMultiSelectMode"
-          (click)="toggleMultiSelectMode()">
-          {{ isMultiSelectMode ? 'Exit Multi-Select' : 'Multi-Select Mode' }}
-        </button>
+        <div class="selected-info">
+          Selected: {{ selectedSeats.length }} / {{ maxSeats }} seats
+        </div>
       </div>
 
-
-      <button (click)="testMarkBookedSeats()" style="margin: 10px; padding: 8px 16px; background: orange; color: white; border: none; border-radius: 4px; cursor: pointer;">
-        🧪 Test Mark Booked Seats
-      </button>
-
+     
       <div class="bus-layout-card">
         <div class="driver-area">
           <div class="driver-seat">🚌 Driver</div>
         </div>
 
+       
         <div class="seat-grid">
-          <div *ngFor="let row of getRowNumbers()" class="seat-row">
-            <div class="row-label">{{ getRowLetter(row) }}</div>
-            <div class="seats-wrapper">
-              <div 
-                *ngFor="let seat of getSeatsByRow(row)" 
-                class="seat"
-                [ngClass]="{
-                  'seat-available': seat.status === 'available',
-                  'seat-selected': seat.status === 'selected',
-                  'seat-occupied': seat.status === 'booked' || seat.status === 'occupied',
-                  'seat-ladies': seat.isLadies && seat.status === 'available',
-                  'seat-temp': seat.tempSelected,
-                  'seat-driver': seat.seatType === 'driver'
-                }"
-                (click)="toggleSeat(seat)"
-                [title]="getSeatTooltip(seat)">
-                <span class="seat-number">{{ seat.number }}</span>
-                <span class="seat-status-icon" *ngIf="seat.status === 'booked'">🔴</span>
-                <span class="seat-price" *ngIf="seat.status !== 'booked' && seat.status !== 'occupied' && seat.seatType !== 'driver'">
-                  ₹{{ seat.price }}
-                </span>
-              </div>
+          <div class="seat-row header-row">
+            <div class="row-label"></div>
+            <div class="seat-column">A</div>
+            <div class="seat-column">B</div>
+            <div class="seat-gap"></div>
+            <div class="seat-column">C</div>
+            <div class="seat-column">D</div>
+          </div>
+          
+   
+          <div *ngFor="let row of [1,2,3,4,5,6,7,8,9,10]" class="seat-row">
+            <div class="row-label">{{ row }}</div>
+            <div *ngFor="let seat of getSeatsByRow(row)" 
+                 class="seat"
+                 [class.seat-available]="seat.status === 'available'"
+                 [class.seat-selected]="seat.status === 'selected'"
+                 [class.seat-occupied]="seat.status === 'booked'"
+                 (click)="toggleSeat(seat)"
+                 [title]="getSeatTooltip(seat)">
+              <span class="seat-number">{{ seat.number }}</span>
+              <span class="seat-price-tag">₹{{ seat.price }}</span>
             </div>
+           
+            <div class="seat-gap-spacer"></div>
           </div>
         </div>
 
+        
         <div class="seat-legend">
           <div class="legend-item"><span class="legend-box available"></span> Available</div>
           <div class="legend-item"><span class="legend-box selected"></span> Selected</div>
           <div class="legend-item"><span class="legend-box occupied"></span> Booked</div>
-          <div class="legend-item"><span class="legend-box ladies"></span> Ladies Only</div>
-          <div class="legend-item"><span class="legend-box temp"></span> Temp Selected</div>
         </div>
 
-        <div class="multi-select-bar" *ngIf="isMultiSelectMode && tempSelectedSeats.length > 0">
-          <span>{{ tempSelectedSeats.length }} seat(s) selected temporarily</span>
-          <div>
-            <button class="btn-cancel-sm" (click)="cancelMultiSelection()">Cancel</button>
-            <button class="btn-confirm-sm" (click)="confirmMultiSelection()">Confirm Selection</button>
-          </div>
+      
+        <div *ngIf="showLimitWarning" class="warning-message">
+          ⚠️ You can select maximum {{ maxSeats }} seats only.
         </div>
       </div>
     </div>
 
+   
     <div class="summary-section">
       <div class="summary-card">
         <h3>Booking Summary</h3>
 
+      
         <div class="user-info-bar" *ngIf="currentUser">
           <div class="user-avatar">
             {{ (currentUser.firstName?.charAt(0) || 'U') + (currentUser.lastName?.charAt(0) || '') }}
@@ -116,6 +113,7 @@
           </div>
         </div>
 
+      
         <div class="selected-seats-list">
           <h4>Selected Seats ({{ selectedSeats.length }})</h4>
           <div *ngIf="selectedSeats.length === 0" class="empty-message">No seats selected</div>
@@ -125,31 +123,45 @@
           </div>
         </div>
 
+       
         <div class="boarding-section">
           <label>Boarding Point *</label>
-          <select class="form-control" [(ngModel)]="selectedBoardingPoint" (change)="calculateTotal()">
-            <option [ngValue]="null">Select Boarding Point</option>
-            <option *ngFor="let bp of boardingPoints" [ngValue]="bp">
-              {{ bp.name }} - {{ bp.time }} {{ bp.fare > 0 ? '(₹' + bp.fare + ' extra)' : '' }}
-            </option>
-          </select>
-          <div *ngIf="selectedBoardingPoint" class="boarding-details">
-            <small>📍 {{ selectedBoardingPoint.address }}</small>
-          </div>
+          <input 
+            type="text" 
+            class="form-control" 
+            [(ngModel)]="boardingPoint"
+            placeholder="Enter your boarding point (e.g., City Center, Bus Stand, Airport)"
+          >
+          <small class="help-text">Enter the location where you want to board the bus</small>
         </div>
 
+        <div class="boarding-section">
+          <label>Boarding Address (Optional)</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            [(ngModel)]="boardingAddress"
+            placeholder="Enter complete address"
+          >
+        </div>
+
+        <div class="boarding-section">
+          <label>Boarding Time</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            [(ngModel)]="boardingTime"
+            placeholder="Boarding time"
+            readonly
+          >
+          <small class="help-text">Suggested boarding time (can be modified)</small>
+        </div>
+
+        
         <div class="fare-details">
           <div class="fare-row">
-            <span>Base Fare (Seats)</span>
+            <span>Seats ({{ selectedSeats.length }} x ₹{{ seatPrice }})</span>
             <span>₹{{ bookingSummary.baseFare }}</span>
-          </div>
-          <div class="fare-row" *ngIf="hasBoardingFare()">
-            <span>Boarding Fee</span>
-            <span>₹{{ getBoardingFare() }}</span>
-          </div>
-          <div class="fare-row">
-            <span>GST (5%)</span>
-            <span>₹{{ bookingSummary.gst }}</span>
           </div>
           <div class="fare-row total">
             <span>Total Amount</span>
@@ -157,17 +169,16 @@
           </div>
         </div>
 
+       
         <button 
           type="button"
           class="proceed-btn" 
-          [disabled]="selectedSeats.length === 0 || !selectedBoardingPoint || isBooking"
+          [disabled]="selectedSeats.length === 0 || !boardingPoint.trim() || isBooking"
           (click)="proceedToBooking()">
           {{ isBooking ? 'Processing...' : 'Proceed to Passenger Details' }}
         </button>
 
-        <div *ngIf="showLimitWarning" class="warning-message">
-          ⚠️ You can select maximum {{ maxSeats }} seats only.
-        </div>
+       
         <div *ngIf="errorMessage" class="error-message">
           ❌ {{ errorMessage }}
         </div>
@@ -175,6 +186,7 @@
     </div>
   </div>
 
+  
   <div class="modal-overlay" *ngIf="showPassengerModal" (click)="showPassengerModal = false">
     <div class="modal-container" (click)="$event.stopPropagation()">
       <div class="modal-header">
@@ -193,26 +205,13 @@
             
             <div class="form-group">
               <label>Full Name *</label>
-              <input 
-                type="text" 
-                [(ngModel)]="passenger.name" 
-                [name]="'name'+i" 
-                required
-                class="auto-filled"
-                [class.auto-filled]="passenger.name === (currentUser?.firstName + ' ' + currentUser?.lastName).trim()">
+              <input type="text" [(ngModel)]="passenger.name" [name]="'name'+i" required>
             </div>
             
             <div class="form-row">
               <div class="form-group">
                 <label>Age *</label>
-                <input 
-                  type="number" 
-                  [(ngModel)]="passenger.age" 
-                  [name]="'age'+i" 
-                  required 
-                  min="1" 
-                  max="120"
-                  placeholder="Enter age">
+                <input type="number" [(ngModel)]="passenger.age" [name]="'age'+i" required min="1" max="120">
               </div>
               <div class="form-group">
                 <label>Gender *</label>
@@ -226,37 +225,26 @@
             
             <div class="form-group">
               <label>Phone Number *</label>
-              <input 
-                type="tel" 
-                [(ngModel)]="passenger.phone" 
-                [name]="'phone'+i" 
-                required 
-                pattern="[0-9]{10}"
-                class="auto-filled"
-                [class.auto-filled]="passenger.phone === currentUser?.phone">
+              <input type="tel" [(ngModel)]="passenger.phone" [name]="'phone'+i" required pattern="[0-9]{10}">
             </div>
             
             <div class="form-group">
               <label>Email (Optional)</label>
-              <input 
-                type="email" 
-                [(ngModel)]="passenger.email" 
-                [name]="'email'+i"
-                class="auto-filled"
-                [class.auto-filled]="passenger.email === currentUser?.email">
+              <input type="email" [(ngModel)]="passenger.email" [name]="'email'+i">
             </div>
           </div>
         </form>
       </div>
       <div class="modal-footer">
         <button class="btn-cancel" (click)="showPassengerModal = false">Cancel</button>
-        <button class="btn-confirm" (click)="confirmAllPassengers()" [disabled]="!areAllPassengersValid() || isBooking">
-          {{ isBooking ? 'Processing...' : 'Confirm & Continue' }}
+        <button class="btn-confirm" (click)="confirmAllPassengers()" [disabled]="!areAllPassengersValid()">
+          Confirm & Continue
         </button>
       </div>
     </div>
   </div>
 
+ 
   <div class="modal-overlay" *ngIf="showPaymentModal" (click)="closePaymentModal()">
     <div class="modal-container payment-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
@@ -266,7 +254,7 @@
       <div class="modal-body">
         <div class="payment-amount">
           <h4>Total Amount to Pay</h4>
-          <div class="amount-display">रू {{ bookingSummary.total }}</div>
+          <div class="amount-display">₹{{ bookingSummary.total }}</div>
         </div>
 
         <div class="payment-methods">
@@ -285,24 +273,6 @@
           </div>
         </div>
 
-        <div *ngIf="paymentError" class="payment-error">
-          ❌ {{ paymentError }}
-        </div>
-
-        <div class="payment-info" *ngIf="selectedPaymentMethod === 'khalti'">
-          <div class="info-box">
-            <span class="info-icon">ℹ️</span>
-            <span>You will be redirected to Khalti payment gateway</span>
-          </div>
-        </div>
-
-        <div class="payment-info" *ngIf="selectedPaymentMethod === 'esewa'">
-          <div class="info-box">
-            <span class="info-icon">ℹ️</span>
-            <span>You will be redirected to eSewa payment gateway</span>
-          </div>
-        </div>
-
         <div class="payment-info" *ngIf="selectedPaymentMethod === 'cash'">
           <div class="info-box warning">
             <span class="info-icon">⚠️</span>
@@ -313,7 +283,7 @@
       <div class="modal-footer">
         <button class="btn-cancel" (click)="closePaymentModal()" [disabled]="isProcessingPayment">Cancel</button>
         <button class="btn-confirm" (click)="processPayment()" [disabled]="isProcessingPayment">
-          <span *ngIf="!isProcessingPayment">Pay रू {{ bookingSummary.total }}</span>
+          <span *ngIf="!isProcessingPayment">Pay ₹{{ bookingSummary.total }}</span>
           <span *ngIf="isProcessingPayment" class="spinner-small"></span>
           <span *ngIf="isProcessingPayment"> Processing...</span>
         </button>
@@ -321,20 +291,16 @@
     </div>
   </div>
 
-  <div class="modal-overlay" *ngIf="showBookingSuccess">
-    <div class="success-modal">
-      <div class="success-icon">✅</div>
-      <h3>Booking Successful!</h3>
-      <p>{{ successMessage }}</p>
-      <p class="small-text">Redirecting to my bookings...</p>
-    </div>
-  </div>
-
+  
   <div class="loading-overlay" *ngIf="isLoading">
     <div class="spinner"></div>
     <p>Loading seat layout...</p>
   </div>
 </div> -->
+
+
+
+
 
 
 
@@ -395,7 +361,7 @@
           <div class="driver-seat">🚌 Driver</div>
         </div>
 
-        <!-- Seat Grid - 4 columns with gap after column 2 -->
+        <!-- Seat Grid -->
         <div class="seat-grid">
           <!-- Header Row with Column Letters -->
           <div class="seat-row header-row">
@@ -407,7 +373,7 @@
             <div class="seat-column">D</div>
           </div>
           
-          <!-- Generate 10 rows -->
+          <!-- Generate rows -->
           <div *ngFor="let row of [1,2,3,4,5,6,7,8,9,10]" class="seat-row">
             <div class="row-label">{{ row }}</div>
             <div *ngFor="let seat of getSeatsByRow(row)" 
@@ -420,7 +386,6 @@
               <span class="seat-number">{{ seat.number }}</span>
               <span class="seat-price-tag">₹{{ seat.price }}</span>
             </div>
-            <!-- Add gap spacer after column 2 -->
             <div class="seat-gap-spacer"></div>
           </div>
         </div>
@@ -465,14 +430,14 @@
           </div>
         </div>
 
-        <!-- Boarding Point - Input Field -->
+        <!-- Boarding Point -->
         <div class="boarding-section">
           <label>Boarding Point *</label>
           <input 
             type="text" 
             class="form-control" 
             [(ngModel)]="boardingPoint"
-            placeholder="Enter your boarding point (e.g., City Center, Bus Stand, Airport)"
+            placeholder="Enter your boarding point (e.g., City Center, Bus Stand)"
           >
           <small class="help-text">Enter the location where you want to board the bus</small>
         </div>
@@ -608,6 +573,7 @@
             <div class="method-icon">{{ method.icon }}</div>
             <div class="method-details">
               <div class="method-name">{{ method.label }}</div>
+              <div class="method-description">{{ method.description }}</div>
             </div>
             <div class="method-radio">
               <div class="radio-circle" [class.selected]="selectedPaymentMethod === method.value"></div>
@@ -615,6 +581,15 @@
           </div>
         </div>
 
+        <!-- Khalti Info -->
+        <div class="payment-info" *ngIf="selectedPaymentMethod === 'khalti'">
+          <div class="info-box success">
+            <span class="info-icon">🔒</span>
+            <span>Secure payment via Khalti Wallet. You will be redirected to Khalti for payment.</span>
+          </div>
+        </div>
+
+        <!-- Cash Info -->
         <div class="payment-info" *ngIf="selectedPaymentMethod === 'cash'">
           <div class="info-box warning">
             <span class="info-icon">⚠️</span>
